@@ -41,8 +41,9 @@ vignettes/*.pdf
 
 # Output
 /Tables/**
-/Model_Output/**
+/Model_Files/**
 /Data/**
+/Formatted_Data/**
 /Figures/**
 *.zip
 *.tsv
