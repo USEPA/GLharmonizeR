@@ -50,5 +50,6 @@ vignettes/*.pdf
 *.csv
 *.rds
 *.json
+*.html
 
 desktop.ini
