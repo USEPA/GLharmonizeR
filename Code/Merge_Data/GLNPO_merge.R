@@ -260,10 +260,11 @@ cols2 <- brewer.pal(9, "Reds")[3:9]
 pal2 <- colorRampPalette(cols2)
 ggplot() + geom_sf(data=MI.shape.agg, colour="black", fill="gray70", lwd=.5) +
   geom_sf(data=st_jitter(dat_join, factor = 0.02), aes(col=TP_ugL)) + 
-  scale_color_gradientn(colours=pal2(100))+
+  scale_color_gradientn(colours=pal2(100), na.value="transparent")+
   theme_light()
+  
 
-
+# What are the gray points
 
 #+ echo-FALSE
 # library(knitr); rmarkdown::render("Code/Merge_Data/GLNPO_merge.R")
