@@ -58,5 +58,7 @@ vignettes/*.pdf
 *.html
 *.jpeg
 *.jpg
+*.js
+*.css
 
 desktop.ini
