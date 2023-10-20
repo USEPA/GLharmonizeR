@@ -51,5 +51,12 @@ vignettes/*.pdf
 *.rds
 *.json
 *.html
+*.xls
+*.xlsx
+*.Rds
+*.png
+*.html
+*.jpeg
+*.jpg
 
 desktop.ini
