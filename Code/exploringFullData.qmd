@@ -1,0 +1,130 @@
+---
+title: "Exploring Full WQD"
+format: html
+execute:
+    message: false
+    warning: false
+    error: false
+    echo: false
+editor: visual
+---
+
+I split the NA types into three categories (for sure NA's, Unsure NA or not, Definitely not NA's but I'll address later). You can see with the line break in na argument. I determined missing values in each "VALUE" column with the commented out code below
+Dropped ANAL_CODE_ columns because they are redundant with the "Analyte" columns
+```{r setup}
+#| include: false
+library(tidyverse)
+library(GGally)
+library(naniar)
+library(caret)
+library(randomForest)
+library(janitor)
+df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/AllWQresults.csv", na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
+                                                                                                                             "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4", "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9", "INVALID 6.5",
+                                                                                                                             "<0.12", "<0.1", "<500", "<2", "<1", "<0.05")) %>%
+  # These columns are redundant with the "Analyte" columns
+  select(-contains("ANL_CODE_"), -Row) %>%
+  # Drop columns with 100% missingness
+  select_if(~mean(is.na(.)) < 0.9) %>%
+  pivot_longer(cols = -c(1:18),
+               names_to = c(".value", "Number"),
+               names_pattern = "(.*)_(\\d*)$") %>%
+  filter(!is.na(ANALYTE))
+# head(sort(table(df$VALUE_1), decreasing=T), 200)
+# This is where I determined the NA values
+#Clear_NAs <- df$VALUE_9[!is.na(df$VALUE_9)]
+#unique(Clear_NAs[is.na(as.numeric(Clear_NAs))])
+#df %>% 
+#  select(contains("VALUE")) %>%
+#  glimpse()
+# df %>% 
+#   select(YEAR, STN_DEPTH_M, LATITUDE, LONGITUDE, SAMPLE_DEPTH_M, contains("VALUE_")) %>%
+#   glimpse()
+```
+Fixing NA's all columns appeared to be right datatype
+
+# Summarizing DATA
+## Samples through time
+```{r}
+df %>%
+  group_by(ANALYTE, YEAR) %>%
+  summarize(N = n()) %>%
+  ggplot(aes(x = YEAR, y = N)) +
+  geom_point() + 
+  facet_wrap(~ANALYTE, ncol = 3, )
+```
+
+## Samples through space
+```{r}
+df %>%
+  distinct(SAMPLE_ID, .keep_all=T)  %>%
+  ggplot(aes(x = LONGITUDE, y = LATITUDE)) +
+  geom_density_2d_filled()
+```
+
+
+
+
+## Ranges and missingness
+- MAX/MIN years
+- MAX/MIN Lat/longs
+- Analyte distributions
+```{r}
+df %>%
+  group_by(ANALYTE) %>%
+  summarize(MIN = min(YEAR, na.rm= T), MAX = max(YEAR, na.rm = T)) %>%
+  mutate(SPAN = MAX - MIN + 1)
+```
+
+## Fraction counts
+```{r}
+df %>%
+  count(FRACTION)
+
+```
+
+
+## Remark counts
+```{r}
+df %>%
+  filter(!is.na(RESULT_REMARK)) %>% 
+  count(RESULT_REMARK)%>%
+  arrange(desc(n))
+```
+## Marginal Correlations
+```{r MissingnessChloro}
+#| warning: false
+dfWide <- df %>%
+  select(SAMPLE_ID, ANALYTE, VALUE) %>%
+  distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>% 
+  pivot_wider(id_cols = SAMPLE_ID, names_from = ANALYTE, values_from = VALUE) %>%
+  filter(!is.na(`Chlorophyll-a`))
+naniar::gg_miss_var(dfWide)
+
+dfWide <- dfWide %>%
+  select_if(~mean(is.na(.)) < 0.2)
+```
+
+## Stewise linear model
+```{r}
+#| warning: false
+lModel <- lm(formula = `Chlorophyll-a` ~ .- SAMPLE_ID, data= dfWide)
+
+ggpairs(dfWide, columns = 2:10, progress = F)
+```
+
+# RF Model
+```{r}
+set.seed(222)
+dfWide <- janitor::clean_names(dfWide)
+ind <- sample(2, nrow(dfWide), replace = TRUE, prob = c(0.7, 0.3))
+train <- dfWide[ind==1,]
+test <- dfWide[ind==2,]
+```
+
+```{r}
+rf <- randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit) 
+print(rf)
+p <- predict(rf, newdata = test)
+postResample(p, test$chlorophyll_a)
+```
