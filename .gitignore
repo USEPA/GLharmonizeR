@@ -60,5 +60,13 @@ vignettes/*.pdf
 *.jpg
 *.js
 *.css
+*.shp
+*.text
+*.txt
+*.cpg
+*.prj
+*.shx
+*.dbf
+
 
 desktop.ini
