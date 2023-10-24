@@ -29,7 +29,7 @@ library(sp) # 1.4-5
 library(rnaturalearth)
 library(rnaturalearthdata)
 
-df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/AllWQresults.csv", na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
+df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/allWQ.csv", na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
                                                                                                                              "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4", "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9", "INVALID 6.5",
                                                                                                                              "<0.12", "<0.1", "<500", "<2", "<1", "<0.05")) %>%
   # These columns are redundant with the "Analyte" columns
@@ -156,26 +156,35 @@ fractions %>%
 ## Remark counts
 ```{r}
 #| tbl-cap: "Counts for each type of remarks"
-remarkCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/remarkCodes.csv")
-QCCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/QCcodes.csv")
-depthCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/DepthCodes.csv")
+remarkCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/remarkCodes.csv")
+QCCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/QCcodes.csv")
+depthCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/DepthCodes.csv")
 
 
 remarks <- df %>%
   filter(!is.na(RESULT_REMARK)) %>% 
   count(RESULT_REMARK)%>%
-  arrange(desc(n)) 
+  arrange(desc(n)) %>%
+  left_join(remarkCodes, by= c("RESULT_REMARK"= "NAME"))
 
-df %>%
-  filter(!is.na(RESULT_REMARK)) %>% 
-  ggplot(aes(x= RESULT_REMARK)) +
-  geom_bar() +
-  geom_text( aes(label = RESULT_REMARK, y = n), data = remarks[remarks$n > 350 ,], angle =45, size = 2) + 
-  theme(axis.title.x=element_blank(),
-     axis.text.x=element_blank(),
-     axis.ticks.x=element_blank())
+remarks %>%
+  group_by(CLASS) %>%
+  summarize(n = sum(n)) %>%
+  mutate(CLASS = reorder(CLASS, n)) %>%
+  ggplot(aes(x = CLASS, y = n)) +
+  geom_bar(stat= "identity") + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  ggtitle("Classes of Remarks")
 
-
+remarks %>%
+  filter(!is.na(CLASS)) %>%
+  ggplot(aes(x = RESULT_REMARK, y = n)) +
+  geom_bar(stat=  "identity") +
+  facet_wrap(~CLASS, scales = "free") + 
+  geom_text( aes(label = RESULT_REMARK, y = n), angle =45, size = 2) + 
+  theme(axis.text.x=element_blank(),
+     axis.ticks.x=element_blank()) +
+  ggtitle("Subclasses of Remarks")
 ```
 
 ## Missingness 
