@@ -156,6 +156,11 @@ fractions %>%
 ## Remark counts
 ```{r}
 #| tbl-cap: "Counts for each type of remarks"
+remarkCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/remarkCodes.csv")
+QCCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/QCcodes.csv")
+depthCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/DepthCodes.csv")
+
+
 remarks <- df %>%
   filter(!is.na(RESULT_REMARK)) %>% 
   count(RESULT_REMARK)%>%

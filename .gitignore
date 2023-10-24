@@ -68,5 +68,10 @@ vignettes/*.pdf
 *.shx
 *.dbf
 
+# Exceptions 
+!Data/*.csv
+
+# DOUBLY make sure to exclude large data files
+Data/all*
 
 desktop.ini

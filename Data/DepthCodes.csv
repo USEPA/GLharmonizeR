@@ -1,0 +1,30 @@
+CODE,NAME,DESCRIPTION
+100,One Hundred Meter,Sample was collected one hundred meters below the surface of the water body
+200,Two Hundred Meter,Sample was collected two hundred meters below the surface of the water body
+10M,Ten Meter,Sample was collected ten meters below the surface of the water body
+20M,Twenty Meter,Sample was collected twenty meters below the surface of the water body
+30M,Thirty Meter,Sample was collected thirty meters below the surface of the water body
+40M,Fourty Meter,Sample was collected forty meters below the surface of the water body
+50M,Fifty Meter,Sample was collected fifty meters below the surface of the water body
+5M,Five Meter,Sample was collected five meters below the surface of the water body
+B-,Bottom Minus,Sample was collected from 1-2 meters above the bottom of the water body ( 1 or 2 meters not specified)
+B1,Bottom Minus 1,Sample was collected 1 meter above the bottom of the water body
+B10,Bottom Minus 10,Samples was collected from 10 meters above the bottom of the water body
+B2,Bottom Minus 2,Sample was collected 2 meters above the bottom of the water body
+D100,Integrated 100,Sample was collected across the area from 0-100 meters from the water surface 
+D20,Integrated 20,Sample was collected across the area from 0-20 meters from the water surface
+DCL,Deep Chlorophyll Layer,Sample was collected at the location below the thermocline where the flourometer shows a maximum value over the water column
+EP,Epilimnion,"Sample was collected from the warm, aerated upper layer of the water body. The epilimnion lies above the thermocline"
+HY,Hypolimnion,"Sample was collected from the lower, cooler layer of water in the water body. The hypolimnion lies below the thermocline"
+INT-SPR,"Integrated, Spring","Sample is a composite of samples collected from 1 meter, 5 meters, 10 meters, and 20 meters below the water surface"
+INT-SUM,"Integrated, Summer","Sample is a composite of samples collected from 1 meter, 5 meters, and 10 meters below the water surface and from the Lower Epilimnion"
+LEP,Lower Epilimnion,Sample was collected from the lower portion of the epilimnion
+LHY,Lower Hypolimnion,Sample was collected from the lower portion of the hypolimnion
+MEP,Mid Epilimnion,Sample was collected midpoint between the water surface and the lower epilimnion (depth = LEP depth/2)
+MHY,Mid Hypolimnion,Sample was collected from the midpoint between the upper hypolimnion and the bottom (depth = (UHY depth + total depth)/2)
+MID,Middle Depth,Sample was collected from the midpoint between the water surface and the bottom
+SRF,Surface,Sample was collected from 1-2 meters below the water surface
+SYN,Synthetic Sample,Sample depth is not applicable because sample was a synthetic sample.
+TRM,Thermocline,Sample was collected from the layer of the lake that exhibits an abrupt temperature gradient and separates other layers that differ in temperature
+UEP,Upper Epilimnion,Sample was collected from the upper portion of the epilimnion
+UHY,Upper Hypolimnion,Sample was collected from the upper portion of the hypolimnion
