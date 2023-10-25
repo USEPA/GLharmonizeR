@@ -22,12 +22,16 @@ library(naniar)
 library(caret)
 library(randomForest)
 library(janitor)
-library(ggh4x) # rescale facet plots
+#library(ggh4x) # rescale facet plots
 library(kableExtra)
 library(sf) # 1.0-12
 library(sp) # 1.4-5
 library(rnaturalearth)
 library(rnaturalearthdata)
+library(ggbeeswarm)
+library(visdat)
+library(cluster)
+library(ggfortify)
 
 df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/allWQ.csv", na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
                                                                                                                              "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4", "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9", "INVALID 6.5",
@@ -42,7 +46,11 @@ df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EP
   filter(!is.na(ANALYTE), 
          QC_TYPE == "routine field sample",
          SAMPLE_TYPE != "Composite") %>%
-  mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M"))
+  mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M")) %>%
+  filter(! ANALYTE %in% c("Secchi Disc Transparency", # similar to turbidity and high missingness
+                          "Suspended solids, total",  # similar to turbidity and high missingness 
+                          "Hardness, Total as CaCO3" # similar to alkalinity and high missingness
+                          ))
 # Other filter ideas
 # FIX TIME ZONES
 # Depth Code 'thermocline
@@ -60,35 +68,19 @@ df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EP
 #   glimpse()
 ```
 
-Fixing NA's all columns appeared to be right datatype
-
-# Summarizing DATA
-
-<!-- ## Samples through time -->
-
-<!-- ```{r analyteYear} -->
-<!-- df %>% -->
-<!--   group_by(ANALYTE, YEAR) %>% -->
-<!--   summarize(N = n()) %>% -->
-<!--   ggplot(aes(x = YEAR, y = N)) + -->
-<!--   geom_point() +  -->
-<!--   facet_wrap(~ANALYTE, ncol = 3, ) +  -->
-<!--   force_panelsizes(rows = 1,cols = 1) -->
-
-<!-- ``` -->
-
-## Samples through space
+# Spatial summary
 ```{r samplesSpace}
 #| fig-cap: "Density of samples with respect to latitude and longitude"
+#| cache: true
 
 theme_set(theme_bw())
-url <- paste0("https://www.naturalearthdata.com/", 
-              "http//www.naturalearthdata.com/download/10m/physical/",
-              "ne_10m_lakes.zip")
-
-path <- tempdir()
-download.file(url, paste0(path, "/lakes.zip"))
-unzip(paste0(path, "/lakes.zip"))
+# url <- paste0("https://www.naturalearthdata.com/", 
+#               "http//www.naturalearthdata.com/download/10m/physical/",
+#               "ne_10m_lakes.zip")
+# 
+# path <- tempdir()
+# download.file(url, paste0(path, "/lakes.zip"))
+# unzip(paste0(path, "/lakes.zip"))
 lakes <- read_sf("ne_10m_lakes.shp")
 
 ggplot(lakes) +
@@ -117,26 +109,55 @@ df %>%
 
 ```
 
-## Sample years
+## Time summary 
 ```{r sampleYears}
-#| tbl-cap: "Range of years of sampling for each analyte"
+#| tbl-cap: "Range of years of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
-  group_by(ANALYTE) %>%
-  summarize(MIN = min(YEAR, na.rm= T), MAX = max(YEAR, na.rm = T)) %>%
-  mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  ggplot(aes(x = MIN,
-             xend= MAX,
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE ==0) %>%
+  group_by(YEAR, ANALYTE) %>%
+  summarize(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
+  ggplot(aes(x = YEAR,
              y = ANALYTE,
-             yend  = ANALYTE)) +
-  geom_segment() +
-  xlab("YEAR")
-
-  
-  
+             col = `Proportion 0`)) +
+  #geom_dotplot()
+  #geom_quasirandom() 
+  # geom_violin(
+  geom_point(alpha= 0.8)
   
 ```
 
-## Sample fraction counts
+## Season summary
+```{r sampleSeason}
+#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
+df %>%
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE ==0) %>%
+  group_by(MONTH, ANALYTE) %>%
+  summarize(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
+  mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "June", "July", "August", "September", "October", "November", "December"))) %>%
+  ggplot(aes(x = MONTH,
+             y = ANALYTE,
+             col = `Proportion 0`)) +
+  #geom_dotplot()
+  #geom_quasirandom() 
+  # geom_violin(
+  geom_point(alpha= 0.8)+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+```
+## Time of Day
+```{r sampleTime}
+#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
+df %>%
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(Hour = hour(SAMPLING_DATE)) %>%
+  ggplot(aes(x = Hour)) +
+  geom_histogram()
+
+```
+
+# Sampling Fraction 
 ```{r}
 #| tbl-cap: "Number of observations from each type of sampling fraction"
 fractions <- df %>%
@@ -153,7 +174,27 @@ fractions %>%
 
 ```
 
-## Remark counts
+# Depth Codes 
+```{r}
+#| tbl-cap: "Number of observations from each  Depth (represented by color)"
+fractions <- df %>%
+  count(ANALYTE, DEPTH_CODE) %>%
+  group_by(ANALYTE) %>%
+  mutate(total = sum(n))
+fractions %>%
+  ggplot(aes(x = ANALYTE, y =n, fill = DEPTH_CODE)) +
+  geom_bar(stat = "identity") +
+  geom_text( aes(label = ANALYTE, y = total), data = fractions[fractions$total > 2500 ,], angle =45, size = 2) + 
+  theme(axis.title.x=element_blank(),
+     axis.text.x=element_blank(),
+     axis.ticks.x=element_blank(),
+     legend.position = "none")
+
+```
+
+
+
+# Remarks 
 ```{r}
 #| tbl-cap: "Counts for each type of remarks"
 remarkCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/remarkCodes.csv")
@@ -187,32 +228,32 @@ remarks %>%
   ggtitle("Subclasses of Remarks")
 ```
 
-## Missingness 
-### Analytes
+# Missingness 
+## Analytes
 ```{r MissingnessChloro}
 #| warning: false
 dfWide <- df %>%
-  select(SAMPLE_ID, YEAR, ANALYTE, VALUE) %>%
+  select(SAMPLE_ID, YEAR, SEASON, ANALYTE, VALUE) %>%
   distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>% 
-  pivot_wider(id_cols = c(SAMPLE_ID, YEAR), names_from = ANALYTE, values_from = VALUE) %>%
-  filter(!is.na(`Chlorophyll-a`))
+  pivot_wider(id_cols = c(SAMPLE_ID, YEAR, SEASON), names_from = ANALYTE, values_from = VALUE) %>%
+  filter(!is.na(`Chlorophyll-a`)) %>%
+  janitor::clean_names()
 
 naniar::gg_miss_var(dfWide, show_pct = T)
 dfWide %>%
-  filter(YEAR > 1996) %>%
-  naniar::gg_miss_var(show_pct = T) +
-  ggtitle("Post 1996")
-dfWide %>%
-  filter(YEAR <= 1996) %>%
-  naniar::gg_miss_var(show_pct = T) +
-  ggtitle("pre 1996")
+  mutate(ninetySizePlus = year > 1996) %>%
+  naniar::gg_miss_var(show_pct = T, facet = ninetySizePlus) + 
+  ggtitle("Pre/post '96")
 
 
+```
+
+
+
+## Spatial information 
+```{r}
 dfWide <- dfWide %>%
   select_if(~mean(is.na(.)) < 0.2)
-```
-### Spatial information 
-```{r}
 df %>% 
   select(ANALYTE, LATITUDE, LONGITUDE, STN_DEPTH_M) %>%
   naniar::gg_miss_var(show_pct = T, facet = ANALYTE) + 
@@ -229,17 +270,22 @@ df %>%
 ```
 
 
-## Marginal correlations
+# Modeling information
+## Marginal correlations of selected covariates
 ```{r ggpairs}
 #| warning: false
 #| fig-caption: "Pairwise correlation for selected variables"
+#| cache: true
 
 # lModel <- lm(formula = `Chlorophyll-a` ~ .- SAMPLE_ID, data= dfWide)
 
 ggpairs(dfWide, columns = 2:10, progress = F)
+
+
+
 ```
 
-# RF Model
+## RF Model
 ```{r splittingData}
 set.seed(222)
 dfWide <- janitor::clean_names(dfWide)
@@ -249,6 +295,7 @@ test <- dfWide[ind==2,]
 ```
 
 ```{r randomForest}
+#| cache: true
 #| tbl-cap: "Prediction results on hold out data"
 rf <- randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit) 
 print(rf)
@@ -259,10 +306,10 @@ postResample(p, test$chlorophyll_a) %>%
   kable_paper()
 ```
 
-# Distributions of selected covariates
+## Distributions of selected covariates
 ```{r covarDists}
 g <- dfWide %>%
-  pivot_longer(-c(sample_id, year)) %>%
+  pivot_longer(-c(sample_id, year, season)) %>%
   ggplot(aes(x = value)) +
   geom_histogram() +
   facet_wrap(~name, scales = "free") + 
@@ -285,3 +332,47 @@ df %>%
 
 ```
 
+# Dealing with similar/same analytes
+| Similar Analytes | How to resovlve | Reason |
+|:---------------|:----------------|:-------|
+|Ammonia-Nitrogen / Ammonium-Nitrogen | | |
+| Alkalinity / Hardness | Drop Hardness | Hardness has 95% missingness |
+| Nitrogen particulate / Nitrogen sediment | | |
+| Turbidity / Secchi disc / total suspended solids | Keep Turbidity | Others have >90% missingness |
+
+| Phosphorus, Base Extractable as P" ? ???? 
+- Phosphorus Total as P
+- Phsophorus particulate/ sediment
+
+```{r}
+dfWide %>%
+  select(contains("Hardness"), contains("Alkalinity")) %>%
+  visdat::vis_miss()
+
+dfWide %>%
+  select(contains("Turbid"), contains("Secchi"), contains("suspended")) %>%
+  visdat::vis_miss()
+
+
+```
+
+# PCA 
+```{r}
+dfWideNoMiss <- dfWide %>%
+  janitor::clean_names() %>%
+  mutate(lchla = log(chlorophyll_a + 0.01)) %>%
+  drop_na()
+PCA <- dfWideNoMiss %>% 
+  select(-c(sample_id, season, year, chlorophyll_a, lchla))  %>%
+  prcomp(center = T, scale=T)
+
+plot(summary(PCA)$importance[2,], xlab= "Principal component", ylab = "% variance explained")
+
+autoplot(PCA, data = dfWideNoMiss, colour = "lchla",
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+autoplot(PCA, data = dfWideNoMiss, colour = "season",
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+autoplot(clara(dfWideNoMiss[-c(2,10)], 5))
+```
