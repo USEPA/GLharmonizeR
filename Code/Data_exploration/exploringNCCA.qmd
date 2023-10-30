@@ -1,0 +1,65 @@
+---
+title: "Exploring NCCA"
+format: 
+    html: 
+      html-math-method: katex
+      embed-resources: true
+execute:
+    message: false
+    warning: false
+    error: false
+    echo: false
+editor: visual
+---
+
+NLA data only sampled lake michigan 1 time per year and so were left out.
+
+```{r loadNSetup}
+library(tidyverse)
+
+sites <- c("https://www.epa.gov/sites/default/files/2016-06/assessed_ncca2010_siteinfo.revised.06212016.csv", 
+  "https://www.epa.gov/sites/default/files/2016-06/not_assessed_ncca2010_siteinfo.revised.06212016.csv") %>%
+  map_dfr(read_csv) %>%
+  filter(grepl("Michigan", WTBDY_NM)) %>%
+  select(UID, STATION_DEPTH, ALAT_DD, ALON_DD) %>%
+  drop_na() %>%
+  distinct(UID, STATION_DEPTH, .keep_all = T)
+
+
+waterChem <- c( # 1999 - 2001 / 2005 - 2006
+  #"https://www.epa.gov/system/files/other-files/2023-03/nca_waterchemdata.csv",
+  # 2010
+  "https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_waterchem.csv",
+               "https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_waterchem.csv",
+  # 2015
+  # Didn't niclude estuaries
+  # https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_estuarine-data.csv
+  "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_great_lakes-data.csv"
+  # None for 2020
+  ) %>%
+  map_dfr(read_csv, col_types = cols("LAB_SAMPLE_ID" = col_character() )) %>% 
+  # made sites dataframe only lake michigan so do right join
+  right_join(sites, by = "UID")
+
+
+waterQual <- read_csv("https://www.epa.gov/sites/default/files/2016-01/ncca2010_water_quality_indicator_status.csv")
+```
+# Spatial
+```{r}
+lakes <- read_sf("ne_10m_lakes.shp")
+
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_density_2d(data= waterChem, aes(x = ALON_DD, y = ALAT_DD))
+```
+
+```{r}
+
+```
+
+
+
+

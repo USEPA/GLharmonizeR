@@ -1,15 +1,7 @@
 ---
 title: "Exploring Full WQD"
-format: 
-    html: 
-      html-math-method: katex
-      embed-resources: true
-execute:
-    message: false
-    warning: false
-    error: false
-    echo: false
-editor: visual
+metadata-files:
+  - "../../_quarto.yml"
 ---
 
 I split the NA types into three categories (for sure NA's, Unsure NA or not, Definitely not NA's but I'll address later). You can see with the line break in na argument. I determined missing values in each "VALUE" column with the commented out code below Dropped ANAL_CODE\_ columns because they are redundant with the "Analyte" columns
@@ -33,7 +25,9 @@ library(visdat)
 library(cluster)
 library(ggfortify)
 
-df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/allWQ.csv", na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
+dataDir <- "../../Data"
+
+df <- read_csv(paste0(dataDir, "/Raw_Data/allWQ.csv"), na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
                                                                                                                              "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4", "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9", "INVALID 6.5",
                                                                                                                              "<0.12", "<0.1", "<500", "<2", "<1", "<0.05")) %>%
   # These columns are redundant with the "Analyte" columns
@@ -46,11 +40,7 @@ df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EP
   filter(!is.na(ANALYTE), 
          QC_TYPE == "routine field sample",
          SAMPLE_TYPE != "Composite") %>%
-  mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M")) %>%
-  filter(! ANALYTE %in% c("Secchi Disc Transparency", # similar to turbidity and high missingness
-                          "Suspended solids, total",  # similar to turbidity and high missingness 
-                          "Hardness, Total as CaCO3" # similar to alkalinity and high missingness
-                          ))
+  mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M"))
 # Other filter ideas
 # FIX TIME ZONES
 # Depth Code 'thermocline
@@ -69,6 +59,7 @@ df <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EP
 ```
 
 # Spatial summary
+
 ```{r samplesSpace}
 #| fig-cap: "Density of samples with respect to latitude and longitude"
 #| cache: true
@@ -81,18 +72,16 @@ theme_set(theme_bw())
 # path <- tempdir()
 # download.file(url, paste0(path, "/lakes.zip"))
 # unzip(paste0(path, "/lakes.zip"))
-lakes <- read_sf("ne_10m_lakes.shp")
+lakes <- read_sf(paste0(dataDir, "/Other/ne_10m_lakes.shp"))
 
 ggplot(lakes) +
   geom_sf(fill = "lightblue") +
   coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
   theme(panel.background = element_rect(fill = '#d0d890'),
         panel.grid = element_line(color = '#00000010')) +
-  geom_density_2d(data= df, aes(x = LONGITUDE, y = LATITUDE))
+  geom_point(data= df, aes(x = LONGITUDE, y = LATITUDE))
 
 ```
-
-
 
 ```{r depths}
 tempDF <- data.frame("Depth" = c(10, 40),
@@ -109,7 +98,8 @@ df %>%
 
 ```
 
-## Time summary 
+## Time summary
+
 ```{r sampleYears}
 #| tbl-cap: "Range of years of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
@@ -128,6 +118,7 @@ df %>%
 ```
 
 ## Season summary
+
 ```{r sampleSeason}
 #| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
@@ -146,7 +137,9 @@ df %>%
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 ```
+
 ## Time of Day
+
 ```{r sampleTime}
 #| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
@@ -157,7 +150,8 @@ df %>%
 
 ```
 
-# Sampling Fraction 
+# Sampling Fraction
+
 ```{r}
 #| tbl-cap: "Number of observations from each type of sampling fraction"
 fractions <- df %>%
@@ -174,7 +168,8 @@ fractions %>%
 
 ```
 
-# Depth Codes 
+# Depth Codes
+
 ```{r}
 #| tbl-cap: "Number of observations from each  Depth (represented by color)"
 fractions <- df %>%
@@ -192,14 +187,31 @@ fractions %>%
 
 ```
 
+# Units
 
+Only measure with multiple units is Turbidty (FTU/NTU), they seem to follow same distribution
 
-# Remarks 
+```{r}
+df %>% 
+  ggplot(aes(x = ANALYTE, fill = UNITS)) + 
+  geom_bar() + 
+   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(legend.position = "none")
+
+df %>%
+  filter(ANALYTE == "Turbidity", VALUE < 60) %>%
+  ggplot(aes(fill = UNITS, x = VALUE)) + 
+  geom_histogram(alpha= 0.5)
+
+```
+
+# Remarks
+
 ```{r}
 #| tbl-cap: "Counts for each type of remarks"
-remarkCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/remarkCodes.csv")
-QCCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/QCcodes.csv")
-depthCodes <- read_csv("C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LM_Chla/Data/DepthCodes.csv")
+remarkCodes <- read_csv(paste0(dataDir, "/Raw_Data/remarkCodes.csv"))
+QCCodes <- read_csv(paste0(dataDir, "/Raw_Data/QCcodes.csv"))
+depthCodes <- read_csv(paste0(dataDir, "/Raw_Data/DepthCodes.csv"))
 
 
 remarks <- df %>%
@@ -226,10 +238,16 @@ remarks %>%
   theme(axis.text.x=element_blank(),
      axis.ticks.x=element_blank()) +
   ggtitle("Subclasses of Remarks")
+
+
+df %>%
+  filter(grepl("Other", RESULT_REMARK))
 ```
 
-# Missingness 
+# Missingness
+
 ## Analytes
+
 ```{r MissingnessChloro}
 #| warning: false
 dfWide <- df %>%
@@ -248,9 +266,8 @@ dfWide %>%
 
 ```
 
+## Spatial information
 
-
-## Spatial information 
 ```{r}
 dfWide <- dfWide %>%
   select_if(~mean(is.na(.)) < 0.2)
@@ -269,9 +286,10 @@ df %>%
 
 ```
 
-
 # Modeling information
+
 ## Marginal correlations of selected covariates
+
 ```{r ggpairs}
 #| warning: false
 #| fig-caption: "Pairwise correlation for selected variables"
@@ -286,6 +304,7 @@ ggpairs(dfWide, columns = 2:10, progress = F)
 ```
 
 ## RF Model
+
 ```{r splittingData}
 set.seed(222)
 dfWide <- janitor::clean_names(dfWide)
@@ -307,6 +326,7 @@ postResample(p, test$chlorophyll_a) %>%
 ```
 
 ## Distributions of selected covariates
+
 ```{r covarDists}
 g <- dfWide %>%
   pivot_longer(-c(sample_id, year, season)) %>%
@@ -333,16 +353,18 @@ df %>%
 ```
 
 # Dealing with similar/same analytes
-| Similar Analytes | How to resovlve | Reason |
-|:---------------|:----------------|:-------|
-|Ammonia-Nitrogen / Ammonium-Nitrogen | | |
-| Alkalinity / Hardness | Drop Hardness | Hardness has 95% missingness |
-| Nitrogen particulate / Nitrogen sediment | | |
-| Turbidity / Secchi disc / total suspended solids | Keep Turbidity | Others have >90% missingness |
 
-| Phosphorus, Base Extractable as P" ? ???? 
-- Phosphorus Total as P
-- Phsophorus particulate/ sediment
+| Similar Analytes                                 | How to resovlve | Reason                        |
+|:--------------------------|:---------------------------|:----------------|
+| Ammonia-Nitrogen / Ammonium-Nitrogen             |                 |                               |
+| Alkalinity / Hardness                            | Drop Hardness   | Hardness has 95% missingness  |
+| Nitrogen particulate / Nitrogen sediment         |                 |                               |
+| Turbidity / Secchi disc / total suspended solids | Keep Turbidity  | Others have \>90% missingness |
+
+| Phosphorus, Base Extractable as P" ? ????
+
+-   Phosphorus Total as P
+-   Phsophorus particulate/ sediment
 
 ```{r}
 dfWide %>%
@@ -356,7 +378,8 @@ dfWide %>%
 
 ```
 
-# PCA 
+# PCA
+
 ```{r}
 dfWideNoMiss <- dfWide %>%
   janitor::clean_names() %>%
@@ -374,5 +397,5 @@ autoplot(PCA, data = dfWideNoMiss, colour = "lchla",
 autoplot(PCA, data = dfWideNoMiss, colour = "season",
          loadings = TRUE, loadings.colour = 'blue',
          loadings.label = TRUE, loadings.label.size = 3)
-autoplot(clara(dfWideNoMiss[-c(2,10)], 5))
+autoplot(clara(dfWideNoMiss[-c(1,2,3,13)], 2))
 ```
