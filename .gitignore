@@ -74,13 +74,11 @@ vignettes/*.pdf
 *.rdx
 *.rdb
 
-
+Results/Code/*/*_files
 
 # Exceptions
-!Data/*.csv
+!Data/Formatted/*.csv
 
-# DOUBLY make sure to exclude large data files
-Data/all*
 
 desktop.ini
 
