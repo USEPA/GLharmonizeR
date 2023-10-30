@@ -1,0 +1,14 @@
+format: 
+    html: 
+      html-math-method: katex
+      embed-resources: true
+execute:
+    message: false
+    warning: false
+    error: false
+    echo: false
+editor: source 
+project:
+  execute-dir: project 
+  output-dir: "Results"
+
