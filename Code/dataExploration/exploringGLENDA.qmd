@@ -8,54 +8,24 @@ I split the NA types into three categories (for sure NA's, Unsure NA or not, Def
 
 ```{r setupNload}
 #| include: false
-library(tidyverse)
+source("Code/dataCleaning/readCleanGLENDA.R")
 library(GGally)
-library(naniar)
-library(caret)
-library(randomForest)
-library(janitor)
+#library(naniar)
+#library(caret)
+#library(randomForest)
+#library(janitor)
 #library(ggh4x) # rescale facet plots
 library(kableExtra)
-library(sf) # 1.0-12
-library(sp) # 1.4-5
-library(rnaturalearth)
-library(rnaturalearthdata)
+#library(sf) # 1.0-12
+#library(sp) # 1.4-5
+#library(rnaturalearth)
+#library(rnaturalearthdata)
 library(ggbeeswarm)
-library(visdat)
+#library(visdat)
 library(cluster)
 library(ggfortify)
 
-dataDir <- "../../Data"
-
-df <- read_csv(paste0(dataDir, "/Raw_Data/allWQ.csv"), na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported", "No Result Reported.", "NO RESULT", "no result", "No result reported",
-                                                                                                                             "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4", "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9", "INVALID 6.5",
-                                                                                                                             "<0.12", "<0.1", "<500", "<2", "<1", "<0.05")) %>%
-  # These columns are redundant with the "Analyte" columns
-  select(-contains("ANL_CODE_"), -Row) %>%
-  # Drop columns with 100% missingness
-  #select_if(~mean(is.na(.)) < 0.9) %>%
-  pivot_longer(cols = -c(1:18),
-               names_to = c(".value", "Number"),
-               names_pattern = "(.*)_(\\d*)$") %>%
-  filter(!is.na(ANALYTE), 
-         QC_TYPE == "routine field sample",
-         SAMPLE_TYPE != "Composite") %>%
-  mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M"))
-# Other filter ideas
-# FIX TIME ZONES
-# Depth Code 'thermocline
-
-
-# head(sort(table(df$VALUE_1), decreasing=T), 200)
-# This is where I determined the NA values
-#Clear_NAs <- df$VALUE_9[!is.na(df$VALUE_9)]
-#unique(Clear_NAs[is.na(as.numeric(Clear_NAs))])
-#df %>% 
-#  select(contains("VALUE")) %>%
-#  glimpse()
-# df %>% 
-#   select(YEAR, STN_DEPTH_M, LATITUDE, LONGITUDE, SAMPLE_DEPTH_M, contains("VALUE_")) %>%
-#   glimpse()
+df <- readCleanGLENDA("Data/Raw/GLENDA.csv")
 ```
 
 # Spatial summary
@@ -63,17 +33,18 @@ df <- read_csv(paste0(dataDir, "/Raw_Data/allWQ.csv"), na = c("", "NA", "no resu
 ```{r samplesSpace}
 #| fig-cap: "Density of samples with respect to latitude and longitude"
 #| cache: true
+# Download map data if necessary
+if (length(dir("Data/Other", "ne_10m_lakes")) < 7) {
+  url <- paste0("https://www.naturalearthdata.com/",
+                "http//www.naturalearthdata.com/download/10m/physical/",
+                "ne_10m_lakes.zip")
+  path <- "Data/Other"
+  download.file(url, paste0(path, "/lakes.zip"))
+  unzip(paste0(path, "/lakes.zip"))
+}
 
 theme_set(theme_bw())
-# url <- paste0("https://www.naturalearthdata.com/", 
-#               "http//www.naturalearthdata.com/download/10m/physical/",
-#               "ne_10m_lakes.zip")
-# 
-# path <- tempdir()
-# download.file(url, paste0(path, "/lakes.zip"))
-# unzip(paste0(path, "/lakes.zip"))
-lakes <- read_sf(paste0(dataDir, "/Other/ne_10m_lakes.shp"))
-
+lakes <- sf::read_sf("Data/Other/ne_10m_lakes.shp")
 ggplot(lakes) +
   geom_sf(fill = "lightblue") +
   coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
@@ -209,9 +180,9 @@ df %>%
 
 ```{r}
 #| tbl-cap: "Counts for each type of remarks"
-remarkCodes <- read_csv(paste0(dataDir, "/Raw_Data/remarkCodes.csv"))
-QCCodes <- read_csv(paste0(dataDir, "/Raw_Data/QCcodes.csv"))
-depthCodes <- read_csv(paste0(dataDir, "/Raw_Data/DepthCodes.csv"))
+remarkCodes <- read_csv("Data/Raw/remarkCodes.csv")
+QCCodes <- read_csv("Data/Raw/QCcodes.csv")
+depthCodes <- read_csv("Data/Raw/DepthCodes.csv")
 
 
 remarks <- df %>%
@@ -316,10 +287,10 @@ test <- dfWide[ind==2,]
 ```{r randomForest}
 #| cache: true
 #| tbl-cap: "Prediction results on hold out data"
-rf <- randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit) 
+rf <- randomForest::randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit) 
 print(rf)
 p <- predict(rf, newdata = test)
-postResample(p, test$chlorophyll_a) %>%
+caret::postResample(p, test$chlorophyll_a) %>%
   as.data.frame() %>%
   kable() %>%
   kable_paper()
