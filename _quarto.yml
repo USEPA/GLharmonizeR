@@ -1,5 +1,5 @@
-format: 
-    html: 
+format:
+    html:
       html-math-method: katex
       embed-resources: true
 execute:
@@ -7,8 +7,8 @@ execute:
     warning: false
     error: false
     echo: false
-editor: source 
+editor: source
 project:
-  execute-dir: project 
+  execute-dir: project
   output-dir: "Results"
 
