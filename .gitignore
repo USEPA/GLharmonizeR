@@ -70,16 +70,16 @@ vignettes/*.pdf
 *.dbf
 *.RData
 *.rdx
-*.rdb 
+*.rdb
 *.rdx
 *.rdb
 
+Results/Code/*/*_files
 
+# Exceptions
+!Data/Formatted/*.csv
 
-# Exceptions 
-!Data/*.csv
-
-# DOUBLY make sure to exclude large data files
-Data/all*
 
 desktop.ini
+
+/.quarto/
