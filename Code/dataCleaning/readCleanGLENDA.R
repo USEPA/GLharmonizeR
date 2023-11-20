@@ -20,16 +20,7 @@ library(janitor)
 #   glimpse()
 
 
-
-#' Title
-#'
-#' @param filepath string specifying path to file
-#'
-#' @return a dataframe
-#' @export
-#'
-#' @examples
-readCleanGLENDA <- function(filepath) {
+readPivotGLENDA <- function(filepath) {
   read_csv(filepath,
            col_types = cols(YEAR = "i",
                             STN_DEPTH_M = "d",
@@ -40,30 +31,64 @@ readCleanGLENDA <- function(filepath) {
                             # Skip useless or redundant columns
                             Row = "-",
                             .default = "c")) %>%
-    # Select samples that haven't been combined
-    filter(QC_TYPE == "routine field sample",
-           SAMPLE_TYPE != "Composite") %>%
-    # These columns are redundant with the "Analyte" columns
-    select(-contains("ANL_CODE_")) %>%
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
-    ##### NEED TO TAKE CARE OF
-    #        "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4",
-    #        "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9",
-    #        "INVALID 6.5",
-    #
-    #        "<0.12", # Total/Bulk Chloride E300.0
-    #        "<0.1", # Total/Bulk Calcium LG213
-    #        "<500", # Filtrate Potassium E200.8
-    #        "<2", # Total/Bulk Arsenic LG213
-    #        "<1", # Total/Bulk Manganese LG213
-    #        "<0.05" # Total/Bulk Potassium LG213
-    ### TAKEN Care of by forcing strings to NA
-    # na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported",
-    #        "No Result Reported.", "NO RESULT", "no result", "No result reported",
-    # convert no result reported strings into NAs
-    mutate(VALUE = as.numeric((str_replace(VALUE, "[a-zA-Z]", "NA")))) %>%
+    drop_na(ANALYTE)
+}
+
+
+#' Title
+#'
+#' @param filepath GLENDA dataframe in long format
+#'
+#' @return a dataframe
+#' @export
+#'
+#' @examples
+cleanGLENDA <- function(df) {
+  df %>%
+    # Select samples that haven't been combined
+    # This is where we could add option to select for
+    # composite if wanted
+    filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
+           QC_TYPE == "routine field sample",
+           ) %>%
     # Drop analyte number since it doesn't mean anything now
-    select(-Number)
+    # These columns are redundant with the "Analyte" columns
+    select(, -Number) %>%
+    unite(ANL_CODE, FRACTION, sep = "_", remove = T) %>%
+    # If value and remarks are missing, we assume sample was never taken
+    filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
+    #mutate(VALUE = as.numeric((str_replace(VALUE, "[a-zA-Z]", "NA")))) %>%
+    # Labeling REMARK RISK
+    mutate(REMARK_RISK = case_when(
+      # replace low first, becuase in cases where multiple strings are matched, we want to give precedent to
+      # the higher risk flags
+      grepl("limit", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("Correction", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("Estimated", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("incomplete", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("Holding time", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("outlier", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("fail", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("No result", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Anomaly", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Contamination", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Inconsistent", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Invalid", RESULT_REMARK, ignore.case= T) ~ "HIGH"
+    )) %>%
+    # Matching units
+    mutate(VALUE = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
+                             (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
+                             .default = VALUE),
+           UNITS = case_when(ANALYTE == "Magnesium" ~ "mg/l",
+                             ANALYTE == "Sodium" ~ "mg/l",
+                             ANALYTE =="Alkalinity, Total as CaCO3" ~ "mg/l",
+                             ANALYTE == "Conductivity" ~ "umho/cm",
+                             ANALYTE == "Manganese"  ~ "ug/l",
+                             ANALYTE == "Secchi Disc Transparency" ~ "m",
+                             # FTU and NTU are equivalent
+                             ANALYTE == "Turbidity" ~ "FTU",
+                             .default = UNITS) )
 }

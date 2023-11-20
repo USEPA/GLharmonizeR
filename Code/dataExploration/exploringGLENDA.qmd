@@ -10,22 +10,24 @@ I split the NA types into three categories (for sure NA's, Unsure NA or not, Def
 #| include: false
 source("Code/dataCleaning/readCleanGLENDA.R")
 library(GGally)
+library(cluster)
+library(ggfortify)
+library(kableExtra)
+library(ggbeeswarm)
+
 #library(naniar)
 #library(caret)
 #library(randomForest)
 #library(janitor)
 #library(ggh4x) # rescale facet plots
-library(kableExtra)
 #library(sf) # 1.0-12
 #library(sp) # 1.4-5
 #library(rnaturalearth)
 #library(rnaturalearthdata)
-library(ggbeeswarm)
 #library(visdat)
-library(cluster)
-library(ggfortify)
 
 df <- readCleanGLENDA("Data/Raw/GLENDA.csv")
+#test <- df %>% filter(is.na(REMARK_RISK)) %>% select(RESULT_REMARK) %>% unique()
 ```
 
 # Spatial summary
@@ -123,7 +125,7 @@ df %>%
 
 # Sampling Fraction
 
-```{r}
+```{r samplingFractions}
 #| tbl-cap: "Number of observations from each type of sampling fraction"
 fractions <- df %>%
   count(ANALYTE, FRACTION) %>%
@@ -141,7 +143,7 @@ fractions %>%
 
 # Depth Codes
 
-```{r}
+```{r depthCodes}
 #| tbl-cap: "Number of observations from each  Depth (represented by color)"
 fractions <- df %>%
   count(ANALYTE, DEPTH_CODE) %>%
@@ -162,23 +164,53 @@ fractions %>%
 
 Only measure with multiple units is Turbidty (FTU/NTU), they seem to follow same distribution
 
-```{r}
+```{r findingMultipleUnits}
 df %>% 
   ggplot(aes(x = ANALYTE, fill = UNITS)) + 
-  geom_bar() + 
+  geom_bar(position = "fill") + 
    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
   theme(legend.position = "none")
 
-df %>%
-  filter(ANALYTE == "Turbidity", VALUE < 60) %>%
-  ggplot(aes(fill = UNITS, x = VALUE)) + 
-  geom_histogram(alpha= 0.5)
+# df %>% 
+#   distinct(ANALYTE, UNITS) %>%
+#   count(ANALYTE) %>%
+#   filter(n>1)
 
+```
+
+```{r multipleUnits}
+df %>%
+  distinct(ANALYTE, UNITS) %>%
+  count(ANALYTE) %>% 
+  filter(n > 1)
+  arrange(ANALYTE) %>%
+  kable() %>%
+  kable_paper() 
+
+```
+```{r unitDists}
+df %>%
+  filter(ANALYTE %in% c( 
+                        "Carbon, Organic",
+                        "Phosphorus, Orthophosphorus as P",
+                        "Turbidity",
+                        "Magnesium",
+                        "Sodium")) %>%
+  ggplot(aes(x  = VALUE, y= after_stat(density),
+             fill = UNITS, group = UNITS)) +
+  geom_histogram(alpha = 0.3, position = "identity") +
+  facet_wrap(~ANALYTE, scales = "free")
+
+df %>%
+  filter(ANALYTE == "Turbidity",
+         VALUE < 40) %>%
+  ggplot(aes(x = VALUE)) +
+  geom_histogram()
 ```
 
 # Remarks
 
-```{r}
+```{r remarks}
 #| tbl-cap: "Counts for each type of remarks"
 remarkCodes <- read_csv("Data/Raw/remarkCodes.csv")
 QCCodes <- read_csv("Data/Raw/QCcodes.csv")
@@ -215,6 +247,29 @@ df %>%
   filter(grepl("Other", RESULT_REMARK))
 ```
 
+# Flag risks
+```{r flagRisk}
+left_join(df, remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
+  select(REMARK_RISK, CLASS, RESULT_REMARK, DESCRIPTION) %>%
+  distinct(REMARK_RISK, CLASS, .keep_all = T) %>%
+  mutate(REMARK_RISK = factor(REMARK_RISK, levels = c("LOW", "MEDIUM", "HIGH"))) %>%
+  arrange(desc(REMARK_RISK), desc(CLASS)) %>%
+  kable() %>%
+  kable_paper()
+```
+
+# Method
+```{r}
+df %>%
+  drop_na(METHOD, ANALYTE) %>%
+  ggplot(aes(y = ANALYTE, fill = METHOD)) +
+  geom_bar(position="fill") + 
+  theme(legend.position = "none") +
+  facet_wrap(~FRACTION, ncol = 1)
+
+```
+
+
 # Missingness
 
 ## Analytes
@@ -239,7 +294,7 @@ dfWide %>%
 
 ## Spatial information
 
-```{r}
+```{r missingCoords}
 dfWide <- dfWide %>%
   select_if(~mean(is.na(.)) < 0.2)
 df %>% 
@@ -257,116 +312,116 @@ df %>%
 
 ```
 
-# Modeling information
+<!-- # Modeling information -->
 
-## Marginal correlations of selected covariates
+<!-- ## Marginal correlations of selected covariates -->
 
-```{r ggpairs}
-#| warning: false
-#| fig-caption: "Pairwise correlation for selected variables"
-#| cache: true
+<!-- ```{r ggpairs} -->
+<!-- #| warning: false -->
+<!-- #| fig-caption: "Pairwise correlation for selected variables" -->
+<!-- #| cache: true -->
 
-# lModel <- lm(formula = `Chlorophyll-a` ~ .- SAMPLE_ID, data= dfWide)
+<!-- # lModel <- lm(formula = `Chlorophyll-a` ~ .- SAMPLE_ID, data= dfWide) -->
 
-ggpairs(dfWide, columns = 2:10, progress = F)
-
-
-
-```
-
-## RF Model
-
-```{r splittingData}
-set.seed(222)
-dfWide <- janitor::clean_names(dfWide)
-ind <- sample(2, nrow(dfWide), replace = TRUE, prob = c(0.7, 0.3))
-train <- dfWide[ind==1,]
-test <- dfWide[ind==2,]
-```
-
-```{r randomForest}
-#| cache: true
-#| tbl-cap: "Prediction results on hold out data"
-rf <- randomForest::randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit) 
-print(rf)
-p <- predict(rf, newdata = test)
-caret::postResample(p, test$chlorophyll_a) %>%
-  as.data.frame() %>%
-  kable() %>%
-  kable_paper()
-```
-
-## Distributions of selected covariates
-
-```{r covarDists}
-g <- dfWide %>%
-  pivot_longer(-c(sample_id, year, season)) %>%
-  ggplot(aes(x = value)) +
-  geom_histogram() +
-  facet_wrap(~name, scales = "free") + 
-  ggtitle("linear scale")
-g
-g+ scale_x_log10() +ggtitle("log10 scale")
-```
-
-```{r spaghetti}
-df %>%
-  filter(ANALYTE == "Chlorophyll-a", DEPTH_CODE == "Surface") %>%
-  unite("Position", LATITUDE, LONGITUDE) %>%
-  mutate(SAMPLING_DATE = date(SAMPLING_DATE)) %>%
-  group_by(SAMPLING_DATE, Position) %>%
-  summarize(CHLA = mean(VALUE, rm.na=  T)) %>%
-  ggplot(aes(x = SAMPLING_DATE, y = CHLA, col = factor(Position))) +
-  geom_line() +
-  theme(legend.position = "none") +
-  ggtitle("Spaghetti plot of CHLA over time for each LAT/LONG, Surface samples")
-
-```
-
-# Dealing with similar/same analytes
-
-| Similar Analytes                                 | How to resovlve | Reason                        |
-|:--------------------------|:---------------------------|:----------------|
-| Ammonia-Nitrogen / Ammonium-Nitrogen             |                 |                               |
-| Alkalinity / Hardness                            | Drop Hardness   | Hardness has 95% missingness  |
-| Nitrogen particulate / Nitrogen sediment         |                 |                               |
-| Turbidity / Secchi disc / total suspended solids | Keep Turbidity  | Others have \>90% missingness |
-
-| Phosphorus, Base Extractable as P" ? ????
-
--   Phosphorus Total as P
--   Phsophorus particulate/ sediment
-
-```{r}
-dfWide %>%
-  select(contains("Hardness"), contains("Alkalinity")) %>%
-  visdat::vis_miss()
-
-dfWide %>%
-  select(contains("Turbid"), contains("Secchi"), contains("suspended")) %>%
-  visdat::vis_miss()
+<!-- ggpairs(dfWide, columns = 2:10, progress = F) -->
 
 
-```
 
-# PCA
+<!-- ``` -->
 
-```{r}
-dfWideNoMiss <- dfWide %>%
-  janitor::clean_names() %>%
-  mutate(lchla = log(chlorophyll_a + 0.01)) %>%
-  drop_na()
-PCA <- dfWideNoMiss %>% 
-  select(-c(sample_id, season, year, chlorophyll_a, lchla))  %>%
-  prcomp(center = T, scale=T)
+<!-- ## RF Model -->
 
-plot(summary(PCA)$importance[2,], xlab= "Principal component", ylab = "% variance explained")
+<!-- ```{r splittingData} -->
+<!-- set.seed(222) -->
+<!-- dfWide <- janitor::clean_names(dfWide) -->
+<!-- ind <- sample(2, nrow(dfWide), replace = TRUE, prob = c(0.7, 0.3)) -->
+<!-- train <- dfWide[ind==1,] -->
+<!-- test <- dfWide[ind==2,] -->
+<!-- ``` -->
 
-autoplot(PCA, data = dfWideNoMiss, colour = "lchla",
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-autoplot(PCA, data = dfWideNoMiss, colour = "season",
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-autoplot(clara(dfWideNoMiss[-c(1,2,3,13)], 2))
-```
+<!-- ```{r randomForest} -->
+<!-- #| cache: true -->
+<!-- #| tbl-cap: "Prediction results on hold out data" -->
+<!-- rf <- randomForest::randomForest(chlorophyll_a ~. - sample_id, data=train, proximity=TRUE, na.action = na.omit)  -->
+<!-- print(rf) -->
+<!-- p <- predict(rf, newdata = test) -->
+<!-- caret::postResample(p, test$chlorophyll_a) %>% -->
+<!--   as.data.frame() %>% -->
+<!--   kable() %>% -->
+<!--   kable_paper() -->
+<!-- ``` -->
+
+<!-- ## Distributions of selected covariates -->
+
+<!-- ```{r covarDists} -->
+<!-- g <- dfWide %>% -->
+<!--   pivot_longer(-c(sample_id, year, season)) %>% -->
+<!--   ggplot(aes(x = value)) + -->
+<!--   geom_histogram() + -->
+<!--   facet_wrap(~name, scales = "free") +  -->
+<!--   ggtitle("linear scale") -->
+<!-- g -->
+<!-- g+ scale_x_log10() +ggtitle("log10 scale") -->
+<!-- ``` -->
+
+<!-- ```{r spaghetti} -->
+<!-- df %>% -->
+<!--   filter(ANALYTE == "Chlorophyll-a", DEPTH_CODE == "Surface") %>% -->
+<!--   unite("Position", LATITUDE, LONGITUDE) %>% -->
+<!--   mutate(SAMPLING_DATE = date(SAMPLING_DATE)) %>% -->
+<!--   group_by(SAMPLING_DATE, Position) %>% -->
+<!--   summarize(CHLA = mean(VALUE, rm.na=  T)) %>% -->
+<!--   ggplot(aes(x = SAMPLING_DATE, y = CHLA, col = factor(Position))) + -->
+<!--   geom_line() + -->
+<!--   theme(legend.position = "none") + -->
+<!--   ggtitle("Spaghetti plot of CHLA over time for each LAT/LONG, Surface samples") -->
+
+<!-- ``` -->
+
+<!-- # Dealing with similar/same analytes -->
+
+<!-- | Similar Analytes                                 | How to resovlve | Reason                        | -->
+<!-- |:--------------------------|:---------------------------|:----------------| -->
+<!-- | Ammonia-Nitrogen / Ammonium-Nitrogen             |                 |                               | -->
+<!-- | Alkalinity / Hardness                            | Drop Hardness   | Hardness has 95% missingness  | -->
+<!-- | Nitrogen particulate / Nitrogen sediment         |                 |                               | -->
+<!-- | Turbidity / Secchi disc / total suspended solids | Keep Turbidity  | Others have \>90% missingness | -->
+
+<!-- | Phosphorus, Base Extractable as P" ? ???? -->
+
+<!-- -   Phosphorus Total as P -->
+<!-- -   Phsophorus particulate/ sediment -->
+
+<!-- <!-- ```{r vizMissing} --> -->
+<!-- <!-- dfWide %>% --> -->
+<!-- <!--   select(contains("Hardness"), contains("Alkalinity")) %>% --> -->
+<!-- <!--   visdat::vis_miss() --> -->
+
+<!-- <!-- dfWide %>% --> -->
+<!-- <!--   select(contains("Turbid"), contains("Secchi"), contains("suspended")) %>% --> -->
+<!-- <!--   visdat::vis_miss() --> -->
+
+
+<!-- <!-- ``` --> -->
+
+<!-- <!-- # PCA --> -->
+
+<!-- <!-- ```{r PCA} --> -->
+<!-- <!-- dfWideNoMiss <- dfWide %>% --> -->
+<!-- <!--   janitor::clean_names() %>% --> -->
+<!-- <!--   mutate(lchla = log(chlorophyll_a + 0.01)) %>% --> -->
+<!-- <!--   drop_na() --> -->
+<!-- <!-- PCA <- dfWideNoMiss %>%  --> -->
+<!-- <!--   select(-c(sample_id, season, year, chlorophyll_a, lchla))  %>% --> -->
+<!-- <!--   prcomp(center = T, scale=T) --> -->
+
+<!-- <!-- plot(summary(PCA)$importance[2,], xlab= "Principal component", ylab = "% variance explained") --> -->
+
+<!-- <!-- autoplot(PCA, data = dfWideNoMiss, colour = "lchla", --> -->
+<!-- <!--          loadings = TRUE, loadings.colour = 'blue', --> -->
+<!-- <!--          loadings.label = TRUE, loadings.label.size = 3) --> -->
+<!-- <!-- autoplot(PCA, data = dfWideNoMiss, colour = "season", --> -->
+<!-- <!--          loadings = TRUE, loadings.colour = 'blue', --> -->
+<!-- <!--          loadings.label = TRUE, loadings.label.size = 3) --> -->
+<!-- <!-- autoplot(clara(dfWideNoMiss[-c(1,2,3,13)], 2)) --> -->
+<!-- <!-- ``` --> -->
