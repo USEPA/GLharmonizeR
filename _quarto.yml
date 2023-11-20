@@ -1,12 +1,13 @@
 format:
     html:
       html-math-method: katex
-      embed-resources: true
+      embed-resources: false
 execute:
     message: false
     warning: false
     error: false
     echo: false
+    cache: false
 editor: source
 project:
   execute-dir: project

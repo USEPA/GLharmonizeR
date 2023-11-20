@@ -1,0 +1,220 @@
+---
+title: "Exploring Full WQD"
+metadata-files:
+  - "../../_quarto.yml"
+---
+
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(kableExtra)
+library(gt)
+library(writexl)
+
+source("Code/dataCleaning/readCleanGLENDA.R")
+
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+```
+
+# QC TYPES
+- Select only routine field samples
+```{r}
+df %>%
+  ggplot(aes(y = ANALYTE, group = QC_TYPE, fill = QC_TYPE)) +
+  geom_bar(position = "fill")
+
+# df %>% 
+#   filter(grepl("Suspended", ANALYTE)) %>%
+#   ggplot(aes(x = SAMPLE_TYPE, group=QC_TYPE, fill = QC_TYPE)) +
+#   geom_bar() + ggtitle("TSS")
+
+
+df <- df %>% filter(QC_TYPE == "routine field sample")
+```
+
+
+# Sample types
+- What type of these do we want?
+- Right now filtering out Composite
+```{r}
+
+# tbl-cap : "proportion of Composites that have corresponding samples taken"
+df %>%
+  ggplot(aes(y = ANALYTE, fill = SAMPLE_TYPE, group = SAMPLE_TYPE)) +
+  geom_bar(position = "fill")
+
+temp <- df %>% 
+  distinct(VISIT_ID, SAMPLE_TYPE) %>%
+  mutate(n = T)  %>%
+  pivot_wider(id_cols = VISIT_ID, names_from = SAMPLE_TYPE, values_from = n, values_fill = F)  %>%
+  mutate(either= Individual | INSITU_MEAS) 
+
+temp %>%
+  group_by(Composite) %>%
+  summarize(propInd = mean(Individual, na.rm= T),
+            propINSITU = mean(INSITU_MEAS, na.rm=T),
+            propEither=  mean(either, na.rm = T)) %>%
+  kable() %>%
+  kable_paper()
+```
+- Nearly every composite has corresponding individual and insitu measurements 
+
+```{r}
+
+# tbl-cap : "Proportion individual samples with insitu measures"
+temp %>%
+  group_by(Individual) %>%
+  summarize(propINSITU = mean(INSITU_MEAS, na.rm=T)) %>%
+  kable() %>%
+  kable_paper()
+```
+
+```{r}
+temp %>%
+  group_by(INSITU_MEAS) %>%
+  summarize(propInd = mean(Individual, na.rm=T)) %>%
+  kable() %>%
+  kable_paper()
+
+df <- df %>% filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"))
+```
+
+
+
+```{r}
+df %>%
+  ggplot(aes(x = ANALYTE, fill = SAMPLE_TYPE, group= SAMPLE_TYPE)) +
+  geom_bar()
+```
+
+
+# Compiling table of remarks
+```{r}
+remarkDf <- read_csv("Data/Raw/remarkCodes.csv") %>%
+  right_join(df , by = c("NAME" = "RESULT_REMARK"))  %>%
+  mutate(VALUE = ifelse(is.na(as.numeric(VALUE)) | VALUE == "0", 
+                        VALUE, "Reported")) %>% 
+  rename(RESULT_REMARK = NAME) %>%
+  group_by(ANL_CODE, ANALYTE, FRACTION, METHOD, VALUE, RESULT_REMARK, 
+          UNITS, CLASS, CODE, DESCRIPTION) %>%
+  summarize(n = n(), FirstYear = min(YEAR, na.rm = T), LastYear = max(YEAR, na.rm=T)) %>% 
+  unite(FirstYear, LastYear, col = "Years", sep = "-", remove= T ) %>%
+  arrange(ANALYTE, FRACTION, METHOD, VALUE)
+
+
+remarkDf %>%
+  separate(Years, into = c("min", "max"), remove = T, sep = "-") %>%
+  group_by(ANALYTE, FRACTION, METHOD, UNITS, ANL_CODE) %>%
+  summarize(n = sum(n), min = min(min, na.rm =T), max = max(max, na.rm=T)) %>%
+  arrange(ANALYTE, FRACTION, METHOD) %>%
+  ungroup() %>%
+  unite(min, max, col = "Years", sep = "-", remove= T) %>%
+  distinct(ANALYTE, ANL_CODE, FRACTION) %>%
+  gt() %>%
+  tab_style(
+        style = cell_text(weight = "bold"),
+        locations = cells_column_labels()) %>%
+  gtsave("Data/Formatted/combiningAnalytes.html")
+
+df %>%
+  distinct(MEDIUM, ANALYTE, ANL_CODE, FRACTION) %>%
+  arrange(MEDIUM, ANALYTE, FRACTION) %>%
+  gt() %>%
+  gtsave("Data/Formatted/combiningAnalytes.html")
+  
+```
+
+
+```{r}
+
+#####################################################################
+remarkDf %>%
+  select(ANALYTE, FRACTION, METHOD, Years, VALUE, n, CLASS, CODE, RESULT_REMARK, DESCRIPTION) %>%
+  map_df(str_replace_all, pattern = ",", replacement = ".")  %>%
+  mutate(Choice = case_when(
+    DESCRIPTION == "Result value was not determined or entered for reasons other than those presented in this list. No result value was reported" ~ "Drop",
+    DESCRIPTION == "Reported value is deemed invalid by the QC Coordinator" ~ "Drop",
+    DESCRIPTION == "Some quality control samples (such as duplicates or standard checks) related to the analysis were not prepared. analyzed. or reported." ~ "Drop",
+    DESCRIPTION == "Analyte produced an instrument response but reported value is below the calculated method detection limit. Validity of reported value may be compromised" ~ "MDL", 
+    DESCRIPTION == "A lab reagent blank associated with this analysis failed the acceptance criteria. Validity of reported value may be compromised" ~ "Drop",
+    DESCRIPTION == "Analysis was halted because a laboratory accident either  destroyed the sample or rendered it not suitable for analysis. No result value was reported" ~ "Drop",
+    DESCRIPTION == "Analysis was canceled and not performed. No result value was reported" ~ "Drop",
+    DESCRIPTION == "A lab performance check sample associated with this analysis failed the acceptance criteria. Validity of reported value may be compromised" ~ "Drop", 
+    DESCRIPTION == "Analyte produced an instrument response but reported value is below a detection limit. The type of detection limit was unspecified. Validity of reported value may be compromised" ~ "< Unspecified detection limit",
+    DESCRIPTION == "Reported value was determined to be an outlier (> 3 std. devs) when compared to other data values from the same project and station." ~ "3SD Outlier",
+  .default = "Keep")) %>%
+  mutate(Imputation = case_when(
+    Choice == "MDL" ~ "MDL/2",
+    Choice == "< Unspecified detection limit" ~ "???",
+  .default = ""))  %>%
+  mutate(Detection_Limit= NA, .before = Years) %>%
+  gt() %>%
+  tab_style(
+        style = cell_text(weight = "bold"),
+        locations = cells_column_labels()
+  ) %>% 
+  tab_style(
+    style = list(
+      cell_fill(color = "#F9E3D6"),
+      cell_text(style = "italic")
+      ),
+    locations = cells_body(
+      columns = Choice,
+      rows = Choice == "Drop" 
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#FCD982"),
+      cell_text(style = "italic")
+      ),
+    locations = cells_body(
+      columns = Choice,
+      rows = Choice == "MDL" 
+    )
+  ) %>%
+  gtsave("Data/Formatted/Imputing.html")
+
+  
+
+
+
+
+
+
+##### NEED TO TAKE CARE OF
+#        "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4",
+#        "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9",
+#        "INVALID 6.5",
+#
+#        "<0.12", # Total/Bulk Chloride E300.0
+#        "<0.1", # Total/Bulk Calcium LG213
+#        "<500", # Filtrate Potassium E200.8
+#        "<2", # Total/Bulk Arsenic LG213
+#        "<1", # Total/Bulk Manganese LG213
+#        "<0.05" # Total/Bulk Potassium LG213
+### TAKEN Care of by forcing strings to NA
+# na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported",
+#        "No Result Reported.", "NO RESULT", "no result", "No result reported",
+# convert no result reported strings into NAs
+
+df %>%
+  filter(grepl("Phospho", ANALYTE, ignore.case=T)) %>%
+  mutate(VALUE = as.numeric(VALUE)) %>%
+  ggplot(aes(x = VALUE, y = ..density.., group = UNITS, fill = UNITS))+ 
+  geom_histogram(alpha = 0.3) +
+  facet_wrap(~ ANALYTE) +
+  ggtitle("TP units")
+```
+
+# Units 
+List of analyte filtrrate units combos
+```{r}
+df %>%
+  distinct(ANALYTE, METHOD, FRACTION, UNITS) %>%
+  arrange(ANALYTE, METHOD, UNITS) %>%
+  kable %>%
+  kable_paper()
+```
