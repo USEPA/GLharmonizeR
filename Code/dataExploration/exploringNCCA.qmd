@@ -10,20 +10,24 @@ NLA data only sampled lake michigan 1 time per year and so were left out.
 source("Code/dataCleaning/readNCCA.r")
 library(sf)
 library(tidyverse)
+qaCodes <- readxl::read_xlsx("DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet= 1) %>%
+  select(-...3) %>%
+  drop_na(`Unique Qualifier Code`)
 siteFiles <- c("Data/Raw/NCCA/assessedSiteInfo2010.csv", "Data/Raw/NCCA/nAssessedSiteInfo2010.csv")
 preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
 tenFiles<- c("Data/Raw/NCCA/assessedWaterChem2010.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv") 
 fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
-df <- readNCCA(siteFiles = siteFiles, preFiles = preFiles, tenFiles = tenFiles, fifteenFiles = fifteenFiles) %>%
-  filter(WTBDY_NM == "Lake Michigan")
+df <- readNCCA(siteFiles = siteFiles, preFiles = preFiles, tenFiles = tenFiles, fifteenFiles = fifteenFiles)  %>%
+  filter(WTBDY_NM == "Lake Michigan") %>%
+  left_join(qaCodes, by = c("QACODE" = "Unique Qualifier Code"))
 
 ```
 
 # Parameters
-8 parameters all measured roughtly 140 times except TKN was measured 20 times.
+8 parameters
 ```{r}
 df %>%
-  ggplot(aes(x = ANALYTE)) +
+  ggplot(aes(y = ANALYTE)) +
   geom_bar() 
 
 ```
@@ -52,13 +56,18 @@ df %>%
 
 # QA codes
 - Need to find a key how to translate these codes?
+
 ```{r}
-waterChem %>%
-  select(QACODE) %>%
-  drop_na(QACODE) %>%
-  ggplot(aes(x = QACODE)) + 
-  geom_bar()
+df %>%
+  count(QACODE, Considerations, Definition) %>%
+  filter(!is.na(QACODE)) %>%
+  ggplot(aes(x = n, y = Definition))  +
+  geom_bar(stat = "identity") + 
+  scale_y_discrete(labels = scales::label_wrap(20)) +
+  theme(axis.text=element_text(size=18)) +
+  xlab("")
 ```
+
 # Units 
 ```{r}
 df %>%
@@ -67,6 +76,7 @@ df %>%
 ```
 
 - all analytes have distinct units!!! yay
+
 
 
 # Detection limits
@@ -81,33 +91,41 @@ df %>%
     - values plotted below with MDL and MRL as vertical lines
   - SRP (n = 3) 
     - reported as 0
+
+# Distributions
 ```{r}
-waterChem %>%
-  filter((RESULT < MDL) | (RESULT < MRL)) %>% 
-  select(PARAMETER, RESULT, MRL, MDL) %>%
-  mutate(Limit = case_when(RESULT < MDL ~ "MDL",
-                          (RESULT < MRL) & (RESULT > MDL) ~ "MRL"))  %>%
-  # filter(Limit == "MDL") %>% distinct()
-  filter(Limit == "MRL", PARAMETER == "PTL") %>%
-  ggplot(aes(x= RESULT)) +
-  geom_histogram() + 
-  geom_vline(aes(xintercept = MRL)) +
-  geom_vline(aes(xintercept = MDL))
-
-waterChem %>%
-  filter(RESULT < MRL, RESULT > 0, RESULT > MDL) %>% 
-  ggplot(aes(x = RESULT)) + 
-  geom_histogram() + 
-  facet_wrap(~PARAMETER, scales= "free")
-
-waterChem %>%
-  filter(RESULT < MDL) %>%
+df %>% 
+  select(ANALYTE, RESULT) %>%
   ggplot(aes(x = RESULT)) +
   geom_histogram() +
-  facet_wrap(~PARAMETER, scales = "free")
-  
+  facet_wrap(~ANALYTE, scales = "free")
+
+
+
+df %>% 
+  mutate(QA = !is.na(QACODE)) %>%
+  select(ANALYTE, RESULT, QA) %>%
+  ggplot(aes(x = RESULT, fill = QA, group = QA)) +
+  geom_histogram(alpha = 0.3, position = "identity") +
+  facet_wrap(~ANALYTE, scales = "free") + 
+  scale_x_log10()
+
+```
+- looks like imputatons were already carried out for this dataset
+
+# Dissolved inorganic N
+```{r}
+df %>%
+  count(ANALYTE, Definition, QACODE) %>%
+  filter(!is.na(QACODE), ANALYTE == "Dissolved Inorganic Nitrogen")
+
+
 ```
 
+# Missingness
+```{r}
+df %>%
+  arrange(Date, SAMPYEAR) %>%
+  naniar::vis_miss()
 
-
-
+```
