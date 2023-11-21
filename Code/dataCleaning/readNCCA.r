@@ -43,6 +43,8 @@ readNCCA2000s <- function(filepath) {
                   )) %>%
     pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")
 }
+
+
 readNCCA2010 <- function(filepaths) {
   filepaths %>%
     map_dfr(read_csv,
@@ -54,7 +56,6 @@ readNCCA2010 <- function(filepaths) {
               "BATCH_ID" = "-",
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
-              "VISIT_NO" = "-"
             )) %>%
     rename(ANL_CODE = PARAMETER, 
            ANALYTE = PARAMETER_NAME,
@@ -90,7 +91,8 @@ tenFiles<- c("Data/Raw/NCCA/assessedWaterChem2010.csv", "Data/Raw/NCCA/nassessed
 fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
 readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
   sites <- readNCCASites(siteFiles) %>%
-    distinct(SITE_ID, WTBDY_NM, STATION_DEPTH, STATION_DEPTH_UNITS, ALAT_DD, ALON_DD)
+    distinct(SITE_ID, .keep_all =T) %>%
+    select(SITE_ID, WTBDY_NM, STATION_DEPTH, STATION_DEPTH_UNITS, ALAT_DD, ALON_DD)
   t0 <- readNCCA2000s(preFiles)
   t10 <- readNCCA2010(tenFiles)
   t15 <- readNCCA2015(fifteenFiles)
