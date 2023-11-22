@@ -13,6 +13,7 @@ readSite <- function(filepath) {
     dplyr::select(SITE_ID, contains("LAT_DD"), contains("LON_DD"), contains("DEPTH")) %>%
     dplyr::select(-contains("TLAT_DD"), -contains("TLON_DD"), -contains("83"), -contains("UNITS"))  %>%
     dplyr::rename(SITE_ID = 1, LAT = 2, LON = 3) %>%
+    dplyr::mutate_at(vars(one_of('STATION_DEPTH')), as.numeric) %>%
     dplyr::rename_with(~ case_when(
       . == "STATION_DEPTH" ~ "DEPTH",
       TRUE ~ .
@@ -88,6 +89,10 @@ readNCCA2015 <- function(filepath) {
           ) %>%
     mutate(Date = dmy(Date)) 
 }
+
+# 2020/2021
+# SITE_ID, Date_COL,  LAT/LON_DD (not 83), STATION_DEPTH
+
 
 readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
   sites <- readNCCASites(siteFiles) %>%
