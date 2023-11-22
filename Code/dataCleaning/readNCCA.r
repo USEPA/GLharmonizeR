@@ -1,27 +1,32 @@
 
 parseNCCAData <- function(directory) {
   data.frame("file" = dir(directory)) %>%
-    mutate(year = readr::parse_number(file), 
+    dplyr::mutate(year = readr::parse_number(file), 
            chem = grepl(file, pattern = "chem", ignore.case = T),
            site = grepl(file, pattern = "site", ignore.case = T))
-    }
-
+}
+# pre 2000's doesn't report depth
+# 2010 reports depth units, need to check if they're same
+# all depths are reported in meters
 readSite <- function(filepath) {
-  readr::read_csv(filepath,
-    col_types = cols(
-      "UID" = "c",
-      "SITE_ID" = "c",
-      "STATION_DEPTH" = "d",
-      "STATION_DEPTH_UNITS" = "c",
-      "ALAT_DD" = "d",
-      "ALON_DD" = "d" # What are TLAT/TLON? somtimes subbed for alat/lon
-    ))
+  readr::read_csv(filepath) %>%
+    dplyr::select(SITE_ID, contains("LAT_DD"), contains("LON_DD"), contains("DEPTH")) %>%
+    dplyr::select(-contains("TLAT_DD"), -contains("TLON_DD"), -contains("83"), -contains("UNITS"))  %>%
+    dplyr::rename(SITE_ID = 1, LAT = 2, LON = 3) %>%
+    dplyr::mutate_at(vars(one_of('STATION_DEPTH')), as.numeric) %>%
+    dplyr::rename_with(~ case_when(
+      . == "STATION_DEPTH" ~ "DEPTH",
+      TRUE ~ .
+    )) %>%
+    # file 3 has a bunch of empty rows at the end
+    # file 2 has missing lat/lons for some reason
+    tidyr::drop_na()
 }
 
-readNCCASites <- function(filepaths) {
-  file1 <- readSite(filepaths[[1]])
-  file2 <- readSite(filepaths[[2]])
-  plyr::rbind.fill(file1,file2)
+#dir <- "Data/Raw/NCCA"
+readNCCASites <- function(directory) {
+  dir(path = directory, pattern = "site", all.files =T, full.names=T, ignore.case = T) %>%
+    purrr::map_dfr(readSite)
 }
 
 readNCCA2000s <- function(filepath) {
@@ -43,6 +48,7 @@ readNCCA2000s <- function(filepath) {
                   )) %>%
     pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")
 }
+
 readNCCA2010 <- function(filepaths) {
   filepaths %>%
     map_dfr(read_csv,
@@ -54,7 +60,6 @@ readNCCA2010 <- function(filepaths) {
               "BATCH_ID" = "-",
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
-              "VISIT_NO" = "-"
             )) %>%
     rename(ANL_CODE = PARAMETER, 
            ANALYTE = PARAMETER_NAME,
@@ -84,16 +89,19 @@ readNCCA2015 <- function(filepath) {
           ) %>%
     mutate(Date = dmy(Date)) 
 }
-siteFiles <- c("Data/Raw/NCCA/assessedSiteInfo2010.csv", "Data/Raw/NCCA/nAssessedSiteInfo2010.csv")
-preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
-tenFiles<- c("Data/Raw/NCCA/assessedWaterChem2010.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv") 
-fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
+
+# 2020/2021
+# SITE_ID, Date_COL,  LAT/LON_DD (not 83), STATION_DEPTH
+
+
 readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
   sites <- readNCCASites(siteFiles) %>%
-    distinct(SITE_ID, WTBDY_NM, STATION_DEPTH, STATION_DEPTH_UNITS, ALAT_DD, ALON_DD)
+    distinct(SITE_ID, .keep_all =T) 
   t0 <- readNCCA2000s(preFiles)
   t10 <- readNCCA2010(tenFiles)
   t15 <- readNCCA2015(fifteenFiles)
-  plyr::rbind.fill(t0, t10, t15) %>%
-    left_join(sites, by = "SITE_ID")
+  dplyr::bind_rows(list(t0, t10, t15)) %>%
+    left_join(sites, by = "SITE_ID") %>%
+    # QC filters
+    filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
 }
