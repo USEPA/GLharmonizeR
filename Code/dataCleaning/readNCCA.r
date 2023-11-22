@@ -101,5 +101,7 @@ readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
   t10 <- readNCCA2010(tenFiles)
   t15 <- readNCCA2015(fifteenFiles)
   dplyr::bind_rows(list(t0, t10, t15)) %>%
-    left_join(sites, by = "SITE_ID")
+    left_join(sites, by = "SITE_ID") %>%
+    # QC filters
+    filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
 }
