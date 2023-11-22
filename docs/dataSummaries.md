@@ -3,4 +3,4 @@
 
 
 ## GLNPO
-![Summary of GLNPO data](figsTables/GLENDA_summary.png)
+![Summary of GLNPO data](figsTables/GLENDA_summary.html)
