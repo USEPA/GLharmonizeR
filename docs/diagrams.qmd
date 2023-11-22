@@ -1,13 +1,25 @@
 ---
 title: "Diagrams"
+<<<<<<< HEAD
 format: html
+=======
+>>>>>>> f74b014446d3b8d501357e9dfd7097d8802cbda9
 ---
 
 
 ```{mermaid}
 flowchart LR
+<<<<<<< HEAD
    Data[Data] --> QC1(Check QA codes \n impute if necessary)
    QC1 --> QC2(Select water \n samples that aren't QC)
    QC2 --> QC3(Map Lat,Lon \n Station ID)
    QC3 --> QC4(Unify column \n and analyte naming)
+=======
+  
+  Data[Hard edge] --> B(Round edge)
+  B --> C{Decision}
+  C --> D[Result one]
+  C --> E[Result two]
+
+>>>>>>> f74b014446d3b8d501357e9dfd7097d8802cbda9
 ```
