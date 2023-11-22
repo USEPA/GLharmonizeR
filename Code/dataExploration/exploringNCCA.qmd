@@ -4,12 +4,11 @@ metadata-files:
   - "../../_quarto.yml"
 ---
 
-NLA data only sampled lake michigan 1 time per year and so were left out.
-
 ```{r loadNSetup}
 source("Code/dataCleaning/readNCCA.r")
 library(sf)
 library(tidyverse)
+library(kableExtra)
 qaCodes <- readxl::read_xlsx("DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet= 1) %>%
   select(-...3) %>%
   drop_na(`Unique Qualifier Code`)
@@ -18,17 +17,9 @@ preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
 tenFiles<- c("Data/Raw/NCCA/assessedWaterChem2010.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv") 
 fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
 df <- readNCCA(siteFiles = siteFiles, preFiles = preFiles, tenFiles = tenFiles, fifteenFiles = fifteenFiles) %>%
-  left_join(qaCodes, by = c("QACODE" = "Unique Qualifier Code")) #%>%
-  
-```
-
-```{r}
-read_csv("Data/Raw/NCCA/nca_siteinformationdata.csv")
-t15 <- readNCCA2015("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
-t10 <- readNCCA2010("Data/Raw/NCCA/assessedWaterChem2010.csv")
-dplyr::bind_rows(t10, t15) %>%
-summarize(max(Date), min(Date))
-glimpse(t15)
+  left_join(qaCodes, by = c("QACODE" = "Unique Qualifier Code")) %>%
+  filter(between(LON, -88, -84.9),
+         between(LAT, 41.7, 46))
 ```
 
 # Parameters
@@ -47,19 +38,17 @@ lakes <- sf::read_sf("Data/Other/ne_10m_lakes.shp")
 
 ggplot(lakes) +
   geom_sf(fill = "lightblue") +
-  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  coord_sf(xlim = c(-88, -84.9), ylim = c(41.7, 46)) +
   theme(panel.background = element_rect(fill = '#d0d890'),
         panel.grid = element_line(color = '#00000010')) +
-  geom_jitter(data= df, aes(x = ALON_DD, y = ALAT_DD), size=  3)
+  geom_jitter(data= df, aes(x = LON, y = LAT), size=  3)
 ```
 
 # Temporal
 ```{r}
-# No michigan values have same year
 df %>% 
   ggplot(aes(x = Date, y = ANALYTE)) +
   geom_point()
-
 ```
 
 # QA codes
@@ -72,7 +61,7 @@ df %>%
   ggplot(aes(x = n, y = Definition))  +
   geom_bar(stat = "identity") + 
   scale_y_discrete(labels = scales::label_wrap(20)) +
-  theme(axis.text=element_text(size=18)) +
+  # theme(axis.text=element_text(size=18)) +
   xlab("")
 ```
 
@@ -80,60 +69,50 @@ df %>%
 ```{r}
 df %>%
   distinct(ANALYTE, UNITS) %>%
-  count(ANALYTE)
+  arrange(ANALYTE, UNITS) %>%
+  kable() %>%
+  kable_paper()
+```
+- all analytes have same units !!!! yay!
+
+
+
+# ANALYTES with lots of QA flags
+```{r}
+QAanalytes <- df %>%
+  count(ANALYTE, Definition)  %>%
+  filter(!is.na(Definition))  %>%
+  group_by(ANALYTE) %>%
+  summarize(N = sum(n))  %>%
+  filter(N > 20) %>%
+  pull(ANALYTE)
+
+df %>%
+  filter(ANALYTE %in% QAanalytes)  %>%
+  filter(!is.na(Definition)) %>%
+  ggplot(aes(y= Definition)) +
+  geom_bar() + 
+  facet_wrap(~ANALYTE) + 
+  scale_y_discrete(labels = scales::label_wrap(20))
+
 ```
 
-- all analytes have distinct units!!! yay
-
-
-
-# Detection limits
-- No NAs
-- PQL is all NAs
-- Below MDL reported as 0
-- Equal to MDL reported as MDL
-- 3 params have values between MDL
-  - NH3 (n = 3)
-    - reported as 0
-  - PTL (n = 39)
-    - values plotted below with MDL and MRL as vertical lines
-  - SRP (n = 3) 
-    - reported as 0
 
 # Distributions
 ```{r}
-df %>% 
-  select(ANALYTE, RESULT) %>%
-  ggplot(aes(x = RESULT)) +
-  geom_histogram() +
-  facet_wrap(~ANALYTE, scales = "free")
-
-
-
-df %>% 
+g <- df %>% 
+  filter(ANALYTE %in% c("Dissolved Inorganic Nitrogen", 
+    "Chlorophyll A",
+    "Ammonia",
+    "Dissolved Silica",
+    "Total Phosphorus")) %>%
   mutate(QA = !is.na(QACODE)) %>%
   select(ANALYTE, RESULT, QA) %>%
-  ggplot(aes(x = RESULT, fill = QA, group = QA)) +
-  geom_histogram(alpha = 0.3, position = "identity") +
-  facet_wrap(~ANALYTE, scales = "free") + 
-  scale_x_log10()
+  ggplot(aes(x = RESULT, y=..density.., fill = QA, group = QA )) +
+  geom_histogram(position = "identity", alpha = 0.3) +
+  facet_wrap(~ANALYTE, scales = "free")
+g 
 
+g + scale_x_log10()
 ```
 - looks like imputatons were already carried out for this dataset
-
-# Dissolved inorganic N
-```{r}
-df %>%
-  count(ANALYTE, Definition, QACODE) %>%
-  filter(!is.na(QACODE), ANALYTE == "Dissolved Inorganic Nitrogen")
-
-
-```
-
-# Missingness
-```{r}
-df %>%
-  arrange(Date, SAMPYEAR) %>%
-  naniar::vis_miss()
-
-```
