@@ -7,6 +7,7 @@ readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv") %>%
   select(YEAR, LAKE, SAMPLE_DEPTH_M, MEDIUM, ANALYTE) %>%
   tbl_summary() %>%
   as_gt() %>%
+  tab_options(table.width = 180, table.font.size = 8) %>%
   gtsave(filename = "docs/figsTables/GLENDA_summary.png")
 qaCodes <- readxl::read_xlsx("DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet= 1) %>%
   select(-...3) %>%
@@ -22,5 +23,6 @@ readNCCA(siteFiles = siteFiles, preFiles = preFiles, tenFiles = tenFiles, fiftee
          between(LAT, 41.7, 46)) %>%
   select(SAMPYEAR, DEPTH, ANALYTE) %>%
   tbl_summary() %>%
-  as_gt() %>%
+  as_gt()  %>%
+  tab_options(table.width = 180, table.font.size = 8) %>%
   gtsave(filename = "docs/figsTables/NCCAsummary.png")
