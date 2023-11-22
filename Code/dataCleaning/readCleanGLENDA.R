@@ -78,9 +78,11 @@ cleanGLENDA <- function(df) {
       grepl("Inconsistent", RESULT_REMARK, ignore.case= T) ~ "HIGH",
       grepl("Invalid", RESULT_REMARK, ignore.case= T) ~ "HIGH"
     )) %>%
+
     # Matching units
-    mutate(VALUE = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
-                             (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
+    mutate(VALUE = as.numeric(VALUE),
+      VALUE = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
+              (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
                              .default = VALUE),
            UNITS = case_when(ANALYTE == "Magnesium" ~ "mg/l",
                              ANALYTE == "Sodium" ~ "mg/l",
@@ -91,4 +93,9 @@ cleanGLENDA <- function(df) {
                              # FTU and NTU are equivalent
                              ANALYTE == "Turbidity" ~ "FTU",
                              .default = UNITS) )
+}
+
+
+readCleanGLENDA <- function(filepath) {
+  cleanGLENDA(readPivotGLENDA(filepath)) 
 }

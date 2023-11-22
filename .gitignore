@@ -73,6 +73,7 @@ vignettes/*.pdf
 *.rdb
 *.rdx
 *.rdb
+*.pdf 
 
 Results/Code/*/*_files
 
