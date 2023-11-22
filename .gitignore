@@ -79,7 +79,7 @@ Results/Code/*/*_files
 
 # Exceptions
 !Data/Formatted/*.csv
-
+!docs/*
 
 desktop.ini
 
