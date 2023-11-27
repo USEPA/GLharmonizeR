@@ -57,7 +57,8 @@ cleanGLENDA <- function(df) {
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
     select(, -Number) %>%
-    unite(ANL_CODE, FRACTION, sep = "_", remove = T) %>%
+    mutate(FRACTION = ifelse(FRACTION == "Not applicable", "", FRACTION)) %>%
+    unite(ANL_CODE, ANL_CODE, FRACTION, sep = "_", remove = T) %>%
     # If value and remarks are missing, we assume sample was never taken
     filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
     #mutate(VALUE = as.numeric((str_replace(VALUE, "[a-zA-Z]", "NA")))) %>%

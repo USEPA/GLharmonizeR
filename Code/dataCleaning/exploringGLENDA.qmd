@@ -211,9 +211,9 @@ df %>%
 
 ```{r remarks}
 #| tbl-cap: "Counts for each type of remarks"
-remarkCodes <- read_csv("Data/Raw/remarkCodes.csv")
-QCCodes <- read_csv("Data/Raw/QCcodes.csv")
-depthCodes <- read_csv("Data/Raw/DepthCodes.csv")
+remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
+QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
+depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
 
 
 remarks <- df %>%
@@ -240,10 +240,6 @@ remarks %>%
   theme(axis.text.x=element_blank(),
      axis.ticks.x=element_blank()) +
   ggtitle("Subclasses of Remarks")
-
-
-df %>%
-  filter(grepl("Other", RESULT_REMARK))
 ```
 
 # Flag risks
@@ -251,8 +247,9 @@ df %>%
 left_join(df, remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
   select(REMARK_RISK, CLASS, RESULT_REMARK, DESCRIPTION) %>%
   distinct(REMARK_RISK, CLASS, .keep_all = T) %>%
-  mutate(REMARK_RISK = factor(REMARK_RISK, levels = c("LOW", "MEDIUM", "HIGH"))) %>%
-  arrange(desc(REMARK_RISK), desc(CLASS)) %>%
+  mutate(REMARK_RISK = factor(REMARK_RISK, levels = c("LOW", "MEDIUM", "HIGH"))) %>% 
+  mutate(Choice = )
+  arrange(REMARK_RISK, CLASS) %>%
   kable() %>%
   kable_paper()
 ```
@@ -424,3 +421,14 @@ df %>%
 <!-- <!--          loadings.label = TRUE, loadings.label.size = 3) --> -->
 <!-- <!-- autoplot(clara(dfWideNoMiss[-c(1,2,3,13)], 2)) --> -->
 <!-- <!-- ``` --> -->
+
+
+# Names, units, methods
+```{r}
+library(gt)
+uniqueMethods <- df %>% 
+  group_by(MEDIUM, ANALYTE, ANL_CODE, METHOD) %>%
+  summarize(m = min(YEAR, na.rm = T), M = max(YEAR, na.rm = T)) %>%
+  unite(YEARS, m, M, sep = "_", remove = T) %>%
+  ungroup()
+```
