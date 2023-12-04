@@ -40,7 +40,7 @@ readPivotGLENDA <- function(filepath) {
 
 #' Title
 #'
-#' @param filepath GLENDA dataframe in long format
+#' @param dataframe GLENDA dataframe in long format
 #'
 #' @return a dataframe
 #' @export
@@ -58,7 +58,7 @@ cleanGLENDA <- function(df) {
     # These columns are redundant with the "Analyte" columns
     select(, -Number) %>%
     mutate(FRACTION = ifelse(FRACTION == "Not applicable", "", FRACTION)) %>%
-    unite(ANL_CODE, ANL_CODE, FRACTION, sep = "_", remove = T) %>%
+    unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
     filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
     #mutate(VALUE = as.numeric((str_replace(VALUE, "[a-zA-Z]", "NA")))) %>%
@@ -82,10 +82,10 @@ cleanGLENDA <- function(df) {
 
     # Matching units
     mutate(VALUE = as.numeric(VALUE),
-      VALUE = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
+      VALUE2 = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
               (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
                              .default = VALUE),
-           UNITS = case_when(ANALYTE == "Magnesium" ~ "mg/l",
+           UNITS2 = case_when(ANALYTE == "Magnesium" ~ "mg/l",
                              ANALYTE == "Sodium" ~ "mg/l",
                              ANALYTE =="Alkalinity, Total as CaCO3" ~ "mg/l",
                              ANALYTE == "Conductivity" ~ "umho/cm",
