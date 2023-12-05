@@ -57,11 +57,9 @@ cleanGLENDA <- function(df) {
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
     select(, -Number) %>%
-    mutate(FRACTION = ifelse(FRACTION == "Not applicable", "", FRACTION)) %>%
     unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
     filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
-    #mutate(VALUE = as.numeric((str_replace(VALUE, "[a-zA-Z]", "NA")))) %>%
     # Labeling REMARK RISK
     mutate(REMARK_RISK = case_when(
       # replace low first, becuase in cases where multiple strings are matched, we want to give precedent to
