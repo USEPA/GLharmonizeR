@@ -1,10 +1,9 @@
 ---
-title: "Exploring Full WQD"
+title: "GLENDA data cleaning description"
 metadata-files:
   - "../../_quarto.yml"
+format: docx
 ---
-
-I split the NA types into three categories (for sure NA's, Unsure NA or not, Definitely not NA's but I'll address later). You can see with the line break in na argument. I determined missing values in each "VALUE" column with the commented out code below Dropped ANAL_CODE\_ columns because they are redundant with the "Analyte" columns
 
 ```{r setupNload}
 #| include: false
@@ -14,23 +13,42 @@ library(cluster)
 library(ggfortify)
 library(kableExtra)
 library(ggbeeswarm)
+library(gt)
 
-#library(naniar)
-#library(caret)
-#library(randomForest)
-#library(janitor)
-#library(ggh4x) # rescale facet plots
-#library(sf) # 1.0-12
-#library(sp) # 1.4-5
-#library(rnaturalearth)
-#library(rnaturalearthdata)
-#library(visdat)
+
 df <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv")
-#test <- df %>% filter(is.na(REMARK_RISK)) %>% select(RESULT_REMARK) %>% unique()
+remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
+# QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
+#depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
 ```
 
-# Spatial summary
 
+
+
+## Missingness
+
+### Analytes
+
+```{r MissingnessChloro}
+#| warning: false
+dfWide <- df %>%
+  select(SAMPLE_ID, YEAR, SEASON, ANALYTE, VALUE) %>%
+  distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>% 
+  pivot_wider(id_cols = c(SAMPLE_ID, YEAR, SEASON), names_from = ANALYTE, values_from = VALUE) %>%
+  filter(!is.na(`Chlorophyll-a`)) %>%
+  janitor::clean_names()
+
+naniar::gg_miss_var(dfWide, show_pct = T)
+dfWide %>%
+  mutate(ninetySizePlus = year > 1996) %>%
+  naniar::gg_miss_var(show_pct = T, facet = ninetySizePlus) + 
+  ggtitle("Pre/post '96")
+
+
+```
+
+# Summaries
+## Spatial 
 ```{r samplesSpace}
 #| fig-cap: "Density of samples with respect to latitude and longitude"
 #| cache: true
@@ -70,59 +88,7 @@ df %>%
 
 ```
 
-## Time summary
-
-```{r sampleYears}
-#| tbl-cap: "Range of years of sampling for each analyte colored by the proportion of zeros that were observed"
-df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  mutate(VALUE = VALUE ==0) %>%
-  group_by(YEAR, ANALYTE) %>%
-  summarize(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
-  ggplot(aes(x = YEAR,
-             y = ANALYTE,
-             col = `Proportion 0`)) +
-  #geom_dotplot()
-  #geom_quasirandom() 
-  # geom_violin(
-  geom_point(alpha= 0.8)
-  
-```
-
-## Season summary
-
-```{r sampleSeason}
-#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
-df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  mutate(VALUE = VALUE ==0) %>%
-  group_by(MONTH, ANALYTE) %>%
-  summarize(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
-  mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "June", "July", "August", "September", "October", "November", "December"))) %>%
-  ggplot(aes(x = MONTH,
-             y = ANALYTE,
-             col = `Proportion 0`)) +
-  #geom_dotplot()
-  #geom_quasirandom() 
-  # geom_violin(
-  geom_point(alpha= 0.8)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-```
-
-## Time of Day
-
-```{r sampleTime}
-#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
-df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  mutate(Hour = hour(SAMPLING_DATE)) %>%
-  ggplot(aes(x = Hour)) +
-  geom_histogram()
-
-```
-
-# Sampling Fraction
+### Sampling Fraction
 
 ```{r samplingFractions}
 #| tbl-cap: "Number of observations from each type of sampling fraction"
@@ -140,7 +106,7 @@ fractions %>%
 
 ```
 
-# Depth Codes
+### Depth Codes
 
 ```{r depthCodes}
 #| tbl-cap: "Number of observations from each  Depth (represented by color)"
@@ -159,134 +125,58 @@ fractions %>%
 
 ```
 
-# Units
+## Time
+```{r sampleYears}
+#| tbl-cap: "Range of years of sampling for each analyte colored by the proportion of zeros that were observed"
+df %>%
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE ==0) %>%
+  group_by(YEAR, ANALYTE) %>%
+  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
+  ggplot(aes(x = YEAR,
+             y = ANALYTE,
+             col = `Proportion 0`)) +
+  #geom_dotplot()
+  #geom_quasirandom() 
+  # geom_violin(
+  geom_point(alpha= 0.8)
+  
+```
 
-Only measure with multiple units is Turbidty (FTU/NTU), they seem to follow same distribution
+### Season summary
 
-```{r findingMultipleUnits}
-df %>% 
-  ggplot(aes(x = ANALYTE, fill = UNITS)) + 
-  geom_bar(position = "fill") + 
-   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
-  theme(legend.position = "none")
-
-# df %>% 
-#   distinct(ANALYTE, UNITS) %>%
-#   count(ANALYTE) %>%
-#   filter(n>1)
+```{r sampleSeason}
+#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
+df %>%
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE ==0) %>%
+  group_by(MONTH, ANALYTE) %>%
+  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
+  mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "June", "July", "August", "September", "October", "November", "December"))) %>%
+  ggplot(aes(x = MONTH,
+             y = ANALYTE,
+             col = `Proportion 0`)) +
+  #geom_dotplot()
+  #geom_quasirandom() 
+  # geom_violin(
+  geom_point(alpha= 0.8)+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 ```
 
-```{r multipleUnits}
-df %>%
-  distinct(ANALYTE, UNITS) %>%
-  count(ANALYTE) %>% 
-  filter(n > 1)
-  arrange(ANALYTE) %>%
-  kable() %>%
-  kable_paper() 
+### Time of Day
 
-```
-```{r unitDists}
+```{r sampleTime}
+#| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
-  filter(ANALYTE %in% c( 
-                        "Carbon, Organic",
-                        "Phosphorus, Orthophosphorus as P",
-                        "Turbidity",
-                        "Magnesium",
-                        "Sodium")) %>%
-  ggplot(aes(x  = VALUE, y= after_stat(density),
-             fill = UNITS, group = UNITS)) +
-  geom_histogram(alpha = 0.3, position = "identity") +
-  facet_wrap(~ANALYTE, scales = "free")
-
-df %>%
-  filter(ANALYTE == "Turbidity",
-         VALUE < 40) %>%
-  ggplot(aes(x = VALUE)) +
+ # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(Hour = hour(SAMPLING_DATE)) %>%
+  ggplot(aes(x = Hour)) +
   geom_histogram()
-```
-
-# Remarks
-
-```{r remarks}
-#| tbl-cap: "Counts for each type of remarks"
-remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
-QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
-depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
-
-
-remarks <- df %>%
-  filter(!is.na(RESULT_REMARK)) %>% 
-  count(RESULT_REMARK)%>%
-  arrange(desc(n)) %>%
-  left_join(remarkCodes, by= c("RESULT_REMARK"= "NAME"))
-
-remarks %>%
-  group_by(CLASS) %>%
-  summarize(n = sum(n)) %>%
-  mutate(CLASS = reorder(CLASS, n)) %>%
-  ggplot(aes(x = CLASS, y = n)) +
-  geom_bar(stat= "identity") + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-  ggtitle("Classes of Remarks")
-
-remarks %>%
-  filter(!is.na(CLASS)) %>%
-  ggplot(aes(x = RESULT_REMARK, y = n)) +
-  geom_bar(stat=  "identity") +
-  facet_wrap(~CLASS, scales = "free") + 
-  geom_text( aes(label = RESULT_REMARK, y = n), angle =45, size = 2) + 
-  theme(axis.text.x=element_blank(),
-     axis.ticks.x=element_blank()) +
-  ggtitle("Subclasses of Remarks")
-```
-
-# Flag risks
-```{r flagRisk}
-left_join(df, remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
-  select(REMARK_RISK, CLASS, RESULT_REMARK, DESCRIPTION) %>%
-  distinct(REMARK_RISK, CLASS, .keep_all = T) %>%
-  mutate(REMARK_RISK = factor(REMARK_RISK, levels = c("LOW", "MEDIUM", "HIGH"))) %>% 
-  mutate(Choice = )
-  arrange(REMARK_RISK, CLASS) %>%
-  kable() %>%
-  kable_paper()
-```
-
-# Method
-```{r}
-df %>%
-  drop_na(METHOD, ANALYTE) %>%
-  ggplot(aes(y = ANALYTE, fill = METHOD)) +
-  geom_bar(position="fill") + 
-  theme(legend.position = "none") +
-  facet_wrap(~FRACTION, ncol = 1)
 
 ```
 
 
-# Missingness
-
-## Analytes
-
-```{r MissingnessChloro}
-#| warning: false
-dfWide <- df %>%
-  select(SAMPLE_ID, YEAR, SEASON, ANALYTE, VALUE) %>%
-  distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>% 
-  pivot_wider(id_cols = c(SAMPLE_ID, YEAR, SEASON), names_from = ANALYTE, values_from = VALUE) %>%
-  filter(!is.na(`Chlorophyll-a`)) %>%
-  janitor::clean_names()
-
-naniar::gg_miss_var(dfWide, show_pct = T)
-dfWide %>%
-  mutate(ninetySizePlus = year > 1996) %>%
-  naniar::gg_miss_var(show_pct = T, facet = ninetySizePlus) + 
-  ggtitle("Pre/post '96")
-
-
-```
 
 ## Spatial information
 
@@ -307,6 +197,7 @@ df %>%
   facet_wrap(~ANALYTE)
 
 ```
+
 
 <!-- # Modeling information -->
 
@@ -366,7 +257,7 @@ df %>%
 <!--   unite("Position", LATITUDE, LONGITUDE) %>% -->
 <!--   mutate(SAMPLING_DATE = date(SAMPLING_DATE)) %>% -->
 <!--   group_by(SAMPLING_DATE, Position) %>% -->
-<!--   summarize(CHLA = mean(VALUE, rm.na=  T)) %>% -->
+<!--   reframe(CHLA = mean(VALUE, rm.na=  T)) %>% -->
 <!--   ggplot(aes(x = SAMPLING_DATE, y = CHLA, col = factor(Position))) + -->
 <!--   geom_line() + -->
 <!--   theme(legend.position = "none") + -->
@@ -423,12 +314,4 @@ df %>%
 <!-- <!-- ``` --> -->
 
 
-# Names, units, methods
-```{r}
-library(gt)
-uniqueMethods <- df %>% 
-  group_by(MEDIUM, ANALYTE, ANL_CODE, METHOD) %>%
-  summarize(m = min(YEAR, na.rm = T), M = max(YEAR, na.rm = T)) %>%
-  unite(YEARS, m, M, sep = "_", remove = T) %>%
-  ungroup()
-```
+

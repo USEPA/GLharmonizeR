@@ -8,23 +8,22 @@ toc: true
 ---
 
 # Load and setup
-Data sources
-* [GLENDA](https://cdxapps.epa.gov/cdx-glenda/action/querytool/querySystem)
-* [QA codes](https://cdxapps.epa.gov/cdx-glenda/action/linkdownloads/ExcelDownloads?downloadFile=&uploadFileId=964) taken from 2019 prepackaged data, from the "Qualifiers" sheet. Note: Didn't use "QC codes" sheet because couldn't find where this would map to the dataset
-* Didn't utilize Depth codes from prepackaged workbook either 
 
-There were a couple initial filter choices when we initially loaded the data for exploration.
+* Data sources
+  * [GLENDA](https://cdxapps.epa.gov/cdx-glenda/action/querytool/querySystem) 
+  * [QA codes](https://cdxapps.epa.gov/cdx-glenda/action/linkdownloads/ExcelDownloads?downloadFile=&uploadFileId=964) taken from 2019 prepackaged data, from the "Qualifiers" sheet. Note: Didn't use "QC codes" sheet because couldn't find where this would map to the dataset 
+  * Didn't utilize Depth codes from prepackaged workbook either  
+
+There were a couple initial filter choices when we initially loaded the data for exploration. 
+
 * Pivot the data into a long format
 * Enforce stict data types for each column
 * SAMPLE TYPES were either "Individual" or "INSITU_MEAS"
 * QC TYPEs were "routine field sample"
-* "Not applicable" FRACTION's forced to be empty string
 * Dropped observations where both VALUE and RESULT_REMARK are missing
   * This is before enforcing VALUE is a number, so we wouldn't induce a missing value
   * We will deal with the induced NA's on the basis of the RESULT_REMARK
 * Inferred inclusion risks for each RESULT_REMARK (see later in report)
-* Converted Magnesium to mg/l
-* enforced other units to be same if not reported as same-
 * force Values to be numeric. Note: Some of them had words in them if they were questionable
 
 
@@ -48,50 +47,20 @@ remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
 
 
 # QC investigations
-
-## LAT/LON precision
-- Lat/Lon have varying degrees of precision. Is this from rounding?
-- Missing from pre 1994
-- How far is tolerable for distance from Lat/Lon center? Some are as big as 1000 meters
-```{r checkLatLon}
-df %>% 
-  mutate(
-    LATITUDE = as.character(LATITUDE),
-    lat_dec = nchar(str_split_i(LATITUDE, "\\.", i =2)),
-    LONGITUDE = as.character(LONGITUDE),
-    lon_dec = nchar(str_split_i(LONGITUDE, "\\.", i = 2))) %>%
-  pivot_longer(cols = c(lat_dec, lon_dec)) %>%
-  ggplot(aes(x = value, y= names)) +
-
-df %>%
-  group_by(YEAR) %>%
-  summarize(p_missing_lon = mean(is.na(LONGITUDE))) %>%
-  ggplot(aes(x = YEAR, y = p_missing_lon)) +
-  geom_point()
-
-
-
-df %>% 
-  select(STATION_ID, LATITUDE, LONGITUDE) %>%
-  group_by(STATION_ID) %>%
-  mutate(meanLat = mean(LATITUDE, na.rm = T), meanLon = mean(LONGITUDE, na.rm = T),
-         meters = sqrt((LATITUDE - meanLat)^2 + (LONGITUDE - meanLon)^2),
-         meters = meters * 111320) %>%
-  ggplot(aes(x = meters)) +
-  geom_histogram() + 
-  scale_x_log10()
-```
-
-
 ## Fractions
 - Some fractions are reported missing
 - Here are the suggested fractions, some are still unknown (Note: Adding unique Method didn't yield new matches, that weren't themselves missing)
 - So far, this was purely based about solubility of the analytes
-```{r}
+
+```{r fractions}
+#| label: tbl-fractionLabels
+#| tbl-cap: "Giving unreported fractions fraction labels"
+
+
 df %>%
   distinct(ANALYTE, FRACTION)  %>%
   group_by(ANALYTE) %>%
-  filter(any(is.na(FRACTION)) | any(FRACTION == ""))  %>% 
+  filter(any(is.na(FRACTION)) | any(FRACTION == "Not applicable"))  %>% 
   mutate(suggestedFraction = case_when(
     grepl("CaCO3", ANALYTE) ~ "Total/Bulk",
     (grepl("Chloro", ANALYTE)) & (is.na(FRACTION)) ~ "",
@@ -102,10 +71,88 @@ df %>%
     ANALYTE == "pH" ~ "Total/Bulk"
   )) %>%
   arrange(ANALYTE, FRACTION) %>%
-  filter(is.na(FRACTION) | FRACTION == "") %>%
   ungroup() %>%
-  gt()
+  gt() %>%
+  tab_header(
+    title = md("Unknown fractions and their suggested labels"),
+    subtitle = md("Tablation of unique NA or Not applicable fractions and their suggested labels")
+  )
 ```
+
+## NAs, Remarks, and problematic values
+Different types of Not reported values
+```{r notReportedValues, max.height='100px'}
+#| label: tbl-notReportedValues
+#| tbl-cap: "A list of all of the not reported values and their associated remarks"
+
+testdf <- readPivotGLENDA("Data/Raw/GLENDA/GLENDA.csv") 
+
+testdf %>% 
+  filter(is.na(as.numeric(VALUE))) %>%
+  mutate(VALUE = tolower(VALUE),
+        VALUE = ifelse(grepl("no result", VALUE, ignore.case = T), "nrr", VALUE)) %>%
+  distinct(VALUE, RESULT_REMARK) %>%
+  arrange(VALUE) %>%
+  gt() %>%
+  tab_header(
+    title = "Unique non Numerics",
+    subtitle = "All of the nonnumeric and their associated remarks"
+  )
+```
+
+```{r remarkDecision}
+#| label: tbl-remarks
+#| tbl-cap: "Listing all of the remarks and whether the values were reported or just NA"
+
+naTreatment <- testdf %>%
+  separate_longer_delim(RESULT_REMARK, delim = ";") %>%
+  drop_na(RESULT_REMARK)  %>%
+  mutate(VALUE = case_when(as.numeric(VALUE) == 0 ~ as.character(0),
+                           as.numeric(VALUE) < 0 ~ "Negative",
+                           as.numeric(VALUE) > 0  ~ "Reported",
+                           is.na(as.numeric(VALUE)) ~ "Not Reported",
+                           grepl("<", VALUE) ~ "<")) %>%
+  distinct(VALUE, RESULT_REMARK) %>%
+  mutate(treatment = case_when(
+    # Most extreme up top to be more conserivative 
+    grepl("bias", RESULT_REMARK, ignore.case = T) ~ "Remove",
+    grepl("Inconsistent", RESULT_REMARK, ignore.case = T) ~ "Remove", 
+    is.na(RESULT_REMARK) ~ "Remove",
+    grepl("Invalid", VALUE, ignore.case=T) ~ "Remove",
+    grepl("Invalid", RESULT_REMARK, ignore.case=T) ~ "Remove",
+    grepl("no result", RESULT_REMARK, ignore.case = T) ~ "Remove",
+    grepl("fail", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    VALUE == "NRR" ~ "Remove",
+    VALUE %in% c("T", "W") ~ "Remove",
+    grepl("anomaly", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("contaminat", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("incomplete", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("Holding time", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("null", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("Outlier", RESULT_REMARK, ignore.case= T) ~ "Remove",
+    grepl("fail", RESULT_REMARK, ignore.case = T) ~ "Remove",
+    VALUE == "INV" ~ "Remove",
+    (VALUE == "Reported") & grepl("limit", RESULT_REMARK, ignore.case = T) ~ "Impute",
+    grepl("limit", RESULT_REMARK, ignore.case = T) ~ "Impute",
+    grepl("Outli", RESULT_REMARK, ignore.case = T) ~ "Impute",
+    grepl("<", VALUE) ~ "Impute", # Maybe just remove the less than?
+    grepl("less", RESULT_REMARK, ignore.case = T) ~ "Keep",
+    grepl("estimate", RESULT_REMARK, ignore.case= T) ~ "Keep",
+    grepl("correction", RESULT_REMARK, ignore.case= T) ~ "Keep",
+    (VALUE == "Reported")  & grepl("limit", RESULT_REMARK, ignore.case = T) ~ "Keep",
+    VALUE == "Not Reported" ~ "Remove",
+  )) %>%
+  select(VALUE, treatment, RESULT_REMARK) %>%
+  arrange(VALUE, treatment) 
+
+naTreatment %>%
+  gt() %>%
+  tab_header(
+    title = "Missing/estimated/Measured values",
+    subtitle = "Types of reported values and their treatment"
+  )
+```
+
 
 ## Units
 - For mismatched units:
@@ -114,35 +161,39 @@ df %>%
 - Assume internally consistent
 - Test log of distance between all pairwise combinations
 - Identified mismatched units by testing if their means are significantly different
-- 
 - labeled in the UNIT_DETERMINATION column
 
-```{r multipleUnits}
+```{r unitDistributions}
+unitsSheet <- df %>%
+  mutate(Above = SAMPLE_DEPTH_M <20) %>%
+  group_by(ANALYTE, FRACTION, METHOD, UNITS, Above) %>%
+  reframe(med = median(VALUE, na.rm =T),
+            METHOD = toString(METHOD)) %>% 
+  arrange(ANALYTE, Above)
+
+multUnits <- unitsSheet %>%
+  count(ANALYTE, FRACTION, UNITS, Above) %>% 
+  filter(n > 1) %>%
+  arrange(ANALYTE, FRACTION) %>%
+  select(ANALYTE, FRACTION, Above)
+
 df %>%
   mutate(Above = SAMPLE_DEPTH_M <20) %>%
   drop_na(Above) %>%
   ggplot(aes(x = VALUE, fill = UNITS, group = UNITS)) +
-    geom_histogram() +
-    facet_grid(rows = vars(ANALYTE), cols = vars(Above), scales="free") +
-    scale_x_log10()
-  group_by(ANALYTE, FRACTION, METHOD, UNITS, Above, .keep_all = T) %>%
-  reframe(med = median(VALUE, na.rm =T),
-            METHOD = toString(METHOD)) %>% 
-  arrange(ANALYTE, Above)
+    geom_histogram(alpha = 0.3, position = "identity") +
+    ggh4x::facet_grid2(rows = vars(ANALYTE), cols = vars(Above), scales="free", independent = "all", remove_labels = "all", render_empty = F,
+    ) +
+    scale_x_log10() +
+  ggtitle("Distributions of Analytes above (Right) and below (Left) 20 meters") + 
+  theme_void()
 
+```
 
-unitsSheet <- df %>%
-  mutate(Above = SAMPLE_DEPTH_M <20) %>%
-  group_by(ANALYTE, FRACTION, METHOD, UNITS, Above, .keep_all = T) %>%
-  reframe(med = median(VALUE, na.rm =T),
-            METHOD = toString(METHOD)) %>% 
-  arrange(ANALYTE, Above)
-
-
+```{r identifyUnits}
 
 unitsSheet <- df %>%
   mutate(Above = SAMPLE_DEPTH_M <20) %>%
-  distinct(ANALYTE, FRACTION, METHOD, UNITS, Above, .keep_all = T) %>%
   group_by(ANALYTE, FRACTION, UNITS, Above) %>%
   reframe(med = median(VALUE, na.rm =T),
             METHOD = toString(METHOD)) %>% 
@@ -156,14 +207,16 @@ unitsSheet %>%
   ggplot(aes(x = d)) +
   geom_histogram() +
   annotate("rect", xmin = 0.33, xmax= 2.5, ymin= -Inf, ymax = Inf, alpha= 0.2, fill = "orange", label = "fjklasdf") +
-  annotate("text", x = 0.15, y = 2, label = "Same Units", size = 9, angle = 90) +
-  annotate("text", x = 1, y = 2, label = "Need to Check", size = 9, angle = 90) +
-  annotate("text", x = 3, y = 2, label = "Different Units", size = 9, angle = 90)
+  annotate("text", x = 0.15, y = 2, label = "Same Units", size = 5, angle = 90) +
+  annotate("text", x = 1, y = 2, label = "Need to Check", size = 5, angle = 90) +
+  annotate("text", x = 3, y = 2, label = "Different Units", size = 5, angle = 90)
+```
 
+
+```{r unitMatchingness}
 unitMatchingness <- unitsSheet %>%
-  group_by(ANALYTE, UNITS) %>% # group by depth for consistency 20 (float this cutoff) meter cutoff are the means different then
+  group_by(ANALYTE, UNITS, Above) %>% 
   reframe(d = abs(diff(log10(med)))) %>%
-                                  # Nearest neighbors (Lat/Lon, depth, time), with different units, are they different
   mutate(UNIT_DETERMINATION = case_when(
     d > 300 ~ "Wrong Units",
     d < 2 ~ "Same Units",
@@ -171,69 +224,67 @@ unitMatchingness <- unitsSheet %>%
     .default = "Investigate further"
   ))
 
-multUnits <- unitsSheet %>%
-  distinct(ANL_CODE, UNITS) %>%
-  count(ANL_CODE) %>% 
-  filter(n > 1) %>%
-  arrange(ANL_CODE) %>%
-  pull(ANL_CODE)
 
-
-
-df %>%
-  filter(ANL_CODE %in% multUnits) %>%
-  left_join(unitMatchingness, by = "ANL_CODE") %>%
-  ggplot(aes(x  = VALUE, y= after_stat(density),
-             fill = UNIT_DETERMINATION, group = UNITS)) +
-  geom_histogram(alpha = 0.3, position = "identity") +
-  facet_wrap(~ANL_CODE, scales = "free") +
-  scale_x_log10() +
-  theme(legend.title = element_text(size = 8), legend.text = element_text(size = 8))
+# df %>%
+#   mutate(Above = STN_DEPTH_M < 20) %>%
+#   left_join(unitMatchingness, by = c("ANALYTE", "UNITS", "Above")) %>% 
+#   ggplot(aes(x  = VALUE, y= after_stat(density),
+#              fill = UNIT_DETERMINATION, group = UNITS)) +
+#   geom_histogram(alpha = 0.3, position = "identity") +
+#   facet_wrap(~ANL_CODE, scales = "free") +
+#   scale_x_log10() +
+#   theme(legend.title = element_text(size = 8), legend.text = element_text(size = 8)) +
+#   ggtitle("Analyte distributions ")
 
 ```
 
+## LAT/LON precision
+- Lat/Lon have varying degrees of precision. Is this from rounding?
+- Missing from pre 1994
+- How far is tolerable for distance from Lat/Lon center? Some are as big as 1000 meters
+```{r checkLatLon}
+df %>% 
+  mutate(
+    LATITUDE = as.character(LATITUDE),
+    lat_dec = nchar(str_split_i(LATITUDE, "\\.", i =2)),
+    LONGITUDE = as.character(LONGITUDE),
+    lon_dec = nchar(str_split_i(LONGITUDE, "\\.", i = 2))) %>%
+  select(lat_dec, lon_dec) %>%
+  pivot_longer(cols = c(lat_dec, lon_dec), values_to = "decimals", names_to = "coord") %>%
+  ggplot(aes(x = decimals, fill = coord)) +
+  geom_bar(position = "dodge") + 
+  ggtitle("Decimal places for coordinates")
+```
 
-## Remarks
-```{r remarks}
-#| tbl-cap: "Counts for each type of remarks"
+```{r latLongPerYear}
 
-remarks <- df %>%
-  filter(!is.na(RESULT_REMARK)) %>% 
-  count(RESULT_REMARK)%>%
-  arrange(desc(n)) %>%
-  left_join(remarkCodes, by= c("RESULT_REMARK"= "NAME"))
+df %>%
+  group_by(YEAR) %>%
+  reframe(p_missing_lon = mean(is.na(LONGITUDE))) %>%
+  ggplot(aes(x = YEAR, y = p_missing_lon)) +
+  geom_point(size = 5) +
+  ggtitle("Coordinates missing % per year")
 
-remarks %>%
-  group_by(CLASS) %>%
-  reframe(n = sum(n)) %>%
-  mutate(CLASS = reorder(CLASS, n)) %>%
-  ggplot(aes(x = CLASS, y = n)) +
-  geom_bar(stat= "identity") + 
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-  ggtitle("Classes of Remarks")
 
-remarks %>%
-  filter(!is.na(CLASS)) %>%
-  ggplot(aes(x = RESULT_REMARK, y = n)) +
-  geom_bar(stat=  "identity") +
-  facet_wrap(~CLASS, scales = "free") + 
-  geom_text( aes(label = RESULT_REMARK, y = n), angle =45, size = 2) + 
-  theme(axis.text.x=element_blank(),
-     axis.ticks.x=element_blank()) +
-  ggtitle("Subclasses of Remarks")
-
-riskSheet <- left_join(df, remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
-  group_by(REMARK_RISK, CLASS, RESULT_REMARK, DESCRIPTION) %>%
-  reframe(VALUE = toString(VALUE)) %>%
-  distinct(REMARK_RISK, CLASS, .keep_all = T) %>%
-  mutate(REMARK_RISK = factor(REMARK_RISK, levels = c("LOW", "MEDIUM", "HIGH"))) %>%
-  arrange(REMARK_RISK, CLASS) 
-
+df %>% 
+  select(STATION_ID, LATITUDE, LONGITUDE) %>%
+  group_by(STATION_ID) %>%
+  mutate(meanLat = mean(LATITUDE, na.rm = T), meanLon = mean(LONGITUDE, na.rm = T),
+         meters = sqrt((LATITUDE - meanLat)^2 + (LONGITUDE - meanLon)^2),
+         meters = meters * 111320) %>%
+  ggplot(aes(x = meters)) +
+  geom_histogram() + 
+  scale_x_log10() +
+  ggtitle("Sample distance from Station Site mean")
 ```
 
 ## Analyte names
 - Named by hand after looking at the following table 
-```{r}
+```{r namingTable}
+#| label: namingTable
+#| tbl-cap: "A list of all unique Medium, Analyte, Fraction combinations to aid in determining a unified naming system. Additionally, we've included columns for different attempts at creating a naming system"
+
+
 # Read existing names, so we don't lose that work
 existingNames <- readxl::read_xlsx("Analytes.xlsx", sheet=2, skip = 1) %>%
   rename(NAME_COMMENT = `...10`) %>%
@@ -242,63 +293,25 @@ existingNames <- readxl::read_xlsx("Analytes.xlsx", sheet=2, skip = 1) %>%
 
 # Make a table for naming
 namingTable <- df %>%
-  group_by(MEDIUM, ANALYTE, ANL_CODE, METHOD, UNITS) %>%
-  reframe(min = min(YEAR, na.rm=T), max = max(YEAR, na.rm = T)) %>%
-  unite(Years, min, max, sep = "-", remove = T)  %>%
-  separate_wider_delim(cols = ANL_CODE, delim = "_", names = c("ANL_CODE", "FRACTION")) %>%
-  mutate(FRACTION = ifelse(FRACTION == "NA", "", FRACTION)) %>%
-  group_by(MEDIUM, ANALYTE, ANL_CODE, FRACTION, UNITS, Years) %>%
-  reframe(METHOD = toString(METHOD)) %>%
+  mutate(Above = STN_DEPTH_M < 20) %>%
+  group_by(MEDIUM, ANALYTE, ANL_CODE, FRACTION, Above) %>%
+  reframe(min = min(YEAR, na.rm=T), max = max(YEAR, na.rm = T),
+          METHOD = toString(unique(METHOD)),
+          UNITS = toString(unique(UNITS))) %>%
+  left_join(unitMatchingness, by = c("ANALYTE", "UNITS", "Above")) %>%
   left_join(existingNames, by = c("MEDIUM", "ANL_CODE", "FRACTION")) %>%
-  left_join(unitMatchingness, by = "ANL_CODE") %>%
-  arrange(MEDIUM, ANALYTE, FRACTION, Years) 
+  unite(Years, min, max, sep = "-", remove = T)  %>%
+  arrange(MEDIUM, ANALYTE, FRACTION) %>%
+  select(-c(d))  %>%
+  mutate(UNIT_DETERMINATION = ifelse(is.na(UNIT_DETERMINATION), "", UNIT_DETERMINATION))
 
-#namingTable %>%
-#  gt() %>%
-#  opt_stylize(style = 5)
-
-
+namingTable %>%
+  ungroup() %>%
+  gt()
 ```
 
 
 ### Compiling tables
-Naming Table
-```{r namingTable}
-uniquesDf <- remarkCodes %>%
-  right_join(df , by = c("NAME" = "RESULT_REMARK")) %>%
-  mutate(VALUE = ifelse(is.na(as.numeric(VALUE)) | VALUE == "0", 
-                        VALUE, "Reported")) %>% 
-  rename(RESULT_REMARK = NAME) %>%
-  group_by(MEDIUM, ANL_CODE, ANALYTE, METHOD, VALUE, RESULT_REMARK, 
-          UNITS, CLASS, CODE, DESCRIPTION) %>%
-  reframe(n = n(), FirstYear = min(YEAR, na.rm = T), LastYear = max(YEAR, na.rm=T)) %>% 
-  unite(FirstYear, LastYear, col = "Years", sep = "-", remove= T ) %>%
-  arrange(ANALYTE, METHOD, VALUE) 
-
-riskSheet %>%
-  gt() %>%
-  opt_stylize(style = 5)
-
-writexl::write_xlsx(list("Complete Data" = df, "Unifying Names and Units" = namingTable,  "Inclusion Risks" = riskSheet), path = "Analytes2.xlsx")
+```{r writingXcel}
+writexl::write_xlsx(list("Complete Data" = df, "Unifying Names and Units" = namingTable,  "NA Treatment" = naTreatment), path = "Analytes2.xlsx")
 ```
-
-```{r}
-##### NEED TO TAKE CARE OF
-#        "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4",
-#        "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9",
-#        "INVALID 6.5",
-#
-#        "<0.12", # Total/Bulk Chloride E300.0
-#        "<0.1", # Total/Bulk Calcium LG213
-#        "<500", # Filtrate Potassium E200.8
-#        "<2", # Total/Bulk Arsenic LG213
-#        "<1", # Total/Bulk Manganese LG213
-#        "<0.05" # Total/Bulk Potassium LG213
-### TAKEN Care of by forcing strings to NA
-# na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported",
-#        "No Result Reported.", "NO RESULT", "no result", "No result reported",
-# convert no result reported strings into NAs
-
-```
-
-
