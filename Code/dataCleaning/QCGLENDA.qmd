@@ -3,7 +3,6 @@ title: "GLENDA data cleaning description"
 metadata-files:
   - "../../_quarto.yml"
 execute: 
-  cache: true
 toc: true
 ---
 
@@ -276,5 +275,7 @@ namingTable %>%
 
 ### Compiling tables
 ```{r writingXcel}
-writexl::write_xlsx(list("Complete Data" = df, "Unifying Names" = namingTable, "Unifying Units" = unitMatchingness, "NA Treatment" = naTreatment), path = "Analytes2.xlsx")
+filterDecisions <- readxl::read_xlsx("Analytes.xlsx", sheet =1)
+
+writexl::write_xlsx(list("Filter Decisions" = filterDecisions, "Complete Data" = df, "Unifying Names" = namingTable, "Unifying Units" = unitMatchingness, "NA Treatment" = naTreatment), path = "Analytes2.xlsx")
 ```
