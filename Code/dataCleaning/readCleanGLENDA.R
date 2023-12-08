@@ -5,21 +5,6 @@ library(janitor)
 # Water chemistry descriptions
 # https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
 
-# Other filter ideas
-# FIX TIME ZONES
-
-# head(sort(table(df$VALUE_1), decreasing=T), 200)
-# This is where I determined the NA values
-#Clear_NAs <- df$VALUE_9[!is.na(df$VALUE_9)]
-#unique(Clear_NAs[is.na(as.numeric(Clear_NAs))])
-#df %>%
-#  select(contains("VALUE")) %>%
-#  glimpse()
-# df %>%
-#   select(YEAR, STN_DEPTH_M, LATITUDE, LONGITUDE, SAMPLE_DEPTH_M, contains("VALUE_")) %>%
-#   glimpse()
-
-
 readPivotGLENDA <- function(filepath) {
   read_csv(filepath,
            col_types = cols(YEAR = "i",
@@ -31,6 +16,8 @@ readPivotGLENDA <- function(filepath) {
                             # Skip useless or redundant columns
                             Row = "-",
                             .default = "c")) %>%
+    # Unify the time zones
+                            
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
