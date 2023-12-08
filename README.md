@@ -14,7 +14,7 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 - Clean each dataset individually
 - Combine into a unified dataset
 
-## [Data sources](docs/dataSources.md)
+## Data sources
 The data were taken from the following sources
 
 - The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
