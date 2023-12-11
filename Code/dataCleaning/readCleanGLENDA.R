@@ -11,18 +11,24 @@ readPivotGLENDA <- function(filepath) {
                             STN_DEPTH_M = "d",
                             LATITUDE = "d",
                             LONGITUDE = "d",
-                            SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
                             SAMPLE_DEPTH_M = "d",
                             # Skip useless or redundant columns
                             Row = "-",
                             .default = "c")) %>%
-    # Unify the time zones
-                            
+    # Convert daylight saving TZs into standard time TZs
+    mutate(TIME_ZONE= case_when(
+      TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
+      TIME_ZONE == "CDT" ~ "EST",
+      .default = TIME_ZONE
+    )) %>%
+    unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
+    mutate(sampleDate = parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
     drop_na(ANALYTE)
 }
+
 
 
 #' Title
