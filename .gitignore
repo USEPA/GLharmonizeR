@@ -73,12 +73,14 @@ vignettes/*.pdf
 *.rdb
 *.rdx
 *.rdb
+*.pdf 
 
 Results/Code/*/*_files
 
 # Exceptions
 !Data/Formatted/*.csv
-
+!docs/*
+!docs/*/*
 
 desktop.ini
 

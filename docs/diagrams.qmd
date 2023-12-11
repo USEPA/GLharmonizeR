@@ -1,0 +1,12 @@
+---
+title: "Diagrams"
+---
+
+
+```{mermaid}
+flowchart LR
+   Data[Data] --> QC1(Check QA codes \n impute if necessary)
+   QC1 --> QC2(Select water \n samples that aren't QC)
+   QC2 --> QC3(Map Lat,Lon \n Station ID)
+   QC3 --> QC4(Unify column \n and analyte naming)
+```
