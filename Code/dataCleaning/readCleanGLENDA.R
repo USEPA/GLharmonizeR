@@ -1,51 +1,93 @@
 library(tidyverse)
 library(janitor)
-# Other filter ideas
-# FIX TIME ZONES
-# Depth Code 'thermocline
 
+# Useful links
+# Water chemistry descriptions
+# https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
 
-# head(sort(table(df$VALUE_1), decreasing=T), 200)
-# This is where I determined the NA values
-#Clear_NAs <- df$VALUE_9[!is.na(df$VALUE_9)]
-#unique(Clear_NAs[is.na(as.numeric(Clear_NAs))])
-#df %>%
-#  select(contains("VALUE")) %>%
-#  glimpse()
-# df %>%
-#   select(YEAR, STN_DEPTH_M, LATITUDE, LONGITUDE, SAMPLE_DEPTH_M, contains("VALUE_")) %>%
-#   glimpse()
+readPivotGLENDA <- function(filepath) {
+  read_csv(filepath,
+           col_types = cols(YEAR = "i",
+                            STN_DEPTH_M = "d",
+                            LATITUDE = "d",
+                            LONGITUDE = "d",
+                            SAMPLE_DEPTH_M = "d",
+                            # Skip useless or redundant columns
+                            Row = "-",
+                            .default = "c")) %>%
+    # Convert daylight saving TZs into standard time TZs
+    mutate(TIME_ZONE= case_when(
+      TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
+      TIME_ZONE == "CDT" ~ "EST",
+      .default = TIME_ZONE
+    )) %>%
+    unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
+    mutate(sampleDate = parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
+    pivot_longer(cols = -c(1:18),
+                 names_to = c(".value", "Number"),
+                 names_pattern = "(.*)_(\\d*)$") %>%
+    drop_na(ANALYTE)
+}
 
 
 
 #' Title
 #'
-#' @param filepath string specifying path to file
+#' @param dataframe GLENDA dataframe in long format
 #'
 #' @return a dataframe
 #' @export
 #'
 #' @examples
-readCleanGLENDA <- function(filepath) {
-  read_csv(filepath,
-           na = c("", "NA", "no result reported", "No result reported.", "No result recorded.", "No Result Reported",
-                  "No Result Reported.", "NO RESULT", "no result", "No result reported",
-
-                  "T", "NRR",  "INV", "W", "INVALID 89", "INVALID 88", "INVALID 88.5", "LAC", "INVALID 115",  "INVALID 8.4",
-                  "INVALID 11.645993", "INVALID 680", "INVALID 17.179", "INVALID 26.8039", "INVALID 4.1", "INVALID 42.9",
-                  "INVALID 6.5",
-
-                  "<0.12", "<0.1", "<500", "<2", "<1", "<0.05")) %>%
-    # These columns are redundant with the "Analyte" columns
-    select(-contains("ANL_CODE_"), -Row) %>%
-    # Drop columns with 100% missingness
-    #select_if(~mean(is.na(.)) < 0.9) %>%
-    pivot_longer(cols = -c(1:18),
-                 names_to = c(".value", "Number"),
-                 names_pattern = "(.*)_(\\d*)$") %>%
-    filter(!is.na(ANALYTE),
+cleanGLENDA <- function(df) {
+  df %>%
+    # Select samples that haven't been combined
+    # This is where we could add option to select for
+    # composite if wanted
+    filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
            QC_TYPE == "routine field sample",
-           SAMPLE_TYPE != "Composite") %>%
-    mutate(SAMPLING_DATE = parse_datetime(SAMPLING_DATE, "%Y/%m/%d %H:%M"))
+           ) %>%
+    # Drop analyte number since it doesn't mean anything now
+    # These columns are redundant with the "Analyte" columns
+    select(, -Number) %>%
+    unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
+    # If value and remarks are missing, we assume sample was never taken
+    filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
+    # Labeling REMARK RISK
+    mutate(REMARK_RISK = case_when(
+      # replace low first, becuase in cases where multiple strings are matched, we want to give precedent to
+      # the higher risk flags
+      grepl("limit", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("Correction", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("Estimated", RESULT_REMARK, ignore.case= T) ~ "LOW",
+      grepl("incomplete", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("Holding time", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("outlier", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
+      grepl("fail", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("No result", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Anomaly", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Contamination", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Inconsistent", RESULT_REMARK, ignore.case= T) ~ "HIGH",
+      grepl("Invalid", RESULT_REMARK, ignore.case= T) ~ "HIGH"
+    )) %>%
 
+    # Matching units
+    mutate(VALUE = as.numeric(VALUE),
+      VALUE2 = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
+              (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
+                             .default = VALUE),
+           UNITS2 = case_when(ANALYTE == "Magnesium" ~ "mg/l",
+                             ANALYTE == "Sodium" ~ "mg/l",
+                             ANALYTE =="Alkalinity, Total as CaCO3" ~ "mg/l",
+                             ANALYTE == "Conductivity" ~ "umho/cm",
+                             ANALYTE == "Manganese"  ~ "ug/l",
+                             ANALYTE == "Secchi Disc Transparency" ~ "m",
+                             # FTU and NTU are equivalent
+                             ANALYTE == "Turbidity" ~ "FTU",
+                             .default = UNITS) )
+}
+
+
+readCleanGLENDA <- function(filepath) {
+  cleanGLENDA(readPivotGLENDA(filepath)) 
 }

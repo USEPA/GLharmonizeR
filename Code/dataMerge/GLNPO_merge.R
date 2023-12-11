@@ -43,10 +43,14 @@ Chl <- Chl %>% filter(!SAMPLE_TYPE=="Composite") # 7192
 insitu <- Chl %>% filter(SAMPLE_TYPE=="INSITU_MEAS")
 
 # Fix dates - note CDT is same as EST (UTC -5 for both)
-Chl_EST <- Chl %>% filter(TIME_ZONE=="EST") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST"))
-Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1)) # not recognized, use atlantic standard time
-Chl_CDT <- Chl %>% filter(TIME_ZONE=="CDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")) # use EST
-Chl_GMT <- Chl %>% filter(TIME_ZONE=="GMT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "GMT"))
+Chl_EST <- Chl %>% filter(TIME_ZONE=="EST") %>% 
+mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST"))
+Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% 
+mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1)) # not recognized, use atlantic standard time
+Chl_CDT <- Chl %>% filter(TIME_ZONE=="CDT") %>% 
+mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")) # use EST
+Chl_GMT <- Chl %>% filter(TIME_ZONE=="GMT") %>% 
+mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "GMT"))
 
 Chl <- rbind(Chl_EST, Chl_EDT, Chl_CDT, Chl_GMT) %>% arrange(Sample_Date)
 rm(Chl_EST, Chl_EDT, Chl_CDT, Chl_GMT)
