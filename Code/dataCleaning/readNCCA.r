@@ -32,6 +32,7 @@ readNCCASites <- function(directory) {
 readNCCA2000s <- function(filepath) {
   readr::read_csv(filepath,
                   col_types = cols(
+                    # Doesn't contain date nor time
                     .default = "-",
                     "SITE_ID" = "c",
                     "SAMPYEAR" = "d",
@@ -53,6 +54,7 @@ readNCCA2010 <- function(filepaths) {
   filepaths %>%
     map_dfr(read_csv,
             col_types = cols(
+              # Doesn't contain time
               "DATE_COL" = col_date(format = "%m/%d/%Y"),
               "LAB_SAMPLE_ID" = "-",
               "SAMPLE_ID" = "-",
@@ -71,6 +73,7 @@ readNCCA2015 <- function(filepath) {
            col_types = cols(
              "UID" = "d",
              "SITE_ID" = "c",
+             # doesn't contain time
              "DATE_COL"= "c",
              "ANALYTE" = "c",
              "LRL" = "d",
@@ -102,6 +105,18 @@ readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
   t15 <- readNCCA2015(fifteenFiles)
   dplyr::bind_rows(list(t0, t10, t15)) %>%
     left_join(sites, by = "SITE_ID") %>%
+    mutate(ANALYTE = case_when(
+      ANALYTE == "CHLA" ~ "Chlor_a",
+      ANALYTE == "Chlorophyll A" ~ "Chlor_a",
+      ANALYTE == "Ammonia" ~ "NH3",
+      ANALYTE == "AMMONIA_N" ~ "NH3",
+      ANALYTE == "Dissolved Inorganic Nitrogen" ~ "DIN",
+      ANALYTE == "Dissolved Inorganic Phosphate" ~ "DIP",
+      ANALYTE == "Total Phosphorus" ~ "TP",
+      ANALYTE == "Total Nitrogen" ~ "TN",
+      ANALYTE == "Chloride" ~ "Cl"
+      .default = ANALYTE
+    ))
     # QC filters
-    filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
+    #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
 }
