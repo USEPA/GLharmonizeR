@@ -79,8 +79,6 @@ Microcystin,Microcystin
 Microcystin,Microcystins
 "Moisture","Moisture content_Total/Bulk"
 "Molybdenum","Molybdenum_Total/Bulk"
-"Nitrogen","Nitrogen, Total_Filtrate"
-"Nitrogen","Nitrogen, Total_Total/Bulk"
 "Nitrogen, NH4",Ammonia-nitrogen as N
 "Nitrogen, NH4",Ammonia-nitrogen
 "Nitrogen, NH4",Ammonia and ammonium
@@ -125,11 +123,13 @@ Secchi,"Secchi Disc Transparency_Not applicable"
 "Sulfate, dissolved",Sulfur Sulfate
 "Sulfate, dissolved",Sulfur
 "Sodium, dissolved",Sodium_Filtrate
-"Sodium, dissolved",Sodium_Total/Bulk
+"Sodium, total",Sodium_Total/Bulk
 "Solids, total suspended",Total dissolved solids
 "Solids, total suspended","Suspended solids, total_Residue"
 "Solids, total suspended",Total solids
 "Solids, total suspended",Total suspended solids
+"Nitrogen, total dissolved","Nitrogen, Total_Filtrate"
+"Nitrogen, total dissolved","Nitrogen, Total_Total/Bulk"
 "Nitrogen, total dissolved",Nitrogen
 "Nitrogen, total dissolved","Nitrogen, mixed forms (NH3), (NH4), organic, (NO2) and (NO3)"
 "Phosphorus, total dissolved",Phosphate-phosphorus
@@ -151,6 +151,6 @@ Secchi,"Secchi Disc Transparency_Not applicable"
 Temperature,Temperature_Not applicable
 Temperature,Temperature_Total/Bulk
 Turbidity,Turbidity Field
-Turbidity,Turbiditya
+Turbidity,Turbidity
 Turbidity,Turbidity_Not applicable
 Turbidity,Turbidity_Total/Bulk
