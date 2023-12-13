@@ -49,6 +49,15 @@ parameter_id,parameter_name_short,parameter_longname,parameter_theme,parameter_w
 34,so4_mgl,"Sulfate, dissolved",chemical_physical,,-10,10000,milligrams per liter,mgL,concentration,,,10,so4_mgl,,,,,Is this OK?
 35,temp_degc,Temperature,chemical_physical,,-10,100,degree celsius,degC,temperature,,,25,temp_degc,,,,,
 36,turb_ntu,Turbidity,clarity_carbon,,0,2000,nephelometric turbidity units,NTU,operational,,,27,turb_ntu,,,,,
+55,sed_moist,Moisture content,chemical_physical,,-10,10000,percent,%,concentration,,,,,,,,,
+56,moly_diss_ugl,Molybdenum,chemical_physical,,-10,10000,micrograms per liter,ugL,concentration,,,,,,,,,
+57,n_diss_mgl,Nitrogen,chemical_physical,,-10,10000,milligrams per liter,mgL,concentration,,,,,,,,,
+58,na_diss_ugl,"Sodium, dissolved",chemical_physical,,-10,10000,micrograms per liter,ugL,concentration,,,,,,,,,
+59,na_total_mgl,"Sodium, total",chemical_physical,,-10,10000,milligrams per liter,mgL,concentration,,,,,,,,,
+61,p_part_ugl,"Phosphorus, particulate",chemical_physical,,-10,10000,micrograms per liter,mgL,concentration,,,,,,,,,
+62,orthop_diss_ugl,"Phosphorus, dissolved reactive",chemical_physical,,-10,10000,micrograms per liter,ugL,concentration,,,,,,,,,
+63,temp_c,"Temperature, Celsius",chemical_physical,,-10,10000,Celsius,ugL,concentration,,,,,,,,,
+
 ,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,do_mgl,,,,,
