@@ -114,7 +114,7 @@ readNCCA <- function(siteFiles, preFiles, tenFiles, fifteenFiles){
       ANALYTE == "Dissolved Inorganic Phosphate" ~ "DIP",
       ANALYTE == "Total Phosphorus" ~ "TP",
       ANALYTE == "Total Nitrogen" ~ "TN",
-      ANALYTE == "Chloride" ~ "Cl"
+      ANALYTE == "Chloride" ~ "Cl",
       .default = ANALYTE
     ))
     # QC filters
