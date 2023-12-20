@@ -6,8 +6,10 @@ This repository contains code to merge Lake Michigan chlorophyll a and predictor
 
 <img src="GLENDA_LM.png" alt="Lake Michigan with sampled locations represented as points" width="600"/>
 
+The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document.
 
-## General process
+
+## [General process](docs/useNdesign.md)
 In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
 
 - Download data from remote sources (under construction)
@@ -27,7 +29,7 @@ The data were taken from the following sources
 ## [Data Cleaning](docs/dataCleaning.md)
 Here we'll outline the general steps that were ran to clean each individual data source. 
 
-## Installation 
+## [Installation](docs/useNdesign.md)
 This is under construction
 
 
