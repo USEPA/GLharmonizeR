@@ -11,14 +11,10 @@ statline <- data.frame(x = seq(from =0, to =2.2, length.out = 50)) %>%
 
 g <- ggplot(lakes) +
   theme_void() +
-  geom_sf(fill = "grey") +
+  geom_sf(fill = "white") +
   coord_sf(xlim = c(-88, -84.9), ylim = c(41.7, 46)) + 
-  geom_point(data = statline, aes(x = x, y=y), size= 0.1) +
-  geom_smooth(data = statline, aes(x = x, y=y), color = "#87B13F", size = 0.1)
-
-
-
-
+  geom_point(data = statline, aes(x = x, y=y), size= 0.075) +
+  geom_smooth(data = statline, aes(x = x, y=y), color = "#87B13F", size = 0.33, se = F)
 
 hexSticker::sticker(
   g,
@@ -29,6 +25,3 @@ hexSticker::sticker(
   s_x = 1,
   dpi = 320, filename = "docs/figsTables/logo.png"
 )
-
-magick::image_read("docs/figsTables/logo.png")
-

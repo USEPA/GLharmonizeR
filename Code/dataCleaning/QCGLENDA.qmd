@@ -222,6 +222,23 @@ df %>%
   ggtitle("Decimal places for coordinates")
 ```
 
+```{r checkLatLon2}
+df %>% 
+  mutate(
+    LATITUDE = as.character(LATITUDE),
+    lat_dec = nchar(str_split_i(LATITUDE, "\\.", i =2)),
+    LONGITUDE = as.character(LONGITUDE),
+    lon_dec = nchar(str_split_i(LONGITUDE, "\\.", i = 2))) %>%
+  select(YEAR, lat_dec, lon_dec) %>%
+  pivot_longer(cols = c(lat_dec, lon_dec), values_to = "decimals", names_to = "coord") %>%
+  ggplot(aes(x = YEAR, y = decimals, col = coord)) +
+  geom_jitter() +
+  geom_smooth(method = "lm", se = T) + 
+  ggtitle("Decimal places for coordinates")
+```
+
+
+
 ```{r latLongPerYear}
 
 df %>%
@@ -243,6 +260,31 @@ df %>%
   scale_x_log10() +
   ggtitle("Sample distance from Station Site mean")
 ```
+
+## Date and time distributions
+```{r times}
+df %>%
+  distinct(sampleDate, SAMPLE_ID) %>%
+  ggplot(aes(x = sampleDate)) +
+  geom_histogram()
+
+# Time of day vs year
+df %>%
+  distinct(sampleDate, SAMPLE_ID) %>%
+  mutate(year= year(sampleDate), tod = hour(sampleDate)) %>%
+  ggplot(aes(x = year, y = tod)) +
+  geom_jitter() +
+  geom_smooth()
+
+# Date vs year
+df %>%
+  distinct(sampleDate, SAMPLE_ID) %>%
+  mutate(year= year(sampleDate), day = yday(sampleDate)) %>%
+  ggplot(aes(x = year, y = day)) +
+  geom_jitter() +
+  geom_smooth()
+```
+
 
 ## Analyte names
 - Named by hand after looking at the following table 
