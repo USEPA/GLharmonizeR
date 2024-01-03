@@ -43,26 +43,13 @@ vignettes/*.pdf
 # Output
 /Tables/**
 /Model_Files/**
-/Formatted_Data/**
 /Figures/**
 *.zip
 *.tsv
-*.csv
 *.rds
-*.json
 *.html
-*.xls
-*.xlsx
 *.Rds
-*.png
-*.html
-*.jpeg
-*.jpg
-*.js
-*.css
 *.shp
-*.text
-*.txt
 *.cpg
 *.prj
 *.shx
@@ -72,7 +59,7 @@ vignettes/*.pdf
 *.rdb
 *.rdx
 *.rdb
-*.pdf 
+*.pdf
 
 Results/Code/*/*_files
 
