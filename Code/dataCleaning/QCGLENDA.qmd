@@ -2,7 +2,6 @@
 title: "GLENDA data cleaning description"
 metadata-files:
   - "../../_quarto.yml"
-execute: 
 toc: true
 ---
 
@@ -47,7 +46,7 @@ library(gt)
 
 
 df <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv")
-remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
+#remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
 # QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
 #depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
 ```
@@ -254,9 +253,8 @@ df %>%
 
 
 # Read existing names, so we don't lose that work
-existingNames <- readxl::read_xlsx("Analytes.xlsx", sheet=2, skip = 1) %>%
-  rename(NAME_COMMENT = `...10`) %>%
-  select(MEDIUM, ANL_CODE, FRACTION, `Ryan's Names`, `Kelsey's names`, NAME_COMMENT) %>%
+existingNames <- readxl::read_xlsx("Analytes2.xlsx", sheet="Unifying Names", skip = 0)%>%
+  select(MEDIUM, ANL_CODE, FRACTION, `Suggested name`, NAME_COMMENT) %>%
   mutate(FRACTION = ifelse(FRACTION == "Not applicable", "", FRACTION)) 
 
 # Make a table for naming
@@ -275,7 +273,7 @@ namingTable %>%
 
 ### Compiling tables
 ```{r writingXcel}
-filterDecisions <- readxl::read_xlsx("Analytes.xlsx", sheet =1)
+# filterDecisions <- readxl::read_xlsx("Analytes2.xlsx", sheet =1)
 
-writexl::write_xlsx(list("Filter Decisions" = filterDecisions, "Complete Data" = df, "Unifying Names" = namingTable, "Unifying Units" = unitMatchingness, "NA Treatment" = naTreatment), path = "Analytes2.xlsx")
+# writexl::write_xlsx(list("Filter Decisions" = filterDecisions, "Complete Data" = df, "Unifying Names" = namingTable, "Unifying Units" = unitMatchingness, "NA Treatment" = naTreatment), path = "Analytes2.xlsx")
 ```

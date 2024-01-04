@@ -72,6 +72,7 @@ Results/Code/*/*_files
 !Data/Formatted/*.csv
 !docs/*
 !docs/*/*
+!Data/Meta/*.csv
 
 desktop.ini
 
