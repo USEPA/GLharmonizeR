@@ -26,8 +26,10 @@ readPivotGLENDA <- function(filepath) {
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
-    drop_na(ANALYTE)
+    drop_na(ANALYTE) 
+    # Matching column names to LAGOS
 }
+# "","SITE_ID","LAT_DD","LON_DD","STATE","CNTYNAME","valueid","obs_id","lagoslakeid","sampledate","lagos_variableid","lagos_variablename","datavalue","datavalue_unit","detectionlimit_value","datavalue_conversion","detectionlimitvalue_conversion","lagos_comments","lagos_sampledepth","lagos_sampleposition","lagos_sampletype","organization_id","organization_name","source_activityid","source_comments","source_detectionlimit_value","source_labmethoddescription","source_labmethodid","source_labmethodname","source_parameter","source_sampledepth","source_sampleposition","source_samplesiteid","source_sampletype","source_unit","source_value","source_methodqualifier"
 
 
 
