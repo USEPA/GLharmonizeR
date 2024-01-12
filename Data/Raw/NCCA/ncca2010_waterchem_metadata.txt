@@ -1,0 +1,46 @@
+NCCA 2010 WATERCHEM Metadata for Assessed and Not_Assessed files.		
+
+“’Assessed’ data were used to develop the Good, Fair and Poor ratings in the report. ‘Not_Assessed’ data were not used to develop the ratings.”
+		
+"For questions about these data, please contact Hugh Sullivan at sullivan.hugh@epa.gov or use the Contact Us link on the webpage: http://www.epa.gov/national-aquatic-resource-surveys/forms/national-aquatic-resource-surveys-contact-us"		
+"It is the responsibility of the end data user to become familiar with the QA codes used in the NCCA 2010 assessment (NCCA_QA_Codes.csv) and review the ""QA_CODES"" column in each dataset to determine whether the data meet quality objectives for specific uses."		
+Location information for each site is contained in the SITEINFO File. Use UID as key column for merging data.		
+		
+Water chemistry metadata		
+		
+Variable		Definition
+		
+UID		Unique identifier for the site/visit
+SITE_ID		Site identifier
+STATE		State where the site is located
+VISIT_NO		"Sequential visit in each year. ALL ASSESSED visits are Visit 1, so the VISIT_NO column is removed from the ASSESSMENT file."
+DATE_COL		Date the site visit occurred
+BATCH_ID		Laboratory Batch ID
+PARAMETER		Code for parameter analyzed
+CHLA		Chlorophyll A
+DIN		Dissolved Inorganic Nitrogen
+NH3		Ammonia
+NO2		Nitrite
+NO3		Nitrate
+NO3NO2		Nitrate/Nitrite
+NTL		Total Nitrogen
+PN		Nitrogen Particulate
+PP		Phosphorus Particulate
+PTL		Total Phosphorus
+SIO2		Dissolved Silica
+SRP		Dissolved Inorganic Phosphate
+TDN		Total Dissolved Nitrogen
+TDP		Total Dissolved Phosphorus
+TKN		Total Kjeldahl Nitrogen
+PARAMETER_NAME		Name of parameter analyzed
+RESULT		Value of parameter
+UNITS		Units of measure
+MDL		Parameter Method Detection Limit
+MRL		Parameter Minimum Reporting Limit
+PQL		Practical quantitation limit
+DATE_ANALYZED		Date sample analyzed
+HOLDING_TIME		# days between sample collection and analysis
+QACODE		Sample Qualifier code
+LAB_SAMPLE_ID		Lab internal sample ID
+SAMPLE_ID		NCCA assigned Sample ID
+METHOD		Laboratory method

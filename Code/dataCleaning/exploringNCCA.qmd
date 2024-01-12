@@ -9,7 +9,7 @@ source("Code/dataCleaning/readNCCA.r")
 library(sf)
 library(tidyverse)
 library(kableExtra)
-qaCodes <- readxl::read_xlsx("DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet= 1) %>%
+qaCodes <- readxl::read_xlsx("Data/Raw/NCCA/DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet= 1) %>%
   select(-...3) %>%
   drop_na(`Unique Qualifier Code`)
 siteFiles <- "Data/Raw/NCCA"
