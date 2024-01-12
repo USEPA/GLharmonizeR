@@ -54,39 +54,18 @@ cleanGLENDA <- function(df) {
     select(, -Number) %>%
     unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
-    filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
-    # Labeling REMARK RISK
-    mutate(REMARK_RISK = case_when(
-      # replace low first, becuase in cases where multiple strings are matched, we want to give precedent to
-      # the higher risk flags
-      grepl("limit", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("Correction", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("Estimated", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("incomplete", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("Holding time", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("outlier", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("fail", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("No result", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Anomaly", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Contamination", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Inconsistent", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Invalid", RESULT_REMARK, ignore.case= T) ~ "HIGH"
-    )) %>%
+    filter(
+      !is.na(VALUE) | !is.na(RESULT_REMARK),
+      # The only QA Codes worth removing "Invalid" and "Known Contamination".
+      # The rest already passed an initial QA screening before being entered
+      !grepl("Invalid", RESULT_REMARK, ignore.case= T),
+      RESULT_REMARK != "Known Contamination",
 
-    # Matching units
-    mutate(VALUE = as.numeric(VALUE),
-      VALUE2 = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
-              (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
-                             .default = VALUE),
-           UNITS2 = case_when(ANALYTE == "Magnesium" ~ "mg/l",
-                             ANALYTE == "Sodium" ~ "mg/l",
-                             ANALYTE =="Alkalinity, Total as CaCO3" ~ "mg/l",
-                             ANALYTE == "Conductivity" ~ "umho/cm",
-                             ANALYTE == "Manganese"  ~ "ug/l",
-                             ANALYTE == "Secchi Disc Transparency" ~ "m",
-                             # FTU and NTU are equivalent
-                             ANALYTE == "Turbidity" ~ "FTU",
-                             .default = UNITS) )
+      # We aren't including air measurements (though we don't remove all
+      # marked as air measurements, since some are secretly surface water
+      # measurements
+      !((MEDIUM == "air: ambient") & (ANALYTE == "Temperature"))
+    )
 }
 
 

@@ -1,0 +1,25 @@
+VARIABLE	LEGAL_VALUES	DESCRIPTION
+INDEX_AP	Y|N|NA	Index visit for Albemarle-Pamlico Study
+INDEX_NCCA15		Index visit for NCCA 2015 survey - applies to both estuary and Great Lakes sites that are part of NCCA
+SAMPLE_ID		Sample ID
+METHOD		Method used for analysis
+DATE_ANALYZED		Date sample analyzed by lab
+LAB_SAMPLE_ID		Sample id assigned by lab
+LRL		Lower reporting limit
+MDL		Method detection limit
+NARS_COMMENT		Lab comment translated to NARS flag comment.
+NARS_FLAG		NARS flag. ND = Nondetect; H = holding time issue; S = shipping issue; L = Less than reporting limit but above MDL; Q = other quality issue. See comment.
+RESULT		Analytical result
+DATE_RECEIVED		Date sample received by lab.
+PSTL_CODE		State (US) or Province (Canada) abbreviation
+STUDY		Study name
+LAB		Lab that conducted analysis
+DATE_COL	|01|02|03|04|05|06|07|08|09|10|11|12	Date collected
+SITE_ID		Site id
+VISIT_NO	|1|2	Visit: 1/2
+YEAR		Year site visited
+NCCA_REG	Northeast|Southeast|Gulf|West|Great Lakes|	"National Coastal Condition Assessment Region.  Northeast includes states ME, NH, MA, RI, CT, NY, NJ, MD, DE, and VA.  Southeast includes NC, SC, GA, and east coast of FL.  No missing values allowed."
+UID		Unique identifier for the site/visit
+BATCH_ID		Laboratory batch number
+ANALYTE		Analyte
+RESULT_UNITS		Result unit
