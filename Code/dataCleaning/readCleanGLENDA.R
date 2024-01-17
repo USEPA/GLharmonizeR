@@ -95,7 +95,7 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
         STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
         .by = STATION_ID
       ) 
-    } else . 
+    } else .
     } %>%
     { if (!is.null(nameMap))  {
       # Assume name map will always be in the GLENDA_MAP sheet
