@@ -5,6 +5,17 @@ library(janitor)
 # Water chemistry descriptions
 # https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
 
+
+#' readPivotGLENDA
+#'
+#' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
+#'  
+#' @param filepath a filepath to the GLENDA csv
+#'
+#' @return a dataframe
+#' @export
+#'
+#' @examples
 readPivotGLENDA <- function(filepath) {
   read_csv(filepath,
            col_types = cols(YEAR = "i",
@@ -26,25 +37,23 @@ readPivotGLENDA <- function(filepath) {
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
-    drop_na(ANALYTE) 
-    # Matching column names to LAGOS
+    drop_na(ANALYTE)
 }
-# "","SITE_ID","LAT_DD","LON_DD","STATE","CNTYNAME","valueid","obs_id","lagoslakeid","sampledate","lagos_variableid","lagos_variablename","datavalue","datavalue_unit","detectionlimit_value","datavalue_conversion","detectionlimitvalue_conversion","lagos_comments","lagos_sampledepth","lagos_sampleposition","lagos_sampletype","organization_id","organization_name","source_activityid","source_comments","source_detectionlimit_value","source_labmethoddescription","source_labmethodid","source_labmethodname","source_parameter","source_sampledepth","source_sampleposition","source_samplesiteid","source_sampletype","source_unit","source_value","source_methodqualifier"
 
 
-
-#' 
+#' cleanGLENDA
 #'
 #' @param df GLENDA dataframe in long format
 #' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
 #' @param imputeCoordinages (optional) Boolean specifying whether to impute missing station coordinates 
-#' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons with 
+#' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons
+#' @param nameMap (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
 #' @export
 #'
 #' @examples
-cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL) {
+cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
 
   df %>%
     # Select samples that haven't been combined
@@ -93,10 +102,15 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
         .by = STATION_ID
       ) 
     } else . 
-    } 
+    } %>%
+    { if (!is.null(nameMap))  {
+      # Assume name map will always be in the GLENDA_MAP sheet
+      left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
+    }
+    }
 }
 
 
-readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE) {
-  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates) 
+readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL) {
+  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
 }
