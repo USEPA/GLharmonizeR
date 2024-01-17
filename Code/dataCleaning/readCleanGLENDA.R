@@ -5,6 +5,14 @@ library(janitor)
 # Water chemistry descriptions
 # https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
 
+
+#' readPivotGLENDA
+#'
+#' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
+#'  
+#' @param filepath a filepath to the GLENDA csv
+#'
+#' @return a dataframe
 readPivotGLENDA <- function(filepath) {
   read_csv(filepath,
            col_types = cols(YEAR = "i",
@@ -26,26 +34,23 @@ readPivotGLENDA <- function(filepath) {
     pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
-    drop_na(ANALYTE) 
-    # Matching column names to LAGOS
+    drop_na(ANALYTE)
 }
-# "","SITE_ID","LAT_DD","LON_DD","STATE","CNTYNAME","valueid","obs_id","lagoslakeid","sampledate","lagos_variableid","lagos_variablename","datavalue","datavalue_unit","detectionlimit_value","datavalue_conversion","detectionlimitvalue_conversion","lagos_comments","lagos_sampledepth","lagos_sampleposition","lagos_sampletype","organization_id","organization_name","source_activityid","source_comments","source_detectionlimit_value","source_labmethoddescription","source_labmethodid","source_labmethodname","source_parameter","source_sampledepth","source_sampleposition","source_samplesiteid","source_sampletype","source_unit","source_value","source_methodqualifier"
 
 
-
-#' Title
+#' cleanGLENDA
 #'
-#' @param dataframe GLENDA dataframe in long format
+#' @param df GLENDA dataframe in long format
+#' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
+#' @param imputeCoordinages (optional) Boolean specifying whether to impute missing station coordinates 
+#' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons
+#' @param nameMap (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-#' @export
-#'
-#' @examples
-cleanGLENDA <- function(df) {
+cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
+
   df %>%
     # Select samples that haven't been combined
-    # This is where we could add option to select for
-    # composite if wanted
     filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
            QC_TYPE == "routine field sample",
            ) %>%
@@ -54,42 +59,64 @@ cleanGLENDA <- function(df) {
     select(, -Number) %>%
     unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
-    filter(!is.na(VALUE) | !is.na(RESULT_REMARK)) %>%
-    # Labeling REMARK RISK
-    mutate(REMARK_RISK = case_when(
-      # replace low first, becuase in cases where multiple strings are matched, we want to give precedent to
-      # the higher risk flags
-      grepl("limit", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("Correction", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("Estimated", RESULT_REMARK, ignore.case= T) ~ "LOW",
-      grepl("incomplete", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("Holding time", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("outlier", RESULT_REMARK, ignore.case= T) ~ "MEDIUM",
-      grepl("fail", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("No result", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Anomaly", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Contamination", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Inconsistent", RESULT_REMARK, ignore.case= T) ~ "HIGH",
-      grepl("Invalid", RESULT_REMARK, ignore.case= T) ~ "HIGH"
-    )) %>%
+    filter(
+      !is.na(VALUE) | !is.na(RESULT_REMARK),
+      # The only QA Codes worth removing "Invalid" and "Known Contamination".
+      # The rest already passed an initial QA screening before being entered
+      !grepl("Invalid", RESULT_REMARK, ignore.case= T),
+      RESULT_REMARK != "Known Contamination",
 
-    # Matching units
-    mutate(VALUE = as.numeric(VALUE),
-      VALUE2 = case_when((UNITS == "ug/l" & ANALYTE == "Magnesium") ~ VALUE / 1000,
-              (UNITS == "ug/l" & ANALYTE == "Sodium") ~ VALUE / 1000,
-                             .default = VALUE),
-           UNITS2 = case_when(ANALYTE == "Magnesium" ~ "mg/l",
-                             ANALYTE == "Sodium" ~ "mg/l",
-                             ANALYTE =="Alkalinity, Total as CaCO3" ~ "mg/l",
-                             ANALYTE == "Conductivity" ~ "umho/cm",
-                             ANALYTE == "Manganese"  ~ "ug/l",
-                             ANALYTE == "Secchi Disc Transparency" ~ "m",
-                             # FTU and NTU are equivalent
-                             ANALYTE == "Turbidity" ~ "FTU",
-                             .default = UNITS) )
+      # We aren't including air measurements (though we don't remove all
+      # marked as air measurements, since some are secretly surface water
+      # measurements
+      !((MEDIUM == "air: ambient") & (ANALYTE == "Temperature"))
+    ) %>%
+    # Adding verbose remark descriptions is purely optional
+    {if (!is.null(flagsPath)) {
+      left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
+      } else .
+    } %>%
+    { if (!is.null(siteCoords)) {
+      # impute the missing sites from that file
+      left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x")) %>%
+        mutate(
+          LATITUDE = coalesce(LATITUDE, LATITUDE.x),
+          LONGITUDE = coalesce(LONGITUDE, LONGITUDE.x),
+          STN_DEPTH_M = coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
+        ) %>%
+        select(-c(LATITUDE.x, LONGITUDE.x, `AVG_DEPTH, m`))
+    } else .
+    } %>%
+    # Impute site coordinates as the mean of that Site's recorded coordinates
+    { if (imputeCoordinates) {
+      mutate(.,
+        LATITUDE = ifelse(is.na(LATITUDE), mean(LATITUDE, na.rm = T), LATITUDE),
+        LONGITUDE = ifelse(is.na(LONGITUDE), mean(LONGITUDE, na.rm = T), LONGITUDE),
+        STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
+        .by = STATION_ID
+      ) 
+    } else .
+    } %>%
+    { if (!is.null(nameMap))  {
+      # Assume name map will always be in the GLENDA_MAP sheet
+      left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
+    }
+    }
 }
 
 
-readCleanGLENDA <- function(filepath) {
-  cleanGLENDA(readPivotGLENDA(filepath)) 
+#' readCleanGLENDA 
+#'
+#' A function to read and clean the full GLENDA csv file. This is generally the
+#' function users will interact with, the comprising read and clean functions 
+#' are moreso for development purposes.
+#'  
+#' @param filepath a filepath to the GLENDA csv
+#'
+#' @return a dataframe
+#' @export
+#'
+#' @examples
+readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL) {
+  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
 }

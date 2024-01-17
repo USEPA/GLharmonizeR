@@ -1,0 +1,52 @@
+VARIABLE	DESCRIPTION	LEGAL_VALUES
+INDEX_AP	Index visit for Albemarle-Pamlico Study	Y|N|NA
+INDEX_FPLG15	"Index visit for population estimates for the ecological fish tissue contaminant index in 2015, based on fish plug samples. This may differ from INDEX_NCCA15 due to use of a different visit as index visit."	Y|N
+INDEX_FTIS15	"Index visit for population estimates for the ecological fish tissue contaminant index in 2015, based on fish fillet samples. This may differ from INDEX_NCCA15 due to use of a different visit as index visit."	Y|N
+INDEX_NCCA15	Index visit for NCCA 2015 survey - applies to both estuary and Great Lakes sites that are part of NCCA	
+DATE_COL	Date collected	|01|02|03|04|05|06|07|08|09|10|11|12
+LAT_DD	Actual latitude of sampling in decimal degrees	
+LON_DD	Actual longitude of sampling in decimal degrees	
+STATION_DEPTH	"Numeric, depth of station in m"	
+VISIT_NO	Visit: 1/2	|1|2
+YEAR	Year site visited	
+PUBLICATION_DATE	Date the dataset was published to the NARS site	
+UID	Unique identifier for the site/visit	
+COUNTRY	Country in which site is located	CAN|USA
+DWH_REGION	Site is located in the Deep Water Horizon impact area or located outside of impact area within Gulf Coast region. Missing values if outside of Gulf Coast region.	Inside DWH Area|Outside DWH Area|Outside Gulf Coast
+EPA_REG	EPA Region.  No missing values allowed.	Region_01|Region_02| Region_03|Region_04|Region_06|Region_09|Region_10|
+EST_GROUP	"34 major estuaries plus 7 other groups of estuaries organized by EMAP Provinces. 41 possible values. \blank\"" or NA not allowed. Values begin with Province appreviation followed by major estuary name or Other."""	
+EVAL_CAT	"NCCA site evaluation result.  Frame_NotAssessed is used to identify pseudo sites that were created to identify polygons that were not in 1999-2001, 2005-2006, and 2010 sample frames but were in 2015 sample frame. No missing values allowed."	
+FEAT_NM	"Most detailed name available and may identify different portions of an estuary. \blank\"" if missing"""	
+FRAME1999	Polygon associated with site is included or excluded from sample frame for the NCA 1999-2001 survey design.   Blank values are not allowed or NA for missing.	Exclude|Include| Not Present|
+FRAME2005	Polygon associated with site is included or excluded from sample frame for the NCA 2005-2006 survey design.   Blank values are not allowed or NA for missing	Exclude|Include| Not Present|
+FRAME2010	Polygon associate with site is included or excluded from sample frame for the NCCA 2010 survey design.   Blank values are not allowed or NA for missing	Exclude|Include| Not Present|
+FRAME2015	Polygon associate with site is included or excluded from sample frame for the NCCA 2015 survey design.   Blank values are not allowed or NA for missing	Exclude|Include| Not Present|
+LAT_DD83	Design latitude in decimal degrees from sample frame. No missing values allowed.	
+LON_DD83	Design longitude in decimal degrees from sample frame. No missing values allowed.	
+NCA_REG	National Coastal Assessment Region used prior to NARS in 2010.  No missing values allowed.	East_Coast|Gulf_Coast|West_Coast|
+NCCA_REG	"National Coastal Condition Assessment Region.  Northeast includes states ME, NH, MA, RI, CT, NY, NJ, MD, DE, and VA.  Southeast includes NC, SC, GA, and east coast of FL.  No missing values allowed."	Northeast|Southeast|Gulf|West|Great Lakes|
+NEP_NAME	National Estuary Program name if site is in the NEP or  Chesapeake Bay if site in Chesapeake Bay.  Missing value if site is not in any NEP or  Chesapeake Bay. 	Albemarle-Pamlico Sounds|Barataria-Terrebonne NEP|Barnegat Bay|Buzzards Bay Estuary Program|Casco Bay Estuary Partnership|Charlotte Harbor NEP|Coastal Bend Bays and Estuaries|Delaware Estuary|Delaware Inland Bays|Galveston Bay|Indian River Lagoon|Long Island Sound Study|Lower Columbia River Estuary Partnership|Maryland Coastal Bays|Massachusetts Bays|Mobile Bay|Narragansett Bay|New York-New Jersey Harbor|Piscataqua Region Estuaries Partnership|Peconic Estuary Program|Puget Sound Partnership|San Francisco Estuary Partnership|Santa Monica Bay|Sarasota Bay|Tampa Bay|Tillamook Estuaries|Chesapeake Bay|Not_NEP|
+NEP_NAT	Site is located in a National Estuary Program watershed.   NEP if site is in an NEP; Not_NEP  if not. No missing values allowed.	NEP|Not_NEP|
+NPS_PARK	Name of National Park Service park in the Great Lakes. APIS - Apostle Islands National Lakeshore; GRPO - Grand Portage National Monument; INDU - Indiana Dunes National Lakeshore; ISRO - Isle Royale; PIRO - Pictured Rocks National Lakeshore; SLBE - Sleeping Bear Dunes National Lakeshore.	APIS|GRPO|INDU|ISRO|PIRO|SLBE|Not_NPS|
+PANEL_RVST	"NCCA long-term panels that identifies which coastal sites were visited in which NCCA cycle.  Text that has form NCAmm_nn.  \mm\"" is current design cycle (e.g., 10 for 2010, 15 for 2015).   \""nn\"" is first design cycle for the site (e.g., 10 for 2010, 15 for 2015). NRS10_10 """	
+PANEL_SOT	"Survey over time sets of sites for only probability sites.   As new design cycles are added for NCCA, PANEL_SOT values must be updated.  Form is NCA_XX_XX_XX_etc.  Where XX equal  design cycle year  or NO if not evaluated and position designates the 1st, 2nd, and 3rd design cycles.  Note that all possible combinates for PANEL_RVST may not be present for PANEL_SOT.  For hand-picked sites, value is HAND.   No missing or \blank\"" values allowed."""	
+PANEL_USE	"NCCA Panel Assignment.  Text that has form NCAnn_mmXXXn_YYYY, where nn is current cycle year (09, 14, 19, etc), mm is cycle year coastal site was first selected for sampling, XXXn denotes revisit status, and YYYY denotes base or over sample status.  XXXn equals either RVT2 (if site should be visited twice in current cycle year) or RVT (if site should be visited once in current cycle and was previously visited in a prior cycle year) and is blank otherwise.  YYYY  is either blank (if the coastal site is a base site) or equals OverSamp (if the coastal site is an over sample site).  Note: For state specific designs, state two letter code is added."	
+PANEL_WGT	"Sets of probability sites required for the weight adjustment for each design cycle.  PANEL_WGT is not changed when future design cycles are completed.  Categories will differ by DSGN_CYCLE.   General form is NCAyy_xx_NTS, NCAyy_xx_TSN, NCAyy_xx_TSS and NCAyy_yy.  yy is design-cycle for which weight adjustment is being done and xx is the design-cycle associated with the sites from design-cycle xx used in design-cycle yy.  Hand-picked sites assigned as NONE, since they are not a probability site.     No missing or \blank\"" values allowed."""	
+PROB_CAT	NCCA unequal probability categories used within a stratum. Missing values valid for Hand-picked sites as they are not a site from probability design. Text 	"Text | \blank\"""""
+PROVINCE	Marine biogeographical province defined by EMAP Near Coastal Program.  No missing values allowed.	Acadian Province|Californian Province|Carolinian Province|Columbian Province|Louisianian Province|West Indian Province|Hawaiian Province|
+PSTL_CODE	"State two letter postal code for site sampled. 50 state postal codes plus AS, MP, GU, PR, VI for American Samoa, Commonwealth of Northern Marianas, Guam, Puerto Rico and Virgin Islands.  No missing values allowed."	
+SITE_ID	"NCCA Site ID for the study and year sampled. Preferred form is NCAnn_MM-xxxxx  where  nn is current cycle year (04, 08, 13, 18, etc), MM is two letter state code, and xxxxx is between 10001 and 99999.  No missing values allowed.  No missing values allowed."	
+SITETYPE	"Site type (Probability-based or hand-picked). PROB for sites from probability survey.  HAND for hand-picked sites.  Currently, NCCA does not have Hand-picked sites.  No missing values allowed. PROB | HAND"	PROB|HAND|
+SMALL_EST	Indicator of whether an estuary site is in a small or large estuary	Small|Large
+STATE_NM	"State name, Puerto Rico, Pacific Territory name. Complete name. No missing values allowed."	
+STRATUM	Strata used in NCCA survey design	
+STUDY	Name of the study.  A unique site may belong to multiple studies. No missing values allowed. NCCA	Estuarine|Reef_Flat|Near_Shore| Albemarle_Pamlico|
+TNT_CAT	"NCCA target status assigned based on  site evaluation. For population estimation must combine with SITETYPE to restrict to probability survey sites.  Frame_NotAssessed is used to identify pseudo sites that were created to identify polygons that were not in 1999-2001, 2005-2006, and 2010 sample frames but were in 2015 sample frame. "	Target|Target_Presumed|Uncertain|Non_Target|Not_Needed|Frame_NotAssessed|
+UNIQUE_ID	Unique site ID based on location that does not depend on year sampled or any other factor.  Form is NCA_ss_nnnnn  where ss state and nnnnn is number that starts at 10001.  No missing values allowed. Text	
+WGT_CAT	NCCA categories used to adjust weights for site.	
+WGT_SP	NCCA adjusted weight for site for the implemented survey design. To be used for NCCA national population estimation when want estimates to be for the Sampled Population. Note: >0 or 0 if site is not to be used for sampled population estimation	
+WTBDY_NM	General estuary or  tidal river name.	
+XCOORD	x-coordinate from US Contiguous Albers Equal Area Conic projection EXCEPT Hawaii sites which are calculated from Hawaii Albers Equal Area Conic projection. No missing values allowed.	
+YCOORD	y-coordinate from US Contiguous Albers Equal Area Conic projection EXCEPT Hawaii sites which are calculated from Hawaii Albers Equal Area Conic projection.  No missing values allowed.	
+WGT_CAT_AP	Albemarle-Pamlico special study categories used to adjust weights for site.	
+WGT_SP_AP	Albemarle-Pamlico special study adjusted weights for the implemented survey design.	
