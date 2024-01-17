@@ -33,19 +33,19 @@ readPivotGLENDA <- function(filepath) {
 
 
 
-#' Title
+#' 
 #'
-#' @param dataframe GLENDA dataframe in long format
+#' @param df GLENDA dataframe in long format
+#' @param flagsPath (optional) filepath to the Result remarks descriptions
 #'
 #' @return a dataframe
 #' @export
 #'
 #' @examples
-cleanGLENDA <- function(df) {
+cleanGLENDA <- function(df, flagsPath= NULL) {
+
   df %>%
     # Select samples that haven't been combined
-    # This is where we could add option to select for
-    # composite if wanted
     filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
            QC_TYPE == "routine field sample",
            ) %>%
@@ -65,10 +65,17 @@ cleanGLENDA <- function(df) {
       # marked as air measurements, since some are secretly surface water
       # measurements
       !((MEDIUM == "air: ambient") & (ANALYTE == "Temperature"))
-    )
+    ) %>%
+    # Adding verbose remark descriptions is purely optional
+    {if (!is.null(flagsPath)) {
+      left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
+      } else {
+        .
+      } 
+      }
 }
 
 
-readCleanGLENDA <- function(filepath) {
-  cleanGLENDA(readPivotGLENDA(filepath)) 
+readCleanGLENDA <- function(filepath, flagsPath = NULL) {
+  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath) 
 }
