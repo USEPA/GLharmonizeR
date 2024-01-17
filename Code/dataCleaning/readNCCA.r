@@ -1,9 +1,14 @@
 
 parseNCCAData <- function(directory) {
   data.frame("file" = dir(directory)) %>%
-    dplyr::mutate(year = readr::parse_number(file), 
-           chem = grepl(file, pattern = "chem", ignore.case = T),
-           site = grepl(file, pattern = "site", ignore.case = T))
+    dplyr::mutate(
+      year = as.integer(readr::parse_number(file)), 
+      chem = grepl(file, pattern = "chem", ignore.case = TRUE),
+      site = grepl(file, pattern = "site", ignore.case = TRUE),
+      meta = grepl(file, pattern = "metadata", ignore.case = TRUE),
+      qacodes = grepl(file, pattern = "QA_Codes", ignore.case = TRUE)
+    ) %>%
+    arrange(year)
 }
 # pre 2000's doesn't report depth
 # 2010 reports depth units, need to check if they're same

@@ -1,0 +1,12 @@
+Variable	Description
+Chla ug/L	Surface Chlorophyll a concentration
+DIN mg N/L	"Surface Dissolved Inorganic Nitrogen concentration (sum of NO2, NO3, NH4)"
+DIP mg P/L	Surface Dissolved Inorganic Phosphorus concentration 
+DO mg/L	Bottom Dissoplved Oxygen 
+Light transmittance (%) @ 1 m	"Water Column Water Clarity expresed as transmissivity, calculated from PAR profiles vs depth or Secchi depths"
+Chla Cond	"Surface Chlorophyll condition expressed as Good, Fair, Poor, or Missing"
+DIN Cond	"Surface DIN  condition expressed as Good, Fair, Poor, or Missing"
+DIP Cond	"Surface DIP  condition expressed as Good, Fair, Poor, or Missing"
+DO Cond	"Bottom DO  condition expressed as Good, Fair, Poor, or Missing"
+Trans Cond	"Water Clarity  condition expressed as Good, Fair, Poor, or Missing"
+Cat_WQI	"Overall Water Quality Index  expressed as Good, Fair, Poor, or Missing"
