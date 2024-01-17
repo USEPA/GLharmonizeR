@@ -13,9 +13,6 @@ library(janitor)
 #' @param filepath a filepath to the GLENDA csv
 #'
 #' @return a dataframe
-#' @export
-#'
-#' @examples
 readPivotGLENDA <- function(filepath) {
   read_csv(filepath,
            col_types = cols(YEAR = "i",
@@ -50,9 +47,6 @@ readPivotGLENDA <- function(filepath) {
 #' @param nameMap (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-#' @export
-#'
-#' @examples
 cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
 
   df %>%
@@ -111,6 +105,18 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
 }
 
 
+#' readCleanGLENDA 
+#'
+#' A function to read and clean the full GLENDA csv file. This is generally the
+#' function users will interact with, the comprising read and clean functions 
+#' are moreso for development purposes.
+#'  
+#' @param filepath a filepath to the GLENDA csv
+#'
+#' @return a dataframe
+#' @export
+#'
+#' @examples
 readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL) {
   cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
 }
