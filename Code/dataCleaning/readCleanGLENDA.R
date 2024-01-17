@@ -36,13 +36,14 @@ readPivotGLENDA <- function(filepath) {
 #' 
 #'
 #' @param df GLENDA dataframe in long format
-#' @param flagsPath (optional) filepath to the Result remarks descriptions
+#' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
+#' @param imputeCoordinages (optional) Boolean specifying whether to impute missing station coordinates 
 #'
 #' @return a dataframe
 #' @export
 #'
 #' @examples
-cleanGLENDA <- function(df, flagsPath= NULL) {
+cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE) {
 
   df %>%
     # Select samples that haven't been combined
@@ -69,13 +70,21 @@ cleanGLENDA <- function(df, flagsPath= NULL) {
     # Adding verbose remark descriptions is purely optional
     {if (!is.null(flagsPath)) {
       left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
-      } else {
-        .
-      } 
-      }
+      } else .
+    } %>%
+    # Impute site coordinates as the mean of that Site's recorded coordinates
+    { if (imputeCoordinates) {
+      mutate(.,
+        LATITUDE = ifelse(is.na(LATITUDE), mean(LATITUDE, na.rm = T), LATITUDE),
+        LONGITUDE = ifelse(is.na(LONGITUDE), mean(LONGITUDE, na.rm = T), LONGITUDE),
+        STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
+        .by = STATION_ID
+      ) 
+    } else . 
+    }
 }
 
 
-readCleanGLENDA <- function(filepath, flagsPath = NULL) {
-  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath) 
+readCleanGLENDA <- function(filepath, flagsPath = NULL, imputeCoordinates= FALSE) {
+  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates) 
 }

@@ -25,8 +25,3 @@ siteMissing <- df %>%
   arrange(LatLonNonMissing, STNDepthNonmissing, SampleDepthNotMissing) %>%
   write_csv("missingCoordinates.csv")
 
-
-
-
-# Take a stab at converting the different Si measurements to be consistent with one another (just measuring Si, not counting O), then check with Ryan
-# Work on converting units to those in the Key tab, where applicable
