@@ -35,6 +35,10 @@ This is under construction
 ## Contributing
 This is under construction
 
+For scripts/function organization and style see the [Google r style guide](https://google.github.io/styleguide/Rguide.html). 
+For package layout see the [R-exts](https://cran.r-project.org/doc/manuals/R-exts.pdf)
+For function documentation [roxygen notes](https://roxygen2.r-lib.org/articles/rd.html)
+
 ## License
 This is under construction
 
