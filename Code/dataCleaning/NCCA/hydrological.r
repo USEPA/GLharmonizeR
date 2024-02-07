@@ -1,7 +1,7 @@
 
 # Hydrological data
 
-readNCCASecchi2015 <- function(filepath) {
+.readNCCASecchi2015 <- function(filepath) {
   read_csv(filepath) %>%
     mutate(
       # Assume if not reported clear to bottom, it is not clear to bottom
@@ -18,47 +18,35 @@ readNCCASecchi2015 <- function(filepath) {
         RESULT = mean(Secchi, na.rm= T),
         STATION_DEPTH_M = mean(STATION_DEPTH, na.rm=T),
         QA_COMMENT = toString(unique(SECCHI_COMMENT)), 
-        .by = UID)
-}
-secchi2015 <- readNCCASecchi2015("https://www.epa.gov/sites/default/files/2021-04/ncca_2015_secchi_great_lakes-data.csv")
+        .by = UID) %>%
+      # Temporarily drop the date until we figureo out how to parse it
+      mutate(DATE_COL = ymd("2015-01-01"))
 
-readNCCAhydro2010 <- function(filepaths) {
+}
+
+.readNCCAhydro2010 <- function(filepaths) {
   filepaths %>%
     purrr::map_dfr(read_csv) %>%
     select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
     rename(
       SAMPLE_DEPTH_M = SDEPTH,
-      ANALYTE = PARAMETER_NAME)
+      ANALYTE = PARAMETER_NAME) %>%
+    mutate(DATE_COL = mdy(DATE_COL))
 }
-hydro2010 <- readNCCAhydro2010(c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv", 
-"https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv"))
 
 
-readNCCAhydro2015 <- function(filepath) {
+.readNCCAhydro2015 <- function(filepath) {
   read_csv(filepath) %>%
     pivot_longer(-c(1:12,14,15, 24), names_to = "ANALYTE", values_to = "RESULT") %>%
     select(UID, SITE_ID, DATE_COL, STATION_DEPTH, ANALYTE, RESULT) %>%
-    rename(SAMPLE_DEPTH_M = STATION_DEPTH)
+    rename(SAMPLE_DEPTH_M = STATION_DEPTH) %>%
+    # Temporarily drop the date until we figureo out how to parse it
+    mutate(DATE_COL = ymd("2015-01-01"))
 }
-hydro2015 <- readNCCAhydro2015("https://www.epa.gov/sites/default/files/2021-04/ncca_2015_hydrographic_profile_great_lakes-data.csv")
 
-
-
-# Drop DATE_COL temporarliy to join and look at data
-hydro2010 <- hydro2010 %>%
-  select(-DATE_COL)
-
-hydro2015 <- hydro2015 %>%
-  select(-DATE_COL)
-
-secchi2015 <- secchi2015 %>%
-  select(-DATE_COL)
-
-test <- bind_rows(hydro2010, hydro2015, secchi2015)
-
-
-test %>% 
-  ggplot(aes(x = RESULT, fill = UNITS, group= UNITS)) +
-  geom_histogram() +
-  facet_wrap(~ANALYTE, scale = "free")
-
+.readNCCAhydro <- function(hydrofiles2010, hydrofile2015, secchifile2015) {
+  bind_rows(
+    .readNCCAhydro2010(hydrofiles2010), 
+    .readNCCAhydro2015(hydrofile2015), 
+    .readNCCASecchi2015(secchifile2015))
+}
