@@ -56,9 +56,6 @@ allWQ <- bind_rows(NCCAhydro, nccaWQ, CSMI, GLENDA) %>%
 namingFile <- file.path(
   "C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx"
 )
-
-
-
 renamingTable <- bind_rows(
   readxl::read_xlsx(namingFile, sheet = "GLENDA_Map",
   col_types = rep("text", 12)),
@@ -66,6 +63,11 @@ renamingTable <- bind_rows(
   col_types = rep("text", 10)) ,
   readxl::read_xlsx(namingFile, sheet = "CSMI_Map", 
   col_types = rep("text", 10))
-)
+) %>%
+  distinct(ANALYTE, FRACTION, CodeName)
+
+
+allWQ %>%
+  left_join(renamingTable, by = c("ANALYTE" = "ANALYTE", "FRACTION" = "FRACTION"))
 
 
