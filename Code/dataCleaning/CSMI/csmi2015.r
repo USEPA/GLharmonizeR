@@ -1,15 +1,6 @@
 # This file opens the CSMI2015 water quality database hosted locally on the L: drive, and joins the data
 # This is a hardcoded path to the CSMI 2015 water quality data. Note that if this path changes, we will need to update the path
 
-filepath <- file.path(
-  "L:",
-  "Priv",
-  "Great lakes Coastal",
-  "2015 CSMI Lake Michigan",
-  "WQ data and database",
-  "CSMI data & database",
-  "CSMI_LkMich2015_Database_working_minsRivMouths.accdb"
-)
 
 
 #' Load and join data for CSMI 2015 from access database
@@ -39,7 +30,27 @@ filepath <- file.path(
     # Sample event names, WQdepth_m
     left_join(RODBC::sqlFetch(dbi, "L3a_SampleLayerList"), by = c("STIS#" = "STISkey")) %>%
     # actual coordinates
-    left_join(RODBC::sqlFetch(dbi, "L2a_StationSampleEvent"), by = c("SampleEventFK" = "SampleEventKey"))
+    left_join(RODBC::sqlFetch(dbi, "L2a_StationSampleEvent"), by = c("SampleEventFK" = "SampleEventKey")) %>%
+    rename(LATITUDE = LatDD_actual, LONGITUDE = LonDD_actual) %>%
+    filter(!grepl("_cmp", ASTlayername)) %>%
+    mutate(DateTime = as.POSIXct(paste(date(SampleDate), hour(TimeUTC)), format = "%Y-%m-%d %H"),
+           DetectLimit = as.numeric(DetectLimit)) %>%
+    # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
+    rename(sampleDepth = CTDdepth,
+           Depth = DepthM_actual,
+           UNITS = WQUnits,
+           mdl = DetectLimit,
+           ANL_CODE = WQlabelname,
+           Date = SampleDate) %>%
+    select(
+      -contains(c("DD", "_target", "Cruise", "Time")),
+      -c(Chem_site, Chem_layer, SampleEvent, Analyst, AltStationName, 
+        PlaceName, ProjectName, SiteType, DepthStrata, PositNS, `PositNS#`,
+        PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
+        SurveyVessel, WQdepth_m,
+        )
+        )
+           
 
   # Unused tables
   # metaChange <- RODBC::sqlFetch(dbi, "Metadata_ChangeLog") # editors, edited dates
