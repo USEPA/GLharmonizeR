@@ -100,7 +100,7 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
     { if (!is.null(nameMap))  {
       # Assume name map will always be in the GLENDA_MAP sheet
       left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
-    }
+    } else . 
     }
 }
 
