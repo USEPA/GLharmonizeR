@@ -56,7 +56,16 @@ allWQ <- bind_rows(NCCAhydro, nccaWQ, CSMI, GLENDA) %>%
 namingFile <- file.path(
   "C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx"
 )
-glendaNames <- readxl::read_xlsx(namingFile, sheet = "GLENDA_Map")
-NCCA_Names <- readxl::read_xlsx(namingFile, sheet = "NCCA_Map")
-CSMI_Names <- readxl::read_xlsx(namingFile, sheet = "CSMI_Map")
+
+
+
+renamingTable <- bind_rows(
+  readxl::read_xlsx(namingFile, sheet = "GLENDA_Map",
+  col_types = rep("text", 12)),
+  readxl::read_xlsx(namingFile, sheet = "NCCA_Map",
+  col_types = rep("text", 10)) ,
+  readxl::read_xlsx(namingFile, sheet = "CSMI_Map", 
+  col_types = rep("text", 10))
+)
+
 
