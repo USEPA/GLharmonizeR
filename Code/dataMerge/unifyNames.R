@@ -1,4 +1,4 @@
-source("Code/dataCleaning/readCleanGLENDA.R")
+source("Code/dataCleaning/GLENDA/readCleanGLENDA.R")
 library(tidyverse)
 
 names <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv") %>%
