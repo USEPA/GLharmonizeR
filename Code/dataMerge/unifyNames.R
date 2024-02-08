@@ -16,7 +16,8 @@ renamingTable <- bind_rows(
   col_types = rep("text", 10))
 ) %>%
   distinct(ANALYTE, FRACTION, CodeName)
-
+Key <- readxl::read_xlsx(namingFile, sheet = "Key") 
+UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
 
 NCCAhydro <- .readNCCAhydro(
   hydrofiles2010 = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv", 
@@ -46,7 +47,7 @@ nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, 
 # READ GLENDA
 GLENDA <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv") %>%
   rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, Depth = STN_DEPTH_M, Comment = RESULT_REMARK, RESULT = VALUE, Date = sampleDate) %>%
-  select(UID, Date, Depth, sampleDepth, ANALYTE, RESULT, FRACTION, Comment) %>%
+  select(UID, Date, Depth, sampleDepth, ANALYTE, RESULT, FRACTION, Comment, UNITS) %>%
   mutate(UID = as.character(UID), RESULT = as.numeric(RESULT),
   STUDY = "GLENDA")
 
@@ -84,14 +85,29 @@ allWQ <- bind_rows(NCCAhydro, nccaWQ, CSMI, GLENDA) %>%
 # Relabel analytes and remove unwanted ones
   left_join(renamingTable, by = c("ANALYTE", "FRACTION")) %>%
   arrange(ANALYTE) %>%
-  select(-c(ANALYTE, UNITS, `STIS#`, FRACTION, AnalMethod, ANL_CODE, QA_CODE, Comment, Notes)) %>%
+  select(-c(ANALYTE, `STIS#`, FRACTION, AnalMethod, ANL_CODE, QA_CODE, Comment, Notes)) %>%
   filter(CodeName != "Remove")
 
+# Unit conversions
 
+
+
+
+test <- allWQ %>%
+  mutate(UNITS = ifelse(
+    is.na(UNITS),
+    names(sort(table(UNITS, useNA = "always")))[[1]],
+    UNITS
+  ), .by = c(CodeName, STUDY)) %>%
+  mutate(ReportedUnits = str_remove_all(UNTIS, "/")) %>%
+  left_join(Key, by = "CodeName") %>%
+  left_join(UnitConversions, by = c("UNITS" = "ReportedUnits")) %>% 
+  mutate(ConversionFactor = as.numeric(ConversionFactor),
+         RESULT2 = RESULT * ConversionFactor)
 
 
 # Analytes / study/ year look consistent
-allWQ %>% 
+test %>% 
   ggplot(aes(x = RESULT, fill = factor(year(Date)), group= factor(year(Date)))) +
   geom_histogram(alpha = 0.33) + 
   ggh4x::facet_grid2(rows = vars(CodeName), cols = vars(STUDY), 
@@ -116,3 +132,4 @@ allWQ %>%
 # Temp  (Is it just near vs offshore?)
 # Tot_P
 # Diss_Mg
+
