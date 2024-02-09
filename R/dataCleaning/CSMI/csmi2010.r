@@ -15,44 +15,44 @@
 .LoadCSMI2010 <- function(directoryPath){
   df <- readxl::read_xlsx(file.path(directoryPath, "GL2010db.xlsx")) %>%
     # Should we remove blk, intercal, recal, Ipom?
-    filter(!grepl("dup", `blk/dup other`)) %>%
+    dplyr::filter(!grepl("dup", `blk/dup other`)) %>%
     # group all of the different tables together
-    pivot_longer(starts_with("STIS #"),
+    tidyr::pivot_longer(dplyr::starts_with("STIS #"),
                   names_to = "__stis", values_to = "STIS#") %>%
-    pivot_longer(starts_with("Sample Type"),
+    tidyr::pivot_longer(dplyr::starts_with("Sample Type"),
                   names_to = "__sampleType", values_to = "sampleType") %>%
     # particulate nitroget was contained in muyltiple tables so combine them (they're distinguished by their sample type)
-    mutate(`Part N ug/L` = coalesce(`Part N ug/L...35`, `Part N ug/L...37`),
+    dplyr::mutate(`Part N ug/L` = dplyr::coalesce(`Part N ug/L...35`, `Part N ug/L...37`),
             DATE = lubridate::dmy(DATE),
             LATITUDE = as.numeric(`Acutal Lat (N)`), 
             LONGITUDE = as.numeric(`Actual Lon (W)`),
             sampleDepth = as.numeric(`Stn Depth (m)`),
             ) %>%
-    select(-contains("..."), -contains("__"))  %>%
-    rename(`Na+ mg/L` = `Na+ mg/l`,
+    dplyr::select(-dplyr::contains("..."), -dplyr::contains("__"))  %>%
+    dplyr::rename(`Na+ mg/L` = `Na+ mg/l`,
     # Should double check that this is the station depth (maybe check to see if it was duplicated) 
            FRACTION = sampleType,
            Depth = `Stn Depth (m)`) %>%
-    mutate(Depth = as.numeric(Depth)) %>%
-    pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
-    select(-c(LAKE, SITE, STATION, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
-    mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
+    dplyr::mutate(Depth = as.numeric(Depth)) %>%
+    tidyr::pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
+    dplyr::select(-c(LAKE, SITE, STATION, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
+    dplyr::mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
 
 
     # move detection limits to own column
   dls <- df %>%
-    filter(`STIS#` == "method detection limit") %>%
-    distinct(ANALYTE, RESULT) %>% 
-    drop_na() %>%
-    rename(mdl = RESULT) %>%
-    mutate(mdl = as.numeric(mdl))
+    dplyr::filter(`STIS#` == "method detection limit") %>%
+    dplyr::distinct(ANALYTE, RESULT) %>% 
+    tidyr::drop_na() %>%
+    dplyr::rename(mdl = RESULT) %>%
+    dplyr::mutate(mdl = as.numeric(mdl))
 
   df <- df %>%
-    filter(`STIS#` != "STIS #") %>%
-    filter(! grepl("detection limit", `STIS#`)) %>%
-    left_join(dls, by = "ANALYTE") %>%
-    drop_na(RESULT) %>%
-    mutate(RESULT = as.numeric(RESULT)) 
+    dplyr::filter(`STIS#` != "STIS #") %>%
+    dplyr::filter(! grepl("detection limit", `STIS#`)) %>%
+    dplyr::left_join(dls, by = "ANALYTE") %>%
+    dplyr::drop_na(RESULT) %>%
+    dplyr::mutate(RESULT = as.numeric(RESULT)) 
 
 
 

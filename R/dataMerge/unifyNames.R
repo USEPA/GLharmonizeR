@@ -1,9 +1,3 @@
-source("Code/dataCleaning/GLENDA/readCleanGLENDA.R")
-source("Code/dataCleaning/CSMI/csmiJoinAll.r")
-source("Code/dataCleaning/NCCA/waterQuality.r")
-source("Code/dataCleaning/NCCA/hydrological.r")
-
-library(tidyverse)
 namingFile <- file.path(
   "C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx"
 )

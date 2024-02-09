@@ -1,8 +1,3 @@
-# Water chemistry  copied from 
-# L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
-# Contact is Annie Fosso
-
-
 #' Load and join data for CSMI 2021 from csv excel files 
 #'
 #' @description
@@ -15,6 +10,9 @@
 #' @return dataframe of the fully joined water quality data from CSMI 2021
 .LoadCSMI2021 <- function(directoryPath){
 
+# Water chemistry  copied from 
+# L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
+# Contact is Annie Fosso
   DL <- file.path(directoryPath, "Chem2021_detection limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
     readxl::read_xlsx(sheet = "detection limits") %>%
