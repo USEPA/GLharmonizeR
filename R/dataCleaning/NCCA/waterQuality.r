@@ -1,4 +1,3 @@
-
 parseNCCAData <- function(directory) {
   data.frame("file" = dir(directory)) %>%
     dplyr::mutate(
@@ -21,16 +20,16 @@ readSite <- function(filepath) {
     LONGITUDE = numeric(),
     DEPTH = numeric())
   readr::read_csv(filepath, show_col_types=FALSE) %>%
-    dplyr::select(SITE_ID, contains("LAT_DD"), contains("LON_DD"), contains("DEPTH")) %>%
-    dplyr::select(-contains("TLAT_DD"), -contains("TLON_DD"), -contains("83"), -contains("UNITS"))  %>%
+    dplyr::select(SITE_ID, dplyr::contains(c("LAT_DD", "LON_DD", "DEPTH"))) %>%
+    dplyr::select(-dplyr::contains(c("TLAT_DD", "TLON_DD", "83", "UNITS")))  %>%
     dplyr::rename(SITE_ID = 1, LATITUDE = 2, LONGITUDE = 3) %>%
-    dplyr::rename_with(~ case_when(
+    dplyr::rename_with(~ dplyr::case_when(
       . == "STATION_DEPTH" ~ "DEPTH",
       TRUE ~ .
     )) %>%
     # bind to template table to get all of the columns (even if empty)
     dplyr::bind_rows(templateTable) %>%
-    dplyr::mutate_at(vars(one_of('DEPTH')), as.numeric) %>%
+    dplyr::mutate_at(dplyr::vars(dplyr::one_of('DEPTH')), as.numeric) %>%
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
     drop_na()
@@ -43,7 +42,7 @@ readNCCASites <- function(directory) {
 
 readNCCA2000s <- function(filepath) {
   readr::read_csv(filepath,
-                  col_types = cols(
+                  col_types = readr::cols(
                     # Doesn't contain date nor time
                     .default = "-",
                     "SITE_ID" = "c",
@@ -59,17 +58,17 @@ readNCCA2000s <- function(filepath) {
                     "DO Cond" = "-",
                     "Trans Cond" = "-",
                   )) %>%
-    pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT") 
+    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT") 
     # Make a missing columns for depths to align with other data sources
     #mutate(DEPTH = NA)
 }
 
 readNCCA2010 <- function(filepaths) {
   filepaths %>%
-    map_dfr(read_csv,
-            col_types = cols(
+    purrr::map_dfr(readr::read_csv,
+            col_types = readr::cols(
               # Doesn't contain time
-              "DATE_COL" = col_date(format = "%m/%d/%Y"),
+              "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
               "LAB_SAMPLE_ID" = "-",
               "SAMPLE_ID" = "-",
               "STATE" = "-",
@@ -77,15 +76,15 @@ readNCCA2010 <- function(filepaths) {
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
             )) %>%
-    rename(
+    dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
       Date = DATE_COL)
 }
 
 readNCCA2015 <- function(filepath) {
-  read_csv(filepath,
-           col_types = cols(
+  readr::read_csv(filepath,
+           col_types = readr::cols(
              "UID" = "d",
              "SITE_ID" = "c",
              # doesn't contain time
@@ -100,13 +99,13 @@ readNCCA2015 <- function(filepath) {
              "RESULT_UNITS" = "c",
              .default = "-"
            )) %>%
-    rename(Date = DATE_COL,
+    dplyr::rename(Date = DATE_COL,
            QACODE = NARS_FLAG,
            QAComment = NARS_COMMENT,
            UNITS = RESULT_UNITS,
            ANL_CODE = ANALYTE
           ) %>%
-    mutate(Date = dmy(Date)) 
+    dplyr::mutate(Date = lubridate::dmy(Date)) 
 }
 
 # 2020/2021
@@ -115,13 +114,13 @@ readNCCA2015 <- function(filepath) {
 
 readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
   sites <- readNCCASites(siteFiles) %>%
-    distinct(SITE_ID, .keep_all =T) 
+    dplyr::distinct(SITE_ID, .keep_all =T) 
   dfs <- list()
   if (!is.null(preFiles)) dfs[[1]] <- readNCCA2000s(preFiles) else print("No early data specified")
   if (!is.null(tenFiles)) dfs[[2]] <- readNCCA2010(tenFiles) else print("2010 files not specified")
   if (!is.null(fifteenFiles)) dfs[[3]] <- readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
-    left_join(sites, by = "SITE_ID")
+    dplyr::left_join(sites, by = "SITE_ID")
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
 }

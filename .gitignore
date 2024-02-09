@@ -75,3 +75,7 @@ Results/Code/*/*_files
 desktop.ini
 
 /.quarto/
+.Rproj.user
+.Rdata
+.DS_Store
+.quarto
