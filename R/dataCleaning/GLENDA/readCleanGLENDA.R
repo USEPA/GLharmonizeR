@@ -1,11 +1,3 @@
-library(tidyverse)
-library(janitor)
-
-# Useful links
-# Water chemistry descriptions
-# https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
-
-
 #' readPivotGLENDA
 #'
 #' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
@@ -13,8 +5,9 @@ library(janitor)
 #' @param filepath a filepath to the GLENDA csv
 #'
 #' @return a dataframe
+#' @importFrom 
 readPivotGLENDA <- function(filepath) {
-  read_csv(filepath,
+  readr::read_csv(filepath,
            col_types = cols(YEAR = "i",
                             STN_DEPTH_M = "d",
                             LATITUDE = "d",
@@ -24,17 +17,17 @@ readPivotGLENDA <- function(filepath) {
                             Row = "-",
                             .default = "c")) %>%
     # Convert daylight saving TZs into standard time TZs
-    mutate(TIME_ZONE= case_when(
+    dplyr::mutate(TIME_ZONE= case_when(
       TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
       TIME_ZONE == "CDT" ~ "EST",
       .default = TIME_ZONE
     )) %>%
-    unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
-    mutate(sampleDate = parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
-    pivot_longer(cols = -c(1:18),
+    tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
+    dplyr::mutate(sampleDate = parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
+    tidyr::pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%
-    drop_na(ANALYTE)
+    tidyr::drop_na(ANALYTE)
 }
 
 
@@ -51,15 +44,15 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
 
   df %>%
     # Select samples that haven't been combined
-    filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
+    dplyr::filter(SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
            QC_TYPE == "routine field sample",
            ) %>%
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
-    select(, -Number) %>%
-    unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
+    dplyr::select(-Number) %>%
+    tidyr::unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
-    filter(
+    dprly::filter(
       !is.na(VALUE) | !is.na(RESULT_REMARK),
       # The only QA Codes worth removing "Invalid" and "Known Contamination".
       # The rest already passed an initial QA screening before being entered
@@ -73,23 +66,23 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
     ) %>%
     # Adding verbose remark descriptions is purely optional
     {if (!is.null(flagsPath)) {
-      left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
+      dplyr::left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
       } else .
     } %>%
     { if (!is.null(siteCoords)) {
       # impute the missing sites from that file
-      left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x")) %>%
-        mutate(
-          LATITUDE = coalesce(LATITUDE, LATITUDE.x),
-          LONGITUDE = coalesce(LONGITUDE, LONGITUDE.x),
-          STN_DEPTH_M = coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
+      dplyr::left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x")) %>%
+        dplyr::mutate(
+          LATITUDE = dplyr::coalesce(LATITUDE, LATITUDE.x),
+          LONGITUDE = dplyr::coalesce(LONGITUDE, LONGITUDE.x),
+          STN_DEPTH_M = dplyr::coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
         ) %>%
-        select(-c(LATITUDE.x, LONGITUDE.x, `AVG_DEPTH, m`))
+        dplyr::select(-c(LATITUDE.x, LONGITUDE.x, `AVG_DEPTH, m`))
     } else .
     } %>%
     # Impute site coordinates as the mean of that Site's recorded coordinates
     { if (imputeCoordinates) {
-      mutate(.,
+      dplyr::mutate(.,
         LATITUDE = ifelse(is.na(LATITUDE), mean(LATITUDE, na.rm = T), LATITUDE),
         LONGITUDE = ifelse(is.na(LONGITUDE), mean(LONGITUDE, na.rm = T), LONGITUDE),
         STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
@@ -99,7 +92,7 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
     } %>%
     { if (!is.null(nameMap))  {
       # Assume name map will always be in the GLENDA_MAP sheet
-      left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
+      dplyr::left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
     } else . 
     }
 }
@@ -120,3 +113,6 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
 readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL) {
   cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
 }
+# Useful links
+# Water chemistry descriptions
+# https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry
