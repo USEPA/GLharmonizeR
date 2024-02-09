@@ -2,11 +2,15 @@ Package: LMChla
 Title: Lake Michigan Chlorophyll-a and water quality assembler
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
+    person("Kelsey", "Vitense", , "vitense.kelsey@epa.gov", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Christian", "Coffman", , "coffman.christian@epa.gov", role = c("aut"),
+           comment = c(ORCID = "0000-0002-5524-864X"))
+Description: This package loads in-situ water quality data from NCCA, CSMI, and GLENDA covering the years 2010, 2015, and 2020/2021,
+    plus some additional data in a number of other years comprised of both CTD and lab sample data. It standardizes the data for joining
+    and runs quality control checks on each of the data sources separately as well as in its integrated state. It is meant to lower the 
+    barrier of entry for researchers interested in water quality in the great lakes over this time period.
+License: 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3

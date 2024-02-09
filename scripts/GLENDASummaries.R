@@ -1,8 +1,8 @@
-source("Code/dataCleaning/readCleanGLENDA.R")
-source("Code/dataCleaning/readNCCA.R")
 library(tidyverse)
 library(gtsummary)
 library(gt)
+library(devtools)
+load_all()
 readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv") %>% 
   select(YEAR, LAKE, SAMPLE_DEPTH_M, MEDIUM, ANALYTE) %>%
   tbl_summary() %>%
