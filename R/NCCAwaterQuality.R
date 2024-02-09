@@ -1,4 +1,14 @@
-parseNCCAData <- function(directory) {
+#' Parse NCCA data files stored in a common directory 
+#'
+#' @description
+#' `.parseNCCAData` returns filepaths of data NCCA stored files
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.parseNCCAData <- function(directory) {
   data.frame("file" = dir(directory)) %>%
     dplyr::mutate(
       year = as.integer(readr::parse_number(file)), 
@@ -10,10 +20,20 @@ parseNCCAData <- function(directory) {
     dplyr::arrange(year)
 }
 
+#' Read in NCCA site data 
+#'
+#' @description
+#' `.readSite` returns spatial data relating to study sites
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readSite <- function(filepath) {
 # pre 2000's doesn't report depth
 # 2010 reports depth units, need to check if they're same
 # all depths are reported in meters
-readSite <- function(filepath) {
   templateTable <- dplyr::tibble(
     SITE_ID = character(),
     LATITUDE = numeric(),
@@ -35,12 +55,32 @@ readSite <- function(filepath) {
     drop_na()
 }
 
-readNCCASites <- function(directory) {
+#' Read in all NCCA site data
+#' 
+#' @description
+#' `.readNCCAsites` returns spatial data relating to study sites
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readNCCASites <- function(directory) {
   dir(path = directory, pattern = "site.*.csv", all.files =T, full.names=T, ignore.case = T) %>%
-    purrr::map_dfr(readSite)
+    purrr::map_dfr(.readSite)
 }
 
-readNCCA2000s <- function(filepath) {
+#' Read in all NCCA water quality from the early 2000s
+#' 
+#' @description
+#' `.readNCCA2000s` returns water quality data measured during the NCCA study in the early 2000s
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readNCCA2000s <- function(filepath) {
   readr::read_csv(filepath,
                   col_types = readr::cols(
                     # Doesn't contain date nor time
@@ -63,7 +103,17 @@ readNCCA2000s <- function(filepath) {
     #mutate(DEPTH = NA)
 }
 
-readNCCA2010 <- function(filepaths) {
+#' Read in all NCCA water quality from 2010 
+#' 
+#' @description
+#' `.readNCCA2010` returns water quality data measured during the NCCA study in 2010
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readNCCA2010 <- function(filepaths) {
   filepaths %>%
     purrr::map_dfr(readr::read_csv,
             col_types = readr::cols(
@@ -82,7 +132,17 @@ readNCCA2010 <- function(filepaths) {
       Date = DATE_COL)
 }
 
-readNCCA2015 <- function(filepath) {
+#' Read in all NCCA water quality from 2015 
+#' 
+#' @description
+#' `.readNCCA2015` returns water quality data measured during the NCCA study in 2015
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readNCCA2015 <- function(filepath) {
   readr::read_csv(filepath,
            col_types = readr::cols(
              "UID" = "d",
@@ -112,13 +172,25 @@ readNCCA2015 <- function(filepath) {
 # SITE_ID, Date_COL,  LAT/LON_DD (not 83), STATION_DEPTH
 
 
+#' Read in all NCCA from 2000s, 2010, and 2015
+#' 
+#' @description
+#' `readNCCA` returns water quality data along with spatial data from the 
+#'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
+#' 
+#' @details
+#' The spatial information for sites is read in using the .readSites helper functions, this is then
+#' joined to the water quality and hydrographic data and ultimately output as a data table.
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+#' @export
 readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
-  sites <- readNCCASites(siteFiles) %>%
+  sites <- .readNCCASites(siteFiles) %>%
     dplyr::distinct(SITE_ID, .keep_all =T) 
   dfs <- list()
-  if (!is.null(preFiles)) dfs[[1]] <- readNCCA2000s(preFiles) else print("No early data specified")
-  if (!is.null(tenFiles)) dfs[[2]] <- readNCCA2010(tenFiles) else print("2010 files not specified")
-  if (!is.null(fifteenFiles)) dfs[[3]] <- readNCCA2015(fifteenFiles) else print("2015 files not specified")
+  if (!is.null(preFiles)) dfs[[1]] <- .readNCCA2000s(preFiles) else print("No early data specified")
+  if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
+  if (!is.null(fifteenFiles)) dfs[[3]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
     dplyr::left_join(sites, by = "SITE_ID")
     # QC filters

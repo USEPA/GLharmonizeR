@@ -1,6 +1,13 @@
-
-# Hydrological data
-
+#' Load and join secchi data for NCCA 2015 from csv files 
+#'
+#' @description
+#' `.readNCCASecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015 
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the filepath of the data
+#' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
     dplyr::mutate(
@@ -24,6 +31,16 @@
 
 }
 
+#' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
+#'
+#' @description
+#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010 
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the filepath of the data
+#' @return dataframe
 .readNCCAhydro2010 <- function(filepaths) {
   filepaths %>%
     purrr::map_dfr(read_csv) %>%
@@ -35,6 +52,16 @@
 }
 
 
+#' Load and join secchi data for NCCA 2015 hydrographic data from csv files 
+#'
+#' @description
+#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010 
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the filepath of the data
+#' @return dataframe
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
     tidyr::pivot_longer(-c(1:12,14,15, 24), names_to = "ANALYTE", values_to = "RESULT") %>%
@@ -44,6 +71,16 @@
     dplyr::mutate(DATE_COL = lubridate::ymd("2015-01-01"))
 }
 
+#' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
+#'
+#' @description
+#' `.readNCCAhydro` returns a dataframe of all of the hydrographic data relating to NCCA 2010 and 2015
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the filepath of the data
+#' @return dataframe
 .readNCCAhydro <- function(hydrofiles2010, hydrofile2015, secchifile2015) {
   dplyr::bind_rows(
     .readNCCAhydro2010(hydrofiles2010), 
