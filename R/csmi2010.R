@@ -51,7 +51,7 @@
     dplyr::filter(`STIS#` != "STIS #") %>%
     dplyr::filter(! grepl("detection limit", `STIS#`)) %>%
     dplyr::left_join(dls, by = "ANALYTE") %>%
-    dplyr::drop_na(RESULT) %>%
+    tidyr::drop_na(RESULT) %>%
     dplyr::mutate(RESULT = as.numeric(RESULT)) 
 
 

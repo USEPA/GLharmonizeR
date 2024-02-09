@@ -1,12 +1,17 @@
 #' readPivotGLENDA
 #'
+#' @description 
 #' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
+#' 
+#' @details
+#' `.readPivotGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' 
 #'  
 #' @param filepath a filepath to the GLENDA csv
 #'
 #' @return a dataframe
-#' @importFrom 
-readPivotGLENDA <- function(filepath) {
+.readPivotGLENDA <- function(filepath) {
   readr::read_csv(filepath,
            col_types = cols(YEAR = "i",
                             STN_DEPTH_M = "d",
@@ -30,9 +35,15 @@ readPivotGLENDA <- function(filepath) {
     tidyr::drop_na(ANALYTE)
 }
 
-
 #' cleanGLENDA
 #'
+#' @description 
+#' A function to perform automated QC on the GLENDA data
+#' 
+#' @details
+#' `.cleanGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' 
 #' @param df GLENDA dataframe in long format
 #' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
 #' @param imputeCoordinages (optional) Boolean specifying whether to impute missing station coordinates 
@@ -40,7 +51,7 @@ readPivotGLENDA <- function(filepath) {
 #' @param nameMap (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
+.cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
 
   df %>%
     # Select samples that haven't been combined
@@ -52,7 +63,7 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
     dplyr::select(-Number) %>%
     tidyr::unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
-    dprly::filter(
+    dplyr::filter(
       !is.na(VALUE) | !is.na(RESULT_REMARK),
       # The only QA Codes worth removing "Invalid" and "Known Contamination".
       # The rest already passed an initial QA screening before being entered
@@ -103,15 +114,13 @@ cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoor
 #' A function to read and clean the full GLENDA csv file. This is generally the
 #' function users will interact with, the comprising read and clean functions 
 #' are moreso for development purposes.
-#'  
+#' 
 #' @param filepath a filepath to the GLENDA csv
 #'
 #' @return a dataframe
 #' @export
-#'
-#' @examples
 readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL) {
-  cleanGLENDA(readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
+  .cleanGLENDA(.readPivotGLENDA(filepath), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
 }
 # Useful links
 # Water chemistry descriptions

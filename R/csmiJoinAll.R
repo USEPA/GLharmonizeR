@@ -12,6 +12,7 @@
 #' @param database2015 a string specifying the filepath of the CSMI2015 access database
 #' @param directory2021 a string specifying the directory containing the CSMI 2021 data 
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021 
+#' @export
 LoadCSMI <- function(directory2010, database2015, database2021) {
 CSMI <- dplyr::bind_rows(
   .LoadCSMI2010(directory2010),
