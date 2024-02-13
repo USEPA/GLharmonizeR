@@ -17,3 +17,11 @@ renv.lock
 ^Results
 ^docs
 ^SitesMissingLatLon.csv
+^\.quarto$
+^scripts$
+^_quarto\.yml$
+^docs$
+^Results$
+^GLENDAQueryInstructions\.pdf$
+^NCCAmappings\.xlsx$
+^SitesMissingLatLon\.csv$
