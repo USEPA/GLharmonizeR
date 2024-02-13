@@ -43,9 +43,9 @@ library(ggfortify)
 library(kableExtra)
 library(ggbeeswarm)
 library(gt)
+library(rtools)
 
-
-df <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv")
+df <- readCleanGLENDA(filepath = "Data/Raw/GLENDA/GLENDA.csv", flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL)
 #remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
 # QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
 #depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
