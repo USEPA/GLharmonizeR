@@ -36,25 +36,19 @@ hydro2010 <- readNCCAhydro2010(c("https://www.epa.gov/sites/default/files/2016-0
 
 readNCCAhydro2015 <- function(filepath) {
   read_csv(filepath) %>%
-    pivot_longer(-c(1:12,14,15, 24), names_to = "ANALYTE", values_to = "RESULT") %>%
-    select(UID, SITE_ID, DATE_COL, STATION_DEPTH, ANALYTE, RESULT) %>%
-    rename(SAMPLE_DEPTH_M = STATION_DEPTH)
+    pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # combine measurements for similar depths across cast directions rounded to the nearest meter
+    mutate(DEPTH = round(DEPTH, 0)) %>%
+    # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
+    reframe(RESULT = mean(RESULT, na.rm = T),
+            STATION_DEPTH = mean(STATION_DEPTH, na.rm = T),
+            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE))
+    # I decided not to select or rename columns until we are at the joining step
 }
 hydro2015 <- readNCCAhydro2015("https://www.epa.gov/sites/default/files/2021-04/ncca_2015_hydrographic_profile_great_lakes-data.csv")
 
 
 
-# Drop DATE_COL temporarliy to join and look at data
-hydro2010 <- hydro2010 %>%
-  select(-DATE_COL)
-
-hydro2015 <- hydro2015 %>%
-  select(-DATE_COL)
-
-secchi2015 <- secchi2015 %>%
-  select(-DATE_COL)
-
-test <- bind_rows(hydro2010, hydro2015, secchi2015)
 
 
 test %>% 
