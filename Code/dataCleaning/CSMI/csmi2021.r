@@ -35,7 +35,7 @@
       # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
       RESULT < `method detection limit` ~ "nondetect"
       )) %>%
-    dplyr::rename(Depth = `Site Depth (m)`, mdl = `method detection limit`, sampleDepth = `Separate depths (m)`) %>%
+    dplyr::rename(STATION_DEPTH = `Site Depth (m)`, mdl = `method detection limit`, SAMPLE_DEPTH = `Separate depths (m)`) %>%
     dplyr::select(-contains("detection limit corrected"), -c(Month, Ship, Lake, Site, Station, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
                    `Time (EST)` ))
 
