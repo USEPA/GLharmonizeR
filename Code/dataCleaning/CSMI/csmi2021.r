@@ -64,7 +64,7 @@
      cols = cols, names_sep = " \\[", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT")) %>%
     bind_rows() %>%
     dplyr::mutate(UNITS = stringr::str_remove_all(UNITS, "\\]"),
-           Depth = coalesce(`Depth [fresh water, m]`, `Depth [m]`)) %>%
+           SAMPLE_DEPTH = coalesce(`Depth [fresh water, m]`, `Depth [m]`)) %>%
     dplyr::select(Date, ANALYTE, UNITS, RESULT, Depth)
 
   # return the joined data
