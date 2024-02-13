@@ -36,8 +36,8 @@
     mutate(DateTime = as.POSIXct(paste(date(SampleDate), hour(TimeUTC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
-    rename(sampleDepth = CTDdepth,
-           Depth = DepthM_actual,
+    rename(SAMPLE_DEPTH = CTDdepth,
+           STATION_DEPTH = DepthM_actual,
            UNITS = WQUnits,
            mdl = DetectLimit,
            ANL_CODE = WQlabelname,
