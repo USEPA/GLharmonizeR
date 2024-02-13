@@ -19,7 +19,9 @@ readSite <- function(filepath) {
     SITE_ID = character(),
     LATITUDE = numeric(),
     LONGITUDE = numeric(),
-    DEPTH = numeric())
+    DEPTH = numeric()) %>%
+    dplyr::rename(STATION_DEPTH = DEPTH)
+
   readr::read_csv(filepath, show_col_types=FALSE) %>%
     dplyr::select(SITE_ID, contains("LAT_DD"), contains("LON_DD"), contains("DEPTH")) %>%
     dplyr::select(-contains("TLAT_DD"), -contains("TLON_DD"), -contains("83"), -contains("UNITS"))  %>%
