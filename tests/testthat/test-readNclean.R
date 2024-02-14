@@ -22,11 +22,7 @@ test_that("CSMI data files can be found, read, cleaned, and joined.", {
 test_that("GLENDA data file can be found, read, cleaned, and pivoted", {
   filepath <- "Data/Raw/GLENDA/GLENDA.csv"
   testthat::expect_true(file.exists(filepath))
-  GLENDA <- readCleanGLENDA(filepath) %>%
-    rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, Depth = STN_DEPTH_M, Comment = RESULT_REMARK, RESULT = VALUE, Date = sampleDate) %>%
-    select(UID, Date, Depth, sampleDepth, ANALYTE, RESULT, FRACTION, Comment, UNITS) %>%
-    mutate(UID = as.character(UID), RESULT = as.numeric(RESULT),
-    STUDY = "GLENDA")
+  GLENDA <- readCleanGLENDA(filepath)
   testthat::expect_s3_class(GLENDA, "data.frame")
 })
 
@@ -45,11 +41,7 @@ test_that("NCCA hydrological data can be found, read, and cleaned", {
   "https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv"),
     hydrofile2015 = hydrofile2015,
     secchifile2015 = secchifile2015 
-    ) %>%
-    select(UID, DATE_COL, SAMPLE_DEPTH_M, ANALYTE, RESULT, UNITS, STATION_DEPTH_M) %>%
-    rename(Date=  DATE_COL, sampleDepth = SAMPLE_DEPTH_M, Depth = STATION_DEPTH_M) %>%
-    mutate(UID = as.character(UID),
-            STUDY = "NCCA")
+    )
   testthat::expect_s3_class(NCCAhydro, "data.frame")
 }) 
 
@@ -59,13 +51,7 @@ test_that("NCCA water quality data read and cleaned", {
   preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
   tenFiles<- c("Data/Raw/NCCA/assessed_ncca2010_waterchem.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv") 
   fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
-  nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)  %>%
-    filter(between(LONGITUDE, -88, -84.9),
-           between(LATITUDE, 41.7, 46)) %>%
-    select(UID, Date, DEPTH, ANALYTE, RESULT, UNITS, QAComment) %>%
-    rename(sampleDepth = DEPTH, Comment = QAComment) %>%
-    mutate(UID = as.character(UID), 
-            STUDY = "NCCA")
+  nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)
   testthat::expect_s3_class(nccaWQ, "data.frame")
 })
 
