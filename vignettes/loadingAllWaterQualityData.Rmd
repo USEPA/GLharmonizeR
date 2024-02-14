@@ -1,0 +1,23 @@
+---
+title: "loadingAllWaterQualityData"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{loadingAllWaterQualityData}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tidyverse)
+library(LMChla)
+```
+
+Insert code that loads all of the water quality data and makes some basic plots of it.
+
