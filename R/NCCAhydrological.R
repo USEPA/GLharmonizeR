@@ -15,7 +15,7 @@
       CLEAR_TO_BOTTOM = ifelse(is.na(CLEAR_TO_BOTTOM), "N", CLEAR_TO_BOTTOM),
       # Either it's clear to bottom, or they took measurements, so average them
       # Only mean or both dissappear and reappear exist at a time, so we can include all three in average without biasing
-      Secchi = ifelse(CLEAR_TO_BOTTOM == "Y", STATION_DEPTH, rowMeans(select(., MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), na.rm = TRUE))
+      Secchi = ifelse(CLEAR_TO_BOTTOM == "Y", STATION_DEPTH, rowMeans(dplyr::select(., MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), na.rm = TRUE))
       ) %>% 
       # Average over all reps
       dplyr::reframe(
@@ -43,12 +43,12 @@
 #' @return dataframe
 .readNCCAhydro2010 <- function(filepaths) {
   filepaths %>%
-    purrr::map_dfr(read_csv) %>%
+    purrr::map_dfr(readr::read_csv) %>%
     dplyr::select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
     dplyr::rename(
       SAMPLE_DEPTH_M = SDEPTH,
       ANALYTE = PARAMETER_NAME) %>%
-    dplyr::mutate(DATE_COL = mdy(DATE_COL))
+    dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL))
 }
 
 
@@ -64,14 +64,17 @@
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
-    pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE), names_to = "ANALYTE", values_to = "RESULT") %>%
     # combine measurements for similar depths across cast directions rounded to the nearest meter
-    mutate(DEPTH = round(DEPTH, 0)) %>%
+    dplyr::mutate(DEPTH = round(DEPTH, 0)) %>%
     # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
-    reframe(RESULT = mean(RESULT, na.rm = T),
+    dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
             STATION_DEPTH = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE))
+            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE)) %>%
     # I decided not to select or rename columns until we are at the joining step
+    # NOTE: I'm making up the Date so the join works for now but we
+    # need to figure out how to actually parse it
+    dplyr::mutate(DATE_COL = lubridate::ymd("2015-06-01"))
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 

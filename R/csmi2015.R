@@ -33,13 +33,8 @@
     dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeUTC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
-<<<<<<< HEAD:R/csmi2015.R
-    dplyr::rename(sampleDepth = CTDdepth,
-           Depth = DepthM_actual,
-=======
-    rename(SAMPLE_DEPTH = CTDdepth,
+    dplyr::rename(SAMPLE_DEPTH = CTDdepth,
            STATION_DEPTH = DepthM_actual,
->>>>>>> origin/FullDataPlusPackageOrg:Code/dataCleaning/CSMI/csmi2015.r
            UNITS = WQUnits,
            mdl = DetectLimit,
            ANL_CODE = WQlabelname,
