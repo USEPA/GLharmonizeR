@@ -64,11 +64,14 @@
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
-    tidyr::pivot_longer(-c(1:12,14,15, 24), names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::select(UID, SITE_ID, DATE_COL, STATION_DEPTH, ANALYTE, RESULT) %>%
-    dplyr::rename(SAMPLE_DEPTH_M = STATION_DEPTH) %>%
-    # Temporarily drop the date until we figureo out how to parse it
-    dplyr::mutate(DATE_COL = lubridate::ymd("2015-01-01"))
+    pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # combine measurements for similar depths across cast directions rounded to the nearest meter
+    mutate(DEPTH = round(DEPTH, 0)) %>%
+    # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
+    reframe(RESULT = mean(RESULT, na.rm = T),
+            STATION_DEPTH = mean(STATION_DEPTH, na.rm = T),
+            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE))
+    # I decided not to select or rename columns until we are at the joining step
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
