@@ -13,7 +13,7 @@
 #' @return a dataframe
 .readPivotGLENDA <- function(filepath) {
   readr::read_csv(filepath,
-           col_types = cols(YEAR = "i",
+           col_types = readr::cols(YEAR = "i",
                             STN_DEPTH_M = "d",
                             LATITUDE = "d",
                             LONGITUDE = "d",
@@ -22,13 +22,13 @@
                             Row = "-",
                             .default = "c")) %>%
     # Convert daylight saving TZs into standard time TZs
-    dplyr::mutate(TIME_ZONE= case_when(
+    dplyr::mutate(TIME_ZONE= dplyr::case_when(
       TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
       TIME_ZONE == "CDT" ~ "EST",
       .default = TIME_ZONE
     )) %>%
     tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
-    dplyr::mutate(sampleDate = parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
+    dplyr::mutate(sampleDate = readr::parse_datetime(sampleDate, format = "%Y/%m/%d %H:%M_%Z")) %>%
     tidyr::pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%

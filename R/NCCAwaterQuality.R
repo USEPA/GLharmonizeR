@@ -52,7 +52,7 @@
     dplyr::mutate_at(dplyr::vars(dplyr::one_of('DEPTH')), as.numeric) %>%
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
-    drop_na()
+    tidyr::drop_na()
 }
 
 #' Read in all NCCA site data

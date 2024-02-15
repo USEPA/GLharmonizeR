@@ -33,19 +33,10 @@
     dplyr::select(-dplyr::contains("..."), -dplyr::contains("__"))  %>%
     dplyr::rename(`Na+ mg/L` = `Na+ mg/l`,
     # Should double check that this is the station depth (maybe check to see if it was duplicated) 
-<<<<<<< HEAD:R/csmi2010.R
-           FRACTION = sampleType,
-           Depth = `Stn Depth (m)`) %>%
-    dplyr::mutate(Depth = as.numeric(Depth)) %>%
-    tidyr::pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
-    dplyr::select(-c(LAKE, SITE, STATION, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
-    dplyr::mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
-=======
            FRACTION = sampleType) %>%
-    pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
-    select(-c(LAKE, SITE, STATION, STATION_DEPTH, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
-    mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
->>>>>>> origin/FullDataPlusPackageOrg:Code/dataCleaning/CSMI/csmi2010.r
+    tidyr::pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
+    dplyr::select(-c(LAKE, SITE, STATION, STATION_DEPTH, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
+    dplyr::mutate(UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
 
 
     # move detection limits to own column

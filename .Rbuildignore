@@ -25,5 +25,4 @@ renv.lock
 ^GLENDAQueryInstructions\.pdf$
 ^NCCAmappings\.xlsx$
 ^SitesMissingLatLon\.csv$
-*.qmd$
-
+.qmd$
