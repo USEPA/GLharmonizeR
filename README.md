@@ -33,7 +33,7 @@ This is under construction
 
 
 ## Contributing
-This is under construction
+The development environment is managed via "renv". To set up the development environment after cloning the repository run "renv::restore()". This will then ask to install and update packages necesssary for the development environment. If you make changes that alter the environment (i.e. add a new package dependency) please update the renv by running "renv::snapshot()"
 
 For scripts/function organization and style see the [Google r style guide](https://google.github.io/styleguide/Rguide.html). 
 For package layout see the [R-exts](https://cran.r-project.org/doc/manuals/R-exts.pdf)

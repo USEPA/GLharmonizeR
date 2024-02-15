@@ -21,22 +21,31 @@
                   names_to = "__stis", values_to = "STIS#") %>%
     tidyr::pivot_longer(dplyr::starts_with("Sample Type"),
                   names_to = "__sampleType", values_to = "sampleType") %>%
+    # Forward fill missingness in Date column
+    tidyr::fill(DATE, .direction = "down") %>%
     # particulate nitroget was contained in muyltiple tables so combine them (they're distinguished by their sample type)
     dplyr::mutate(`Part N ug/L` = dplyr::coalesce(`Part N ug/L...35`, `Part N ug/L...37`),
             DATE = lubridate::dmy(DATE),
-            LATITUDE = as.numeric(`Acutal Lat (N)`), 
+            LATITUDE = as.numeric(`Acutal Lat (N)`),
             LONGITUDE = as.numeric(`Actual Lon (W)`),
-            sampleDepth = as.numeric(`Stn Depth (m)`),
+            STATION_DEPTH = as.numeric(`Stn Depth (m)`)
             ) %>%
     dplyr::select(-dplyr::contains("..."), -dplyr::contains("__"))  %>%
     dplyr::rename(`Na+ mg/L` = `Na+ mg/l`,
     # Should double check that this is the station depth (maybe check to see if it was duplicated) 
+<<<<<<< HEAD:R/csmi2010.R
            FRACTION = sampleType,
            Depth = `Stn Depth (m)`) %>%
     dplyr::mutate(Depth = as.numeric(Depth)) %>%
     tidyr::pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
     dplyr::select(-c(LAKE, SITE, STATION, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
     dplyr::mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
+=======
+           FRACTION = sampleType) %>%
+    pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
+    select(-c(LAKE, SITE, STATION, STATION_DEPTH, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
+    mutate(UNITS = str_remove(UNITS, "^[[:space:]]*"))
+>>>>>>> origin/FullDataPlusPackageOrg:Code/dataCleaning/CSMI/csmi2010.r
 
 
     # move detection limits to own column
