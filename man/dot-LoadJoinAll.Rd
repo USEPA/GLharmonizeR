@@ -10,7 +10,7 @@
   secchifile2015,
   siteFiles,
   preFiles,
-  tenFiels,
+  tenFiles,
   fifteenFiles,
   glendaData,
   csmi2010,
@@ -29,7 +29,7 @@
 
 \item{preFiles}{a string specifying the path containing 2010's and earlier WQ data}
 
-\item{tenFiels}{a string specifying the directory containing NCCA WQ 2010 data}
+\item{tenFiles}{a string specifying the directory containing NCCA WQ 2010 data}
 
 \item{fifteenFiles}{a string specifying the directory containing NCCA wQ 2015 data}
 

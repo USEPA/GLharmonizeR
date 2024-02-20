@@ -44,7 +44,6 @@ allWQ <- LoadWQdata(
 ) %>%
 mutate(
   SAMPLE_DEPTH = coalesce(sampleDepth, SAMPLE_DEPTH),
-  STATION_DEPTH = coalesce(`Stn Depth (m)`, STATION_DEPTH),
   ) %>%
 select(-c(sampleDepth, `Stn Depth (m)`))
 
@@ -76,4 +75,40 @@ allWQ %>%
 # Temp  (Is it just near vs offshore?)
 # Tot_P
 # Diss_Mg
+
+############ TEMP 
+# Generate csmi names
+
+CSMInames <- allWQ %>% 
+  filter(STUDY == "CSMI") %>%
+  drop_na(RESULT) %>% 
+  reframe(
+    Units = toString(unique(Units)),
+    Method = toString(unique(AnalMethod)),
+    Years = max(year(Date), na.rm = T),
+    n = n(), 
+    .by = c(ANALYTE, FRACTION, ANL_CODE, CodeName, `Lepak input`, Comment))  %>%
+    arrange(ANALYTE)
+CSMIkey <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx") %>%
+  readxl::read_xlsx(path = ., sheet = "CSMI_Map") %>%
+  dplyr::mutate(FRACTION = dplyr::case_when(
+    FRACTION == "F" ~ "Filtrate",
+    FRACTION == "U" ~ "Total/Bulk",
+    FRACTION == "A" ~ "Filtrate",
+    FRACTION == "M" ~ "Filtrate",
+    FRACTION == "D" ~ "Filtrate",
+    FRACTION == "V" ~ "Total/Bulk",
+    FRACTION == "PCN" ~ "Residue",
+    FRACTION == "Not applicable" ~ NA,
+    .default = FRACTION
+  ))
+
+
+CSMInames %>%
+  full_join(
+    CSMIkey, 
+    by = c("ANALYTE", "FRACTION", "ANL_CODE", "CodeName", "Units", "Years")) %>%
+    select(ANALYTE, FRACTION, ANL_CODE, Methods, Years, Units, CodeName, `RL Agree?`, `Original comment/observation`, `Resolution Comment`) %>%
+    distinct(ANALYTE, FRACTION, ANL_CODE, Methods, Years, Units, CodeName, `RL Agree?`, `Original comment/observation`, `Resolution Comment`) %>%
+    write_csv("CSMInames.csv", na = "")
 

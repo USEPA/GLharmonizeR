@@ -35,7 +35,8 @@
       )) %>%
     dplyr::rename(STATION_DEPTH = `Site Depth (m)`, mdl = `method detection limit`, SAMPLE_DEPTH = `Separate depths (m)`) %>%
     dplyr::select(-contains("detection limit corrected"), -c(Month, Ship, Lake, Site, Station, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                   `Time (EST)` ))
+                   `Time (EST)` )) %>%
+    dplyr::mutate(Date = lubridate::mdy(Date))
 
   #mutate(Time = case_when(
   #  grepl("/", `Time (EST)`) ~ # it's an interval
@@ -63,7 +64,7 @@
     dplyr::bind_rows() %>%
     dplyr::mutate(UNITS = stringr::str_remove_all(UNITS, "\\]"),
            SAMPLE_DEPTH = dplyr::coalesce(`Depth [fresh water, m]`, `Depth [m]`)) %>%
-    dplyr::select(Date, ANALYTE, UNITS, RESULT, SAMPLE_DEPTH)
+    dplyr::select(Date, ANALYTE, UNITS, RESULT, SAMPLE_DEPTH) 
 
   # return the joined data
   return(dplyr::bind_rows(WQ, CTD))

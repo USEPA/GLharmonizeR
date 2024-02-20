@@ -95,7 +95,7 @@
   data <- data %>%
     dplyr::left_join(renamingTable, by = c("ANALYTE", "FRACTION")) %>%
     dplyr::arrange(ANALYTE) %>%
-    dplyr::select(-c(ANALYTE, FRACTION, AnalMethod, ANL_CODE,  Comment)) %>%
+    # dplyr::select(-c(ANALYTE, FRACTION, AnalMethod, ANL_CODE,  Comment)) %>%
     dplyr::filter(CodeName != "Remove") %>%
 
   # Unit conversions
