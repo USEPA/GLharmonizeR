@@ -46,7 +46,12 @@
         PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
         SurveyVessel, WQdepth_m,
         )
-        )
+        ) %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
+      ) 
            
 
   # Unused tables
