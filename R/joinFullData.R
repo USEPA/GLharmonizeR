@@ -22,25 +22,8 @@
 .LoadJoinAll <- function(hydrofiles2010, hydrofile2015, secchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021) {
   # Read NCCA hydrographic data 
-  NCCAhydro <- .readNCCAhydro(
-    hydrofiles2010 = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv", 
-  "https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv"),
-    hydrofile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_hydrographic_profile_great_lakes-data.csv",
-    secchifile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_secchi_great_lakes-data.csv" 
-    ) %>%
-    dplyr::select(UID, DATE_COL, SAMPLE_DEPTH_M, ANALYTE, RESULT, UNITS, STATION_DEPTH_M) %>%
-    dplyr::rename(Date=  DATE_COL, sampleDepth = SAMPLE_DEPTH_M, Depth = STATION_DEPTH_M) %>%
-    dplyr::mutate(UID = as.character(UID), STUDY = "NCCA")
-
-  # Read NCCA WQ files 
-  nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)  %>%
-    dplyr::filter(dplyr::between(LONGITUDE, -88, -84.9),
-           dplyr::between(LATITUDE, 41.7, 46)) %>%
-    dplyr::select(UID, Date, DEPTH, ANALYTE, RESULT, UNITS, QAComment) %>%
-    dplyr::rename(sampleDepth = DEPTH, Comment = QAComment) %>%
-    dplyr::mutate(UID = as.character(UID), 
-            STUDY = "NCCA")
-
+  ncca <- LoadNCCAfull(siteFiles, preFiles, tenFiles, fifteenFiles, 
+                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAjsecchifile2015)
 
   # READ GLENDA
   GLENDA <- readCleanGLENDA(glendaData) %>%
