@@ -184,7 +184,7 @@
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
 #' @export
-readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
+.readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
   sites <- .readNCCASites(siteFiles) %>%
     dplyr::distinct(SITE_ID, .keep_all =T) 
   dfs <- list()
