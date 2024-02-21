@@ -65,12 +65,14 @@ vignettes/*.pdf
 *.pdf
 
 Results/Code/*/*_files
+Data/*.xml
 
 # Exceptions
 !Data/Formatted/*.csv
 !docs/*
 !docs/*/*
 !Data/Meta/*.csv
+!Data/glendaRequestTokenTemplate.xml
 
 desktop.ini
 
@@ -80,3 +82,4 @@ desktop.ini
 .DS_Store
 .quarto
 inst/doc
+
