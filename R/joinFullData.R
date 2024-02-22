@@ -19,11 +19,11 @@
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-.LoadJoinAll <- function(hydrofiles2010, hydrofile2015, secchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
+.LoadJoinAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021) {
   # Read NCCA hydrographic data 
   ncca <- LoadNCCAfull(siteFiles, preFiles, tenFiles, fifteenFiles, 
-                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAjsecchifile2015)
+                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015)
 
   # READ GLENDA
   GLENDA <- readCleanGLENDA(glendaData) %>%
@@ -33,20 +33,16 @@
     STUDY = "GLENDA")
 
   # READ CSMI
-  CSMI <- LoadCSMI(
-    csmi2010,
-    csmi2015,
-    csmi2021
-  ) %>%
+  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
     dplyr::rename(UID = `STIS#`) %>%
     #dplyr::select(Depth, FRACTION, LATITUDE, LONGITUDE, sampleDepth, ANALYTE, UNITS, RESULT, mdl, Date) %>%
     dplyr::mutate(UID = as.character(UID),
-    STUDY = "CSMI") 
-  
+    STUDY = "CSMI")
+
   # Join data
-  allWQ <- dplyr::bind_rows(NCCAhydro, nccaWQ, CSMI, GLENDA) %>%
-    tidyr::drop_na(RESULT) 
-  
+  allWQ <- dplyr::bind_rows(ncca, CSMI, GLENDA) %>%
+    tidyr::drop_na(RESULT)
+
   return(allWQ)
 }
 
@@ -79,7 +75,7 @@
     dplyr::left_join(renamingTable, by = c("ANALYTE", "FRACTION")) %>%
     dplyr::arrange(ANALYTE) %>%
     # dplyr::select(-c(ANALYTE, FRACTION, AnalMethod, ANL_CODE,  Comment)) %>%
-    dplyr::filter(CodeName != "Remove") %>%
+    #dplyr::filter(CodeName != "Remove") %>%
 
   # Unit conversions
     dplyr::mutate(UNITS = ifelse(
@@ -108,13 +104,13 @@
 #' @inheritParams .UnifyUnitsNames
 #' 
 #' @return dataframe with unified names and units for all WQ data
-LoadWQdata <- function(hydrofiles2010, hydrofile2015, secchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
+LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021,
                          namingFile) {
   df <- .LoadJoinAll(
-    hydrofiles2010 = hydrofiles2010,
-    hydrofile2015 = hydrofile2015,
-    secchifile2015 = secchifile2015,
+    NCCAhydrofiles2010 = NCCAhydrofiles2010,
+    NCCAhydrofile2015 = NCCAhydrofile2015,
+    NCCAsecchifile2015 = NCCAsecchifile2015,
     siteFiles = siteFiles,
     preFiles = preFiles,
     tenFiles = tenFiles,

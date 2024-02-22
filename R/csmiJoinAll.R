@@ -37,8 +37,12 @@ LoadCSMI <- function(directory2010, database2015, database2021) {
       ANALYTE = str_remove_all(ANALYTE, "\\+"),
       ANALYTE = str_remove_all(ANALYTE, "-"),
       ANALYTE = str_remove_all(ANALYTE, "="),
-      Date = lubridate::date(Date)
+      Date = lubridate::date(Date),
+      # This only contains information about where along the water column 
+      # But we already have that with depth
+      ANL_CODE = NA
       )
+
 # CSMI fraction labels
 # From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
 # Sheet "flow_charts"

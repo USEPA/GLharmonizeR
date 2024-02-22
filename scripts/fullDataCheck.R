@@ -30,9 +30,9 @@ csmi2021 <- file.path("Data", "CSMI", "2021")
 namingFile <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx")
 
 allWQ <- LoadWQdata(
-  hydrofiles2010 = NCCAhydrofiles2010,
-  hydrofile2015 = NCCAhydrofile2015,
-  secchifile2015 = NCCAsecchifile2015,
+  NCCAhydrofiles2010 = NCCAhydrofiles2010,
+  NCCAhydrofile2015 = NCCAhydrofile2015,
+  NCCAsecchifile2015 = NCCAsecchifile2015,
   siteFiles = siteFiles,
   preFiles = preFiles,
   tenFiles = tenFiles,
@@ -43,10 +43,10 @@ allWQ <- LoadWQdata(
   csmi2021 = csmi2021,
   namingFile = namingFile
 ) %>%
-mutate(
-  SAMPLE_DEPTH = coalesce(sampleDepth, SAMPLE_DEPTH),
+  mutate(
+    SAMPLE_DEPTH = coalesce(sampleDepth, SAMPLE_DEPTH),
   ) %>%
-select(-c(sampleDepth, `Stn Depth (m)`))
+  select(-c(sampleDepth, `Stn Depth (m)`))
 
 # Analytes / study/ year look consistent
 # Check with and without log scale
@@ -81,8 +81,8 @@ allWQ %>%
 # Generate csmi names
 
 CSMInames <- allWQ %>% 
+  drop_na(RESULT) %>%
   filter(STUDY == "CSMI") %>%
-  drop_na(RESULT) %>% 
   reframe(
     Units = toString(unique(Units)),
     Method = toString(unique(AnalMethod)),
@@ -105,11 +105,12 @@ CSMIkey <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency
   ))
 
 
-CSMInames %>%
+test <- CSMInames %>%
   full_join(
     CSMIkey, 
     by = c("ANALYTE", "FRACTION", "ANL_CODE", "CodeName", "Units", "Years")) %>%
     select(ANALYTE, FRACTION, ANL_CODE, Methods, Years, Units, CodeName, `RL Agree?`, `Original comment/observation`, `Resolution Comment`) %>%
-    distinct(ANALYTE, FRACTION, ANL_CODE, Methods, Years, Units, CodeName, `RL Agree?`, `Original comment/observation`, `Resolution Comment`) %>%
+    distinct(ANALYTE, FRACTION, ANL_CODE, Methods, Years, Units, CodeName, `RL Agree?`, `Original comment/observation`, `Resolution Comment`)  %>%
+    arrange(Years, ANALYTE)
+test %>%    
     write_csv("CSMInames.csv", na = "")
-

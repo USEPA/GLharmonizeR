@@ -183,7 +183,6 @@
 #' joined to the water quality and hydrographic data and ultimately output as a data table.
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-#' @export
 .readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
   sites <- .readNCCASites(siteFiles) %>%
     dplyr::distinct(SITE_ID, .keep_all =T) 

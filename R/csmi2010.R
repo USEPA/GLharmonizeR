@@ -48,6 +48,7 @@
     dplyr::mutate(mdl = as.numeric(mdl))
 
   df <- df %>%
+    # WHAT IS THIS FILTER DOING? 
     dplyr::filter(`STIS#` != "STIS #") %>%
     dplyr::filter(! grepl("detection limit", `STIS#`)) %>%
     dplyr::left_join(dls, by = "ANALYTE") %>%
@@ -55,7 +56,7 @@
     dplyr::mutate(
       RESULT = as.numeric(RESULT),
       Date = lubridate::ymd("2010-06-15")
-      ) 
+      )
 
 
 

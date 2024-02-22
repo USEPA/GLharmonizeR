@@ -61,7 +61,6 @@
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
     dplyr::select(-Number) %>%
-    tidyr::unite(ANL_CODE2, ANL_CODE, FRACTION, sep = "_", remove = F) %>%
     # If value and remarks are missing, we assume sample was never taken
     dplyr::filter(
       !is.na(VALUE) | !is.na(RESULT_REMARK),

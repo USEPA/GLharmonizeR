@@ -31,11 +31,11 @@
     dplyr::mutate(      # Haven't figured out how to parse these times, can come back to it if it's important 
       Date= lubridate::date(Date)
     ) %>%
+    # thinking that the first three letters of Site are all that matters
+    dplyr::mutate(Site = stringr::str_extract(Site, "^[:alnum:]{3}")) %>%
     dplyr::rename(STATION_DEPTH = `Site Depth (m)`,  SAMPLE_DEPTH = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                    `Time (EST)`, Station )) %>%
-    # thinking that the first three letters of Site are all that matters
-    dplyr::mutate(Site = stringr::str_extract(Site, "^[:alnum:]{3}"))
+                    `Time (EST)`, Station ))
 
 
 
