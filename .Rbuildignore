@@ -26,3 +26,4 @@ renv.lock
 ^NCCAmappings\.xlsx$
 ^SitesMissingLatLon\.csv$
 .qmd$
+^\.github$

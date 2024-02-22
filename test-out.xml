@@ -1,0 +1,224 @@
+[32m✔[39m | [38;2;255;165;0mF[39m [35mW[39m [34m S[39m [32m OK[39m | Context
+⠏ |          0 | readNclean                                                                                                                                      ⠙ |          2 | readNclean                                                                                                                                      ⠹ |          3 | readNclean                                                                                                                                      ⠸ |   1      3 | readNclean                                                                                                                                      ⠼ |   2      3 | readNclean                                                                                                                                      ⠴ |   3      3 | readNclean                                                                                                                                      ⠦ |   4      3 | readNclean                                                                                                                                      ⠧ |   4      4 | readNclean                                                                                                                                      ⠇ | 1 4      4 | readNclean                                                                                                                                      ⠏ | 2 4      4 | readNclean                                                                                                                                      ⠋ | 2 4      5 | readNclean                                                                                                                                      ⠙ | 2 4      6 | readNclean                                                                                                                                      ⠹ | 3 4      6 | readNclean                                                                                                                                      [31m✖[39m | [38;2;255;165;0m3[39m [35m4[39m      6 | readNclean[90m [25.1s][39m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[35mWarning[39m ([34mtest-readNclean.R:41:3[39m): CSMI data files can be found, read, cleaned, and joined.[22m
+There were 4 warnings in `dplyr::mutate()`.
+The first warning was:
+i In argument: `DATE = lubridate::dmy(DATE)`.
+Caused by warning:
+!  1400 failed to parse.
+i Run `dplyr::last_dplyr_warnings()` to see the 3 remaining warnings.
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-readNclean.R:41:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2010(directory2010)
+[90m  6. [39m│   └─... %>% ...[90m at LMChla/R/csmi2010.R:16:3[39m
+[90m  7. [39m├─[1mdplyr[22m::mutate(...)
+[90m  8. [39m├─dplyr::mutate(...)
+[90m  9. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 10. [39m├─[1mdplyr[22m::mutate(., UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
+[90m 11. [39m├─dplyr::select(...)
+[90m 12. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 13. [39m├─[1mdplyr[22m::rename(., `Na+ mg/L` = `Na+ mg/l`, FRACTION = sampleType)
+[90m 14. [39m├─dplyr::select(., -dplyr::contains("..."), -dplyr::contains("__"))
+[90m 15. [39m├─dplyr::mutate(...)
+[90m 16. [39m└─dplyr:::mutate.data.frame(...)
+[90m 17. [39m  └─dplyr:::mutate_cols(.data, dplyr_quosures(...), by)
+[90m 18. [39m    └─dplyr:::signal_warnings(warnings_state, error_call)
+
+[1m[35mWarning[39m ([34mtest-readNclean.R:41:3[39m): CSMI data files can be found, read, cleaned, and joined.[22m
+There was 1 warning in `dplyr::mutate()`.
+i In argument: `DetectLimit = as.numeric(DetectLimit)`.
+Caused by warning:
+! NAs introduced by coercion
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-readNclean.R:41:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2015(database2015)
+[90m  6. [39m│   └─... %>% ...[90m at LMChla/R/csmi2015.R:18:3[39m
+[90m  7. [39m├─[1mdplyr[22m::mutate(...)
+[90m  8. [39m├─dplyr::mutate(...)
+[90m  9. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 10. [39m├─[1mdplyr[22m::select(...)
+[90m 11. [39m├─dplyr::rename(...)
+[90m 12. [39m├─dplyr::mutate(...)
+[90m 13. [39m├─dplyr::mutate(...)
+[90m 14. [39m└─dplyr:::mutate.data.frame(...)
+[90m 15. [39m  └─dplyr:::mutate_cols(.data, dplyr_quosures(...), by)
+[90m 16. [39m    └─dplyr:::signal_warnings(warnings_state, error_call)
+
+[1m[35mWarning[39m ([34mtest-readNclean.R:41:3[39m): CSMI data files can be found, read, cleaned, and joined.[22m
+There were 12 warnings in `dplyr::mutate()`.
+The first warning was:
+i In argument: `dplyr::across(dplyr::ends_with("L"), ~as.numeric(.))`.
+Caused by warning:
+! NAs introduced by coercion
+i Run `dplyr::last_dplyr_warnings()` to see the 11 remaining warnings.
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-readNclean.R:41:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2021(database2021)
+[90m  6. [39m│   └─... %>% ...[90m at LMChla/R/csmi2021.R:26:3[39m
+[90m  7. [39m├─[1mdplyr[22m::mutate(...)
+[90m  8. [39m├─dplyr::mutate(...)
+[90m  9. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 10. [39m├─[1mdplyr[22m::select(...)
+[90m 11. [39m├─dplyr::rename(., STATION_DEPTH = `Site Depth (m)`, SAMPLE_DEPTH = `Separate depths (m)`)
+[90m 12. [39m├─dplyr::mutate(., Site = stringr::str_extract(Site, "^[:alnum:]{3}"))
+[90m 13. [39m├─dplyr::mutate(., Date = lubridate::date(Date))
+[90m 14. [39m├─dplyr::mutate(., dplyr::across(dplyr::ends_with("L"), ~as.numeric(.)))
+[90m 15. [39m└─dplyr:::mutate.data.frame(...)
+[90m 16. [39m  └─dplyr:::mutate_cols(.data, dplyr_quosures(...), by)
+[90m 17. [39m    └─dplyr:::signal_warnings(warnings_state, error_call)
+
+[1m[35mWarning[39m ([34mtest-readNclean.R:41:3[39m): CSMI data files can be found, read, cleaned, and joined.[22m
+Detected an unexpected many-to-many relationship between `x` and `y`.
+i Row 5 of `x` matches multiple rows in `y`.
+i Row 1 of `y` matches multiple rows in `x`.
+i If a many-to-many relationship is expected, set `relationship = "many-to-many"` to silence this warning.
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-readNclean.R:41:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2021(database2021)
+[90m  6. [39m│   └─... %>% ...[90m at LMChla/R/csmi2021.R:70:3[39m
+[90m  7. [39m├─[1mdplyr[22m::mutate(...)
+[90m  8. [39m├─dplyr::mutate(...)
+[90m  9. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 10. [39m├─[1mdplyr[22m::mutate(...)
+[90m 11. [39m├─[1mtidyr[22m::separate_wider_regex(...)
+[90m 12. [39m│ └─tidyr:::check_data_frame(data)
+[90m 13. [39m│   └─[1mbase[22m::is.data.frame(x)
+[90m 14. [39m├─[1mdplyr[22m::mutate(., QA_CODE = dplyr::case_when(RESULT < mdl ~ "nondetect"))
+[90m 15. [39m├─dplyr::select(., -contains("detection limit corrected"))
+[90m 16. [39m├─dplyr::rename(., mdl = `method detection limit`, SITE_ID = Transect)
+[90m 17. [39m├─dplyr::left_join(., DL, by = "ANALYTE")
+[90m 18. [39m├─dplyr::rename(., SAMPLE_DEPTH = Depth)
+[90m 19. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 20. [39m├─[1mdplyr[22m::select(., -contains("Station"), -c(`STIS#`))
+[90m 21. [39m├─dplyr::full_join(., WQ, by = c(Transect = "Site", "Date", Depth = "SAMPLE_DEPTH"))
+[90m 22. [39m├─dplyr:::full_join.data.frame(...)
+[90m 23. [39m│ └─dplyr:::join_mutate(...)
+[90m 24. [39m│   └─dplyr:::join_rows(...)
+[90m 25. [39m│     └─dplyr:::dplyr_locate_matches(...)
+[90m 26. [39m│       ├─[1mbase[22m::withCallingHandlers(...)
+[90m 27. [39m│       └─[1mvctrs[22m::vec_locate_matches(...)
+[90m 28. [39m├─vctrs:::warn_matches_relationship_many_to_many(...)
+[90m 29. [39m│ └─vctrs:::warn_matches_relationship(...)
+[90m 30. [39m│   └─vctrs:::warn_matches(...)
+[90m 31. [39m│     └─vctrs:::warn_vctrs(...)
+[90m 32. [39m│       └─[1mrlang[22m::warn(...)
+[90m 33. [39m│         └─[1mbase[22m::warning(cnd)
+[90m 34. [39m│           └─base::withRestarts(...)
+[90m 35. [39m│             └─base (local) withOneRestart(expr, restarts[[1L]])
+[90m 36. [39m│               └─base (local) doWithOneRestart(return(expr), restart)
+[90m 37. [39m└─[1mdplyr[22m (local) `<fn>`(`<vc______>`)
+[90m 38. [39m  └─dplyr:::rethrow_warning_join_relationship_many_to_many(cnd, error_call)
+[90m 39. [39m    └─dplyr:::warn_join(...)
+[90m 40. [39m      └─dplyr:::warn_dplyr(...)
+
+[1m[38;2;255;165;0mFailure[39m ([34mtest-readNclean.R:49:3[39m): GLENDA data file can be found, read, cleaned, and pivoted[22m
+file.exists(filepath) is not TRUE
+
+`actual`:   [32mFALSE[39m
+`expected`: [32mTRUE[39m 
+
+[1m[38;2;255;165;0mError[39m ([34mtest-readNclean.R:52:3[39m): GLENDA data file can be found, read, cleaned, and pivoted[22m
+Error: 'Data/GLENDA.csv' does not exist in current working directory ('C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LMChla/tests/testthat').
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m├─[1mreadr[22m::read_csv(filepath, n_max = 4)[90m at test-readNclean.R:52:3[39m
+[90m 2. [39m│ └─[1mvroom[22m::vroom(...)
+[90m 3. [39m│   └─vroom:::vroom_(...)
+[90m 4. [39m└─vroom (local) `<fn>`("Data/GLENDA.csv")
+[90m 5. [39m  └─vroom:::check_path(path)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-readNclean.R:120:3[39m): NCCA water quality data read and cleaned[22m
+<purrr_error_indexed/rlang_error/error/condition>
+Error in `map(.x, .f, ...)`: i In index: 2.
+Caused by error:
+! 'Data/NCCA/nassessedWaterChem2010.csv' does not exist in current working directory ('C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LMChla/tests/testthat').
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.readNCCA(...)[90m at test-readNclean.R:120:3[39m
+[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:191:3[39m
+[90m  3. [39m│   └─... %>% ...[90m at LMChla/R/NCCAwaterQuality.R:117:3[39m
+[90m  4. [39m├─[1mdplyr[22m::rename(...)
+[90m  5. [39m├─[1mpurrr[22m::map_dfr(...)
+[90m  6. [39m│ └─[1m[94mpurrr::map([39m[22m.x, .f, ...[1m[94m)[39m[22m
+[90m  7. [39m│   └─purrr:::map_("list", .x, .f, ..., .progress = .progress)
+[90m  8. [39m│     ├─purrr:::with_indexed_errors(...)
+[90m  9. [39m│     │ └─[1mbase[22m::withCallingHandlers(...)
+[90m 10. [39m│     ├─[1mpurrr[22m:::call_with_cleanup(...)
+[90m 11. [39m│     └─[1mreadr[22m (local) .f(.x[[i]], ...)
+[90m 12. [39m│       └─[1mvroom[22m::vroom(...)
+[90m 13. [39m│         └─vroom:::vroom_(...)
+[90m 14. [39m├─vroom (local) `<fn>`("Data/NCCA/nassessedWaterChem2010.csv")
+[90m 15. [39m│ └─vroom:::check_path(path)
+[90m 16. [39m│   └─[1mbase[22m::stop(...)
+[90m 17. [39m└─base::.handleSimpleError(...)
+[90m 18. [39m  └─[1mpurrr[22m (local) h(simpleError(msg, call))
+[90m 19. [39m    └─[1mcli[22m::cli_abort(...)
+[90m 20. [39m      └─[1mrlang[22m::abort(...)
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+══ [1mResults[22m ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+[36mDuration: 29.4 s[39m
+
+── Failed tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[38;2;255;165;0mFailure[39m ([34mtest-readNclean.R:49:3[39m): GLENDA data file can be found, read, cleaned, and pivoted[22m
+file.exists(filepath) is not TRUE
+
+`actual`:   [32mFALSE[39m
+`expected`: [32mTRUE[39m 
+
+[1m[38;2;255;165;0mError[39m ([34mtest-readNclean.R:52:3[39m): GLENDA data file can be found, read, cleaned, and pivoted[22m
+Error: 'Data/GLENDA.csv' does not exist in current working directory ('C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LMChla/tests/testthat').
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m├─[1mreadr[22m::read_csv(filepath, n_max = 4)[90m at test-readNclean.R:52:3[39m
+[90m 2. [39m│ └─[1mvroom[22m::vroom(...)
+[90m 3. [39m│   └─vroom:::vroom_(...)
+[90m 4. [39m└─vroom (local) `<fn>`("Data/GLENDA.csv")
+[90m 5. [39m  └─vroom:::check_path(path)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-readNclean.R:120:3[39m): NCCA water quality data read and cleaned[22m
+<purrr_error_indexed/rlang_error/error/condition>
+Error in `map(.x, .f, ...)`: i In index: 2.
+Caused by error:
+! 'Data/NCCA/nassessedWaterChem2010.csv' does not exist in current working directory ('C:/Users/ccoffman/OneDrive - Environmental Protection Agency (EPA)/Profile/Documents/Projects/LMChla/tests/testthat').
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.readNCCA(...)[90m at test-readNclean.R:120:3[39m
+[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:191:3[39m
+[90m  3. [39m│   └─... %>% ...[90m at LMChla/R/NCCAwaterQuality.R:117:3[39m
+[90m  4. [39m├─[1mdplyr[22m::rename(...)
+[90m  5. [39m├─[1mpurrr[22m::map_dfr(...)
+[90m  6. [39m│ └─[1m[94mpurrr::map([39m[22m.x, .f, ...[1m[94m)[39m[22m
+[90m  7. [39m│   └─purrr:::map_("list", .x, .f, ..., .progress = .progress)
+[90m  8. [39m│     ├─purrr:::with_indexed_errors(...)
+[90m  9. [39m│     │ └─[1mbase[22m::withCallingHandlers(...)
+[90m 10. [39m│     ├─[1mpurrr[22m:::call_with_cleanup(...)
+[90m 11. [39m│     └─[1mreadr[22m (local) .f(.x[[i]], ...)
+[90m 12. [39m│       └─[1mvroom[22m::vroom(...)
+[90m 13. [39m│         └─vroom:::vroom_(...)
+[90m 14. [39m├─vroom (local) `<fn>`("Data/NCCA/nassessedWaterChem2010.csv")
+[90m 15. [39m│ └─vroom:::check_path(path)
+[90m 16. [39m│   └─[1mbase[22m::stop(...)
+[90m 17. [39m└─base::.handleSimpleError(...)
+[90m 18. [39m  └─[1mpurrr[22m (local) h(simpleError(msg, call))
+[90m 19. [39m    └─[1mcli[22m::cli_abort(...)
+[90m 20. [39m      └─[1mrlang[22m::abort(...)
+
+[ [38;2;255;165;0mFAIL[39m 3 | [35mWARN[39m 4 | SKIP 0 | PASS 6 ]
