@@ -26,11 +26,11 @@ testIDs <- readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")
 read_csv("Data/GLENDA.csv") %>%
   filter(SAMPLE_ID %in% testIDs) %>%
   select(-c(1,3,4,5,6,7,8,9,10,11,12,13,14,15,)) %>%
-  write_csv("tests/testthat/fixtures/GLENDAfullTestIn.csv")
+  write_csv("tests/testthat/fixtures/GLENDAtestIn.csv")
 readCleanGLENDA("Data/GLENDA.csv", sampleIDs = testIDs) %>% 
   # only checking columns that had stuff done
   dplyr::select(YEAR, MEDIUM, SAMPLE_TYPE, QC_TYPE, SAMPLE_ID, ANALYTE, FRACTION, VALUE, UNITS, RESULT_REMARK) %>%
-  write_csv("tests/testthat/fixtures/GLENDAfullTestOut.csv")
+  write_csv("tests/testthat/fixtures/GLENDAtestOut.csv")
 
 ######################
 ### Checked manually and this sample contains:
