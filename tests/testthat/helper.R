@@ -5,3 +5,5 @@ valid_url <- function(url_in,t=1.5){
   is.null(check)
 }
 
+
+
