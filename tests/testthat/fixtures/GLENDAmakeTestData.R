@@ -54,5 +54,5 @@ glenpoMap <- readxl::read_xlsx(file.path(
  df %>%
    filter(SAMPLE_ID %in% testIDs) %>%
    # Check intersection with the mapping tab
-   full_join(glenpo, by = c(""))
+   full_join(glenpo, by = c("MEDIUM", "ANALYTE", "FRACTION", ))
 #######################
