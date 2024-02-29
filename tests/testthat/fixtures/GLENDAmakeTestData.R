@@ -6,10 +6,10 @@ glendaFile <- "Data/GLENDA.csv"
 df <- .readPivotGLENDA(glendaFile)
 testIDs <- df %>%
   # For a reasonable sample size keeping this to newer years
-  filter(YEAR > 2000) %>%
+  #filter(YEAR > 2000) %>%
   # Every distinct we don't care about distinct values, but rather distinct
   # ways they are reported 
-  distinct(YEAR, SAMPLE_ID, is.na(as.numeric(VALUE)), RESULT_REMARK) %>%
+  distinct(YEAR, SAMPLE_ID, MEDIUM, ANALYTE, FRACTION, is.na(as.numeric(VALUE)), RESULT_REMARK, METHOD, UNITS) %>%
   # Grab the samples from each year with the most unique observations 
   filter(
     SAMPLE_ID == names(sort(table(SAMPLE_ID), decreasing = T))[[1]],
@@ -19,6 +19,8 @@ testIDs <- df %>%
   distinct(YEAR, .keep_all = T) %>%
   distinct(SAMPLE_ID) %>%
   pull(SAMPLE_ID)
+
+# Check this against the map tab to see coverage
 saveRDS(testIDs, file = "tests/testthat/fixtures/GLENDAtestIDs.Rds")
 
 testIDs <- readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")
@@ -36,9 +38,21 @@ readCleanGLENDA("Data/GLENDA.csv", sampleIDs = testIDs) %>%
 ### Checked manually and this sample contains:
 # - VALUE: NA, numeric, <number, "not reported"
 # - RESULT_REMARK: Nearly every REMARK
+# - analytes, 30 of 31 covered
  df %>%
    filter(SAMPLE_ID %in% testIDs) %>% 
    mutate(VALUE = ifelse(is.na(as.numeric(VALUE)), VALUE, "Number")) %>%
+   # distinct(ANALYTE) 
    #distinct(RESULT_REMARK)
    distinct(VALUE)
+
+# Update filepath
+glenpoMap <- readxl::read_xlsx(file.path(
+  "C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", 
+  "Lake Michigan ML - General", "Results", "Analytes3.xlsx"), sheet = "GLENDA_Map"
+)
+ df %>%
+   filter(SAMPLE_ID %in% testIDs) %>%
+   # Check intersection with the mapping tab
+   full_join(glenpo, by = c(""))
 #######################

@@ -1,4 +1,4 @@
-test_that("Full GLENDA transformation on selected samples", {
+test_that("Full GLENDA transformation on selected samples, (2001-2023)", {
   # Test if lists have same elements. 
   # taken from https://stackoverflow.com/questions/39338394/check-if-list-contains-another-list-in-r
   VectorIntersect <- function(v,z) {
@@ -12,14 +12,13 @@ test_that("Full GLENDA transformation on selected samples", {
   df <- readCleanGLENDA("Data/GLENDA.csv", sampleIDs = testIDs)
 
   expect_s3_class(df, "data.frame")
-  expect_true(is.contained(c("LATITUDE", "LONGITUDE", "sampleDate",
-   "SAMPLE_DEPTH_M", "ANALYTE", "VALUE", "UNITS", "FRACTION", "RESULT_REMARK", "STUDY"),
+  expect_true(is.contained(c("LATITUDE", "LONGITUDE", "sampleDate", 
+   "SAMPLE_DEPTH_M", "ANALYTE", "VALUE", "UNITS", "FRACTION", "RESULT_REMARK", "STUDY", "STN_DEPTH_M", "METHOD"),
    colnames(df)))
-  expect_equal(min(df$YEAR), 2001)
-  expect_equal(max(df$YEAR), 2023)
-  expect_equal(unique(df$MEDIUM), "surface water")
-  expect_true(is.contained(df$SAMPLE_TYPE, c("Individual", "INSITU_MEAS"))) 
-  expect_true(is.contained(df$SAMPLE_TYPE, c("Individual", "INSITU_MEAS")))
+  # no dates out of bounds as a simple check they parsed correctly
+  expect_equal(sum(df$sampleDate < ymd_hms("2030-01-01 01:01:01")), length(df$sampleDate))
+  expect_equal(sum(df$sampleDate > ymd_hms("1950-01-01 01:01:01")), length(df$sampleDate))
+  expect_true(is.contained(df$sample_type, c("individuals", "insitu_meas"))) 
   expect_equal(unique(df$QC_TYPE), "routine field sample")
   expect_true(is.contained(df$SAMPLE_ID, testIDs))
 })
