@@ -78,7 +78,6 @@ body = '<?xml version="1.0" encoding="utf-8"?>
   </soap-env:Body>
 </soap-env:Envelope>'
 
-library(RCurl)
 test <- curlPerform(url = "https://cdxnodengn.epa.gov/ngn-enws20/services/NetworkNode2Service?wsdl",
                           httpheader = headerFields,
                           postfields = body

@@ -2,7 +2,7 @@ library(tidyverse)
 library(devtools)
 load_all()
 ### GLENDA
-glendaFile <- "Data/GLENDA.csv" 
+glendaFile <- "Data/GLENDA.Rds" 
 df <- .readPivotGLENDA(glendaFile)
 testIDs <- df %>%
   # For a reasonable sample size keeping this to newer years
