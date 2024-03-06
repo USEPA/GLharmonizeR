@@ -31,25 +31,20 @@
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
 .readSite <- function(filepath) {
-# pre 2000's doesn't report depth
-# 2010 reports depth units, need to check if they're same
 # all depths are reported in meters
-  templateTable <- dplyr::tibble(
-    SITE_ID = character(),
-    LATITUDE = numeric(),
-    LONGITUDE = numeric(),
-    DEPTH = numeric())
   readr::read_csv(filepath, show_col_types=FALSE) %>%
-    dplyr::select(SITE_ID, dplyr::contains(c("LAT_DD", "LON_DD", "DEPTH"))) %>%
-    dplyr::select(-dplyr::contains(c("TLAT_DD", "TLON_DD", "83", "UNITS")))  %>%
-    dplyr::rename(SITE_ID = 1, LATITUDE = 2, LONGITUDE = 3) %>%
-    dplyr::rename_with(~ dplyr::case_when(
-      . == "STATION_DEPTH" ~ "DEPTH",
-      TRUE ~ .
-    )) %>%
-    # bind to template table to get all of the columns (even if empty)
-    dplyr::bind_rows(templateTable) %>%
-    dplyr::mutate_at(dplyr::vars(dplyr::one_of('DEPTH')), as.numeric) %>%
+    # cutdown number of lats and longs
+    dplyr::mutate(
+      LATITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LAT_DD"))),
+      LONGITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LON_DD"))),
+      ) %>%
+    #dplyr::select(SITE_ID, NCCR_REG, WTBDY_NM, LATITUDE, LONGITUDE, contains("STATION_DEPTH")) %>%
+    dplyr::select(-contains("UNITS")) %>%
+    dplyr::rename(STATION_DEPTH = names(.)[grepl("DEPTH", names(.), ignore.case= T)]) %>%
+    dplyr::rename(NCCR_REG = names(.)[grepl("NCCA_REG", names(.), ignore.case= T)]) %>%
+    dplyr::select(dplyr::any_of(c("SITE_ID", "LATITUDE", "LONGITUDE", "STATION_DEPTH", "WTBDY_NM", "NCCR_REG"))) %>%
+    dplyr::mutate_at(dplyr::vars(dplyr::one_of('WTBDY_NM')), as.character) %>%
+
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
     tidyr::drop_na()
@@ -182,8 +177,11 @@
 #' The spatial information for sites is read in using the .readSites helper functions, this is then
 #' joined to the water quality and hydrographic data and ultimately output as a data table.
 #' @param filepath a string specifying the directory of the data
+#' @param greatLakes boolean specifying whether to filter to just great lakes data
+#' @param Lakes a string or list of strings specifying specific great lakes to filter to
+#' 
 #' @return dataframe
-.readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
+.readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL, greatLakes=TRUE, Lakes=NULL){
   sites <- .readNCCASites(siteFiles) %>%
     dplyr::distinct(SITE_ID, .keep_all =T) 
   dfs <- list()
@@ -191,8 +189,16 @@
   if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
   if (!is.null(fifteenFiles)) dfs[[3]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
-    dplyr::left_join(sites, by = "SITE_ID")
+    dplyr::left_join(sites, by = "SITE_ID") %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
+  # filter to the great lakes
+  { if (greatLakes) {
+    dplyr::filter(., NCCR_REG == "Great Lakes")
+  } else . } %>%
+  # filter to specific lakes
+  {if (!is.null(Lakes)) {
+    dplyr::filter(., WTBDY_NM %in% Lakes)
+  } else .}
 }
 

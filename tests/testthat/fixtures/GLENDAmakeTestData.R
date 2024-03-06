@@ -25,13 +25,17 @@ saveRDS(testIDs, file = "tests/testthat/fixtures/GLENDAtestIDs.Rds")
 
 testIDs <- readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")
 
-read_csv("Data/GLENDA.csv") %>%
+read_csv("Data/GLENDA.Rds") %>%
   filter(SAMPLE_ID %in% testIDs) %>%
   select(-c(1,3,4,5,6,7,8,9,10,11,12,13,14,15,)) %>%
+  # once verified as csv, save as an rds for space
+  # saveRDS("tests/testthat/fixtures/GLENDAtestIn.Rds")
   write_csv("tests/testthat/fixtures/GLENDAtestIn.csv")
-readCleanGLENDA("Data/GLENDA.csv", sampleIDs = testIDs) %>% 
+readCleanGLENDA("Data/GLENDA.Rds", sampleIDs = testIDs) %>% 
   # only checking columns that had stuff done
   dplyr::select(YEAR, MEDIUM, SAMPLE_TYPE, QC_TYPE, SAMPLE_ID, ANALYTE, FRACTION, VALUE, UNITS, RESULT_REMARK) %>%
+  # once verified as csv, save as an rds for space
+  # saveRDS("tests/testthat/fixtures/GLENDAtestOut.csv")
   write_csv("tests/testthat/fixtures/GLENDAtestOut.csv")
 
 ######################

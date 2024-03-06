@@ -40,6 +40,7 @@
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
+#'  
 #' @return dataframe
 .readNCCAhydro2010 <- function(filepaths) {
   filepaths %>%
