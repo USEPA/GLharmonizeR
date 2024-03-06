@@ -83,3 +83,4 @@ desktop.ini
 .quarto
 inst/doc
 
+!Data/*.Rds

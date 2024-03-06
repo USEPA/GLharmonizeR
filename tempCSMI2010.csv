@@ -1,0 +1,77 @@
+ANALYTE,FRACTION,UNITS,AnalMethod,n
+Ca,Filtrate,mg/L,NA,528
+Ca,Total/Bulk,mg/L,NA,264
+Ca,Residue,mg/L,NA,104
+Ca,NA,mg/L,NA,28
+Cl,Filtrate,mg/L,NA,528
+Cl,Total/Bulk,mg/L,NA,264
+Cl,Residue,mg/L,NA,104
+Cl,NA,mg/L,NA,28
+DOC,Filtrate,mg C/L,NA,528
+DOC,Total/Bulk,mg C/L,NA,264
+DOC,Residue,mg C/L,NA,104
+DOC,NA,mg C/L,NA,28
+K,Filtrate,mg/L,NA,528
+K,Total/Bulk,mg/L,NA,264
+K,Residue,mg/L,NA,104
+K,NA,mg/L,NA,28
+Mg,Filtrate,mg/L,NA,528
+Mg,Total/Bulk,mg/L,NA,264
+Mg,Residue,mg/L,NA,104
+Mg,NA,mg/L,NA,28
+NH4,Filtrate,ug N/L,NA,644
+NH4,Total/Bulk,ug N/L,NA,322
+NH4,Residue,ug N/L,NA,107
+NH4,NA,ug N/L,NA,257
+NOx,Filtrate,ug N/L,NA,644
+NOx,Total/Bulk,ug N/L,NA,322
+NOx,Residue,ug N/L,NA,107
+NOx,NA,ug N/L,NA,257
+Na,Filtrate,mg/L,NA,528
+Na,Total/Bulk,mg/L,NA,264
+Na,Residue,mg/L,NA,104
+Na,NA,mg/L,NA,28
+Part,Filtrate,C ug/L,NA,422
+Part,Filtrate,P ug/L,NA,422
+Part,Filtrate,N ug/L,NA,422
+Part,Total/Bulk,C ug/L,NA,211
+Part,Total/Bulk,P ug/L,NA,211
+Part,Total/Bulk,N ug/L,NA,211
+Part,Residue,C ug/L,NA,107
+Part,Residue,P ug/L,NA,107
+Part,Residue,N ug/L,NA,107
+Part,NA,C ug/L,NA,9
+Part,NA,P ug/L,NA,9
+Part,NA,N ug/L,NA,9
+SO4,Filtrate,mg/L,NA,528
+SO4,Total/Bulk,mg/L,NA,264
+SO4,Residue,mg/L,NA,104
+SO4,NA,mg/L,NA,28
+SRP,Filtrate,ug P/L,NA,644
+SRP,Total/Bulk,ug P/L,NA,322
+SRP,Residue,ug P/L,NA,107
+SRP,NA,ug P/L,NA,257
+Si,Filtrate,mg SiO2/L,NA,528
+Si,Total/Bulk,mg SiO2/L,NA,264
+Si,Residue,mg SiO2/L,NA,104
+Si,NA,mg SiO2/L,NA,28
+TN,Filtrate,ug N/L,NA,640
+TN,Total/Bulk,ug N/L,NA,320
+TN,Residue,ug N/L,NA,107
+TN,NA,ug N/L,NA,249
+TP,Filtrate,ug P/L,NA,640
+TP,Total/Bulk,ug P/L,NA,320
+TP,Residue,ug P/L,NA,107
+TP,NA,ug P/L,NA,249
+TSS,Filtrate,mg/L,NA,528
+TSS,Total/Bulk,mg/L,NA,264
+TSS,Residue,mg/L,NA,104
+TSS,NA,mg/L,NA,28
+VSS,Filtrate,mg/L,NA,528
+VSS,Total/Bulk,mg/L,NA,264
+VSS,Residue,mg/L,NA,104
+VSS,NA,mg/L,NA,28
+chla,Filtrate,ug/L,NA,588
+chla,Total/Bulk,ug/L,NA,294
+chla,Residue,ug/L,NA,107
+chla,NA,ug/L,NA,145

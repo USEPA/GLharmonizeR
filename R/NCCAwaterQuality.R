@@ -43,6 +43,11 @@
     dplyr::rename(STATION_DEPTH = names(.)[grepl("DEPTH", names(.), ignore.case= T)]) %>%
     dplyr::rename(NCCR_REG = names(.)[grepl("NCCA_REG", names(.), ignore.case= T)]) %>%
     dplyr::select(dplyr::any_of(c("SITE_ID", "LATITUDE", "LONGITUDE", "STATION_DEPTH", "WTBDY_NM", "NCCR_REG"))) %>%
+    # Add WTBDY_NM if it doesn't exist
+    { if (! ("WTBDY_NM" %in% names(.))) {
+      dplyr::mutate(., WTBDY_NM = NA)
+    } else . 
+    } %>%
     dplyr::mutate_at(dplyr::vars(dplyr::one_of('WTBDY_NM')), as.character) %>%
 
     # file 3 has a bunch of empty rows at the end
