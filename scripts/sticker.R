@@ -25,3 +25,5 @@ hexSticker::sticker(
   s_x = 1,
   dpi = 320, filename = "docs/figsTables/logo.png"
 )
+
+usethis::use_tidy_logo("docs/figsTables/logo.png")
