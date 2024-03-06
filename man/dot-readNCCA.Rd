@@ -4,9 +4,20 @@
 \alias{.readNCCA}
 \title{Read in all NCCA from 2000s, 2010, and 2015}
 \usage{
-.readNCCA(siteFiles, preFiles = NULL, tenFiles = NULL, fifteenFiles = NULL)
+.readNCCA(
+  siteFiles,
+  preFiles = NULL,
+  tenFiles = NULL,
+  fifteenFiles = NULL,
+  greatLakes = TRUE,
+  Lakes = NULL
+)
 }
 \arguments{
+\item{greatLakes}{boolean specifying whether to filter to just great lakes data}
+
+\item{Lakes}{a string or list of strings specifying specific great lakes to filter to}
+
 \item{filepath}{a string specifying the directory of the data}
 }
 \value{

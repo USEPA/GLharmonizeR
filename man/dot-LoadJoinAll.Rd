@@ -5,9 +5,9 @@
 \title{Load and join all WQ data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA}
 \usage{
 .LoadJoinAll(
-  hydrofiles2010,
-  hydrofile2015,
-  secchifile2015,
+  NCCAhydrofiles2010,
+  NCCAhydrofile2015,
+  NCCAsecchifile2015,
   siteFiles,
   preFiles,
   tenFiles,
@@ -19,12 +19,6 @@
 )
 }
 \arguments{
-\item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
-
-\item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
-
-\item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
-
 \item{siteFiles}{a string specifying the directory containing NCCA Site data}
 
 \item{preFiles}{a string specifying the path containing 2010's and earlier WQ data}
@@ -40,6 +34,12 @@
 \item{csmi2015}{a string specifying the directory containing CSMI 2015 data}
 
 \item{csmi2021}{a string specifying the directory containing CSMI 2021 data}
+
+\item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
+
+\item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
+
+\item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021

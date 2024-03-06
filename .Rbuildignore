@@ -27,3 +27,4 @@ renv.lock
 ^SitesMissingLatLon\.csv$
 .qmd$
 ^\.github$
+^codecov\.yml$

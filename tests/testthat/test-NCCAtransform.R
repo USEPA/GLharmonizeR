@@ -25,5 +25,7 @@ test_that("Full NCCA data can be loaded and joined", {
 })
 
 ncca %>% 
-filter(year(Date) == 2010, NCCR_REG=="Great Lakes")
+filter(year(Date) == 2010, NCCR_REG=="Great Lakes") %>%
+distinct(ANALYTE) %>%
+arrange(ANALYTE)
 

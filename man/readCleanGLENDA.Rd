@@ -9,7 +9,9 @@ readCleanGLENDA(
   flagsPath = NULL,
   siteCoords = NULL,
   imputeCoordinates = FALSE,
-  nameMap = NULL
+  nameMap = NULL,
+  n_max = Inf,
+  sampleIDs = NULL
 )
 }
 \arguments{

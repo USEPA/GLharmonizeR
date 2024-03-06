@@ -9,9 +9,11 @@ LoadNCCAfull(
   preFiles = NULL,
   tenFiles = NULL,
   fifteenFiles = NULL,
+  greatLakes = TRUE,
+  Lakes = NULL,
   NCCAhydrofiles2010,
   NCCAhydrofile2015,
-  NCCAjsecchifile2015
+  NCCAsecchifile2015
 )
 }
 \arguments{

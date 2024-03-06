@@ -1,9 +1,10 @@
 <img src="docs/figsTables/logo.png" alt="Lake Michigan with sampled locations represented as points" width="600"/>
-  <!-- badges: start -->
-  [![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)
-  <!-- badges: end -->
 # LM_Chla
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
 
 This repository contains code to merge Lake Michigan chlorophyll a and predictor data from diverse sources. This repo also contains code to fit models to predict chla.
 

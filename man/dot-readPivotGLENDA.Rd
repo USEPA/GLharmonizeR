@@ -4,10 +4,14 @@
 \alias{.readPivotGLENDA}
 \title{readPivotGLENDA}
 \usage{
-.readPivotGLENDA(filepath)
+.readPivotGLENDA(filepath, n_max = Inf, sampleIDs = NULL)
 }
 \arguments{
 \item{filepath}{a filepath to the GLENDA csv}
+
+\item{n_max}{Number of rows to read in from the raw GLENDA data (this is really just for testing purposes)}
+
+\item{sampleIDs}{a list of sampleIDs to keep in the final dataset}
 }
 \value{
 a dataframe
@@ -17,5 +21,7 @@ A function to read the full GLENDA csv file and convert it to a more user friend
 }
 \details{
 \code{.readPivotGLENDA} This is a hidden function, this should be used for development purposes only, users will only call
-this function implicitly when assembling their full water quality dataset
+this function implicitly when assembling their full water quality dataset. This function contains some
+of the filtering functions in order to easily be compatible with the testing schema because
+when we filtered later on, we lost too many sample ids that would be included in the test data.
 }

@@ -5,9 +5,9 @@
 \title{Read and unite water quality data from CSMI, NCCA, and GLENDA across 2010, 2015, and 2020/2021}
 \usage{
 LoadWQdata(
-  hydrofiles2010,
-  hydrofile2015,
-  secchifile2015,
+  NCCAhydrofiles2010,
+  NCCAhydrofile2015,
+  NCCAsecchifile2015,
   siteFiles,
   preFiles,
   tenFiles,
@@ -20,12 +20,6 @@ LoadWQdata(
 )
 }
 \arguments{
-\item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
-
-\item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
-
-\item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
-
 \item{siteFiles}{a string specifying the directory containing NCCA Site data}
 
 \item{preFiles}{a string specifying the path containing 2010's and earlier WQ data}
