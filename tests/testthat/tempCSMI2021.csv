@@ -1,0 +1,16 @@
+ANALYTE,FRACTION,UNITS,AnalMethod,n
+Beam,NA,Attenuation 1/m,NA,4341
+Beam,NA,Transmission %,NA,4341
+CPAR/Corrected,NA,Irradiance %,NA,4341
+Green,NA,Algae µg/l,NA,4341
+Mean,NA,Size μm,NA,4341
+"PAR/Irradiance,",NA,Biospherical,NA,4341
+"SPAR,",NA,Biospherical,NA,4341
+Specific,NA,Conductance uS/cm,NA,4341
+Total,NA,conc. µg/l,NA,4341
+Total,NA,Volume Concentration PPM,NA,4341
+Total,NA,Silt μl/l,NA,4341
+Total,NA,Fine μl/l,NA,4341
+Total,NA,Med Sand μl/l,NA,4341
+Total,NA,Coarse Sand μl/l,NA,4341
+Yellow,NA,substances r.u,NA,4341

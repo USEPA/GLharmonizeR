@@ -1,6 +1,147 @@
 [32m✔[39m | [38;2;255;165;0mF[39m [35mW[39m [34m S[39m [32m OK[39m | Context
-⠏ |          0 | readNclean                                                                                                                                      ⠙ |          2 | readNclean                                                                                                                                      ⠹ |          3 | readNclean                                                                                                                                      ⠸ |   1      3 | readNclean                                                                                                                                      ⠼ |   2      3 | readNclean                                                                                                                                      ⠴ |   3      3 | readNclean                                                                                                                                      ⠦ |   4      3 | readNclean                                                                                                                                      ⠧ |   4      4 | readNclean                                                                                                                                      ⠇ | 1 4      4 | readNclean                                                                                                                                      ⠏ | 2 4      4 | readNclean                                                                                                                                      ⠋ | 2 4      5 | readNclean                                                                                                                                      ⠙ | 2 4      6 | readNclean                                                                                                                                      ⠹ | 3 4      6 | readNclean                                                                                                                                      [31m✖[39m | [38;2;255;165;0m3[39m [35m4[39m      6 | readNclean[90m [25.1s][39m
-─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | CSMItransform                                                                                                                                                                                                                                 ⠙ | 1 1      0 | CSMItransform                                                                                                                                                                                                                                 [31m✖[39m | [38;2;255;165;0m4[39m [35m2[39m      0 | CSMItransform
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:7:3[39m): csmi 2010 loads[22m
+Error: `path` does not exist: 'Data/CSMI/2010/GL2010db.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2010(csmi2010)[90m at test-CSMItransform.R:7:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmi2010.R:16:3[39m
+[90m  3. [39m│ └─[1mreadxl[22m::read_xlsx(file.path(directoryPath, "GL2010db.xlsx"))
+[90m  4. [39m│   └─readxl:::check_file(path)
+[90m  5. [39m├─[1mdplyr[22m::mutate(., UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
+[90m  6. [39m├─dplyr::select(...)
+[90m  7. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m  8. [39m├─[1mdplyr[22m::rename(., `Na+ mg/L` = `Na+ mg/l`, FRACTION = sampleType)
+[90m  9. [39m├─dplyr::select(., -dplyr::contains("..."), -dplyr::contains("__"))
+[90m 10. [39m├─dplyr::mutate(...)
+[90m 11. [39m├─[1mtidyr[22m::fill(., DATE, .direction = "down")
+[90m 12. [39m├─tidyr::pivot_longer(...)
+[90m 13. [39m├─tidyr::pivot_longer(...)
+[90m 14. [39m└─[1mdplyr[22m::filter(., !grepl("dup", `blk/dup other`))
+
+[1m[35mWarning[39m ([34mtest-CSMItransform.R:21:3[39m): csmi 2015 loads[22m
+[RODBC] ERROR: state HY024, code -1023, message [Microsoft][ODBC Microsoft Access Driver] '(unknown)' is not a valid path. Make sure that the path name is spelled correctly and that you are connected to the server on which the file resides.
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mLMChla[22m:::.LoadCSMI2015(csmi2015)[90m at test-CSMItransform.R:21:3[39m
+[90m 2. [39m  └─[1mRODBC[22m::odbcConnectAccess2007(filepath)[90m at LMChla/R/csmi2015.R:15:3[39m
+[90m 3. [39m    └─RODBC::odbcDriverConnect(con, ...)
+
+[1m[35mWarning[39m ([34mtest-CSMItransform.R:21:3[39m): csmi 2015 loads[22m
+ODBC connection failed
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mLMChla[22m:::.LoadCSMI2015(csmi2015)[90m at test-CSMItransform.R:21:3[39m
+[90m 2. [39m  └─[1mRODBC[22m::odbcConnectAccess2007(filepath)[90m at LMChla/R/csmi2015.R:15:3[39m
+[90m 3. [39m    └─RODBC::odbcDriverConnect(con, ...)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:21:3[39m): csmi 2015 loads[22m
+Error in `RODBC::sqlFetch(dbi, "L3b_LabWQdata")`: first argument is not an open RODBC channel
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2015(csmi2015)[90m at test-CSMItransform.R:21:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmi2015.R:18:3[39m
+[90m  3. [39m│ └─[1mRODBC[22m::sqlFetch(dbi, "L3b_LabWQdata")
+[90m  4. [39m├─[1mdplyr[22m::select(...)
+[90m  5. [39m├─dplyr::rename(...)
+[90m  6. [39m├─dplyr::mutate(...)
+[90m  7. [39m├─dplyr::mutate(...)
+[90m  8. [39m├─dplyr::filter(., !grepl("_cmp", ASTlayername))
+[90m  9. [39m├─dplyr::rename(., LATITUDE = LatDD_actual, LONGITUDE = LonDD_actual)
+[90m 10. [39m├─dplyr::left_join(...)
+[90m 11. [39m├─dplyr::left_join(...)
+[90m 12. [39m├─dplyr::left_join(...)
+[90m 13. [39m├─dplyr::left_join(...)
+[90m 14. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 15. [39m└─[1mdplyr[22m::left_join(...)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:34:3[39m): csmi 2021 loads[22m
+Error: `path` does not exist: 'Data/CSMI/2021/Chem2021_detection limits.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2021(csmi2021)[90m at test-CSMItransform.R:34:3[39m
+[90m  2. [39m│ └─... %>% dplyr::select(-`NA`)[90m at LMChla/R/csmi2021.R:16:3[39m
+[90m  3. [39m├─[1mdplyr[22m::select(., -`NA`)
+[90m  4. [39m├─[1mtidyr[22m::pivot_wider(...)
+[90m  5. [39m├─tidyr::pivot_longer(., -Limit, values_to = "RESULT", names_to = "ANALYTE")
+[90m  6. [39m├─[1mdplyr[22m::select(., -c(...23, ...24))
+[90m  7. [39m├─dplyr::mutate(., Limit = dplyr::coalesce(...23, ...24))
+[90m  8. [39m├─dplyr::select(., 23:38)
+[90m  9. [39m└─[1mreadxl[22m::read_xlsx(., sheet = "detection limits")
+[90m 10. [39m  └─readxl:::check_file(path)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:49:3[39m): csmi loads[22m
+Error: `path` does not exist: 'Data/CSMI/2010/GL2010db.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-CSMItransform.R:49:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2010(directory2010)
+[90m  6. [39m│   ├─... %>% ...[90m at LMChla/R/csmi2010.R:16:3[39m
+[90m  7. [39m│   └─[1mreadxl[22m::read_xlsx(file.path(directoryPath, "GL2010db.xlsx"))
+[90m  8. [39m│     └─readxl:::check_file(path)
+[90m  9. [39m├─[1mdplyr[22m::mutate(...)
+[90m 10. [39m├─dplyr::mutate(...)
+[90m 11. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 12. [39m├─[1mdplyr[22m::mutate(., UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
+[90m 13. [39m├─dplyr::select(...)
+[90m 14. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 15. [39m├─[1mdplyr[22m::rename(., `Na+ mg/L` = `Na+ mg/l`, FRACTION = sampleType)
+[90m 16. [39m├─dplyr::select(., -dplyr::contains("..."), -dplyr::contains("__"))
+[90m 17. [39m├─dplyr::mutate(...)
+[90m 18. [39m├─[1mtidyr[22m::fill(., DATE, .direction = "down")
+[90m 19. [39m├─tidyr::pivot_longer(...)
+[90m 20. [39m├─tidyr::pivot_longer(...)
+[90m 21. [39m└─[1mdplyr[22m::filter(., !grepl("dup", `blk/dup other`))
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | GLENDAtransform                                                                                                                                                                                                                               [31m✖[39m | [38;2;255;165;0m1[39m [35m1[39m      0 | GLENDAtransform
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[35mWarning[39m ([34mtest-GLENDAtransform.R:11:3[39m): Full GLENDA transformation on selected samples through 2023[22m
+cannot open compressed file 'tests/testthat/fixtures/GLENDAtestIDs.Rds', probable reason 'No such file or directory'
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mbase[22m::readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")[90m at test-GLENDAtransform.R:11:3[39m
+[90m 2. [39m  └─base::gzfile(file, "rb")
+
+[1m[38;2;255;165;0mError[39m ([34mtest-GLENDAtransform.R:11:3[39m): Full GLENDA transformation on selected samples through 2023[22m
+Error in `gzfile(file, "rb")`: cannot open the connection
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mbase[22m::readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")[90m at test-GLENDAtransform.R:11:3[39m
+[90m 2. [39m  └─base::gzfile(file, "rb")
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | NCCAtransform                                                                                                                                                                                                                                 ⠙ | 2        0 | NCCAtransform                                                                                                                                                                                                                                 [31m✖[39m | [38;2;255;165;0m2[39m        0 | NCCAtransform[90m [7.5s][39m
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[38;2;255;165;0mError[39m ([34mtest-NCCAtransform.R:8:3[39m): NCCA Site data reads in, joins to itself, and has proper expected column names[22m
+Error in `sum(sapply(siteFiles, hasExpectedNames))`: invalid 'type' (list) of argument
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mtestthat[22m::expect_equal(...)[90m at test-NCCAtransform.R:8:3[39m
+[90m 2. [39m  └─testthat::quasi_label(enquo(object), label, arg = "object")
+[90m 3. [39m    └─[1mrlang[22m::eval_bare(expr, quo_get_env(quo))
+
+[1m[38;2;255;165;0mError[39m ([34mtest-NCCAtransform.R:17:3[39m): Full NCCA data can be loaded and joined[22m
+Error in `dplyr::distinct(., SITE_ID, .keep_all = T)`: Must use existing variables.
+x `SITE_ID` not found in `.data`.
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadNCCAfull(...)[90m at test-NCCAtransform.R:17:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/NCCAfulljoin.R:27:3[39m
+[90m  3. [39m│ └─[1mLMChla[22m:::.readNCCA(...)
+[90m  4. [39m│   └─.readNCCASites(siteFiles) %>% ...[90m at LMChla/R/NCCAwaterQuality.R:190:3[39m
+[90m  5. [39m├─[1mdplyr[22m::mutate(., UID = as.character(UID), STUDY = "NCCA")
+[90m  6. [39m├─dplyr::select(...)
+[90m  7. [39m├─dplyr::filter(...)
+[90m  8. [39m├─[1mdplyr[22m::distinct(., SITE_ID, .keep_all = T)
+[90m  9. [39m└─[1m[94mdplyr:::distinct.data.frame([39m[22m., SITE_ID, .keep_all = T[1m[94m)[39m[22m
+[90m 10. [39m  └─dplyr::distinct_prepare(...)
+[90m 11. [39m    └─[1mrlang[22m::abort(bullets, call = error_call)
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | readNclean                                                                                                                                                                                                                                    ⠋ |          1 | readNclean                                                                                                                                                                                                                                    ⠙ |          2 | readNclean                                                                                                                                                                                                                                    ⠹ |          3 | readNclean                                                                                                                                                                                                                                    ⠸ |   1      3 | readNclean                                                                                                                                                                                                                                    ⠼ |   2      3 | readNclean                                                                                                                                                                                                                                    ⠴ |   3      3 | readNclean                                                                                                                                                                                                                                    ⠦ |   4      3 | readNclean                                                                                                                                                                                                                                    ⠧ |   4      4 | readNclean                                                                                                                                                                                                                                    ⠋ | 2 4      5 | readNclean                                                                                                                                                                                                                                    ⠙ | 2 4      6 | readNclean                                                                                                                                                                                                                                    ⠹ | 3 4      6 | readNclean                                                                                                                                                                                                                                    [31m✖[39m | [38;2;255;165;0m3[39m [35m4[39m      6 | readNclean[90m [16.3s][39m
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [1m[35mWarning[39m ([34mtest-readNclean.R:41:3[39m): CSMI data files can be found, read, cleaned, and joined.[22m
 There were 4 warnings in `dplyr::mutate()`.
 The first warning was:
@@ -152,7 +293,7 @@ Caused by error:
 [1mBacktrace:[22m
 [90m     [39m▆
 [90m  1. [39m├─[1mLMChla[22m:::.readNCCA(...)[90m at test-readNclean.R:120:3[39m
-[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:191:3[39m
+[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:194:3[39m
 [90m  3. [39m│   └─... %>% ...[90m at LMChla/R/NCCAwaterQuality.R:117:3[39m
 [90m  4. [39m├─[1mdplyr[22m::rename(...)
 [90m  5. [39m├─[1mpurrr[22m::map_dfr(...)
@@ -171,12 +312,124 @@ Caused by error:
 [90m 18. [39m  └─[1mpurrr[22m (local) h(simpleError(msg, call))
 [90m 19. [39m    └─[1mcli[22m::cli_abort(...)
 [90m 20. [39m      └─[1mrlang[22m::abort(...)
-─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-══ [1mResults[22m ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-[36mDuration: 29.4 s[39m
+══ [1mResults[22m ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+[36mDuration: 31.3 s[39m
 
-── Failed tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+── Failed tests ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:7:3[39m): csmi 2010 loads[22m
+Error: `path` does not exist: 'Data/CSMI/2010/GL2010db.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2010(csmi2010)[90m at test-CSMItransform.R:7:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmi2010.R:16:3[39m
+[90m  3. [39m│ └─[1mreadxl[22m::read_xlsx(file.path(directoryPath, "GL2010db.xlsx"))
+[90m  4. [39m│   └─readxl:::check_file(path)
+[90m  5. [39m├─[1mdplyr[22m::mutate(., UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
+[90m  6. [39m├─dplyr::select(...)
+[90m  7. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m  8. [39m├─[1mdplyr[22m::rename(., `Na+ mg/L` = `Na+ mg/l`, FRACTION = sampleType)
+[90m  9. [39m├─dplyr::select(., -dplyr::contains("..."), -dplyr::contains("__"))
+[90m 10. [39m├─dplyr::mutate(...)
+[90m 11. [39m├─[1mtidyr[22m::fill(., DATE, .direction = "down")
+[90m 12. [39m├─tidyr::pivot_longer(...)
+[90m 13. [39m├─tidyr::pivot_longer(...)
+[90m 14. [39m└─[1mdplyr[22m::filter(., !grepl("dup", `blk/dup other`))
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:21:3[39m): csmi 2015 loads[22m
+Error in `RODBC::sqlFetch(dbi, "L3b_LabWQdata")`: first argument is not an open RODBC channel
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2015(csmi2015)[90m at test-CSMItransform.R:21:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmi2015.R:18:3[39m
+[90m  3. [39m│ └─[1mRODBC[22m::sqlFetch(dbi, "L3b_LabWQdata")
+[90m  4. [39m├─[1mdplyr[22m::select(...)
+[90m  5. [39m├─dplyr::rename(...)
+[90m  6. [39m├─dplyr::mutate(...)
+[90m  7. [39m├─dplyr::mutate(...)
+[90m  8. [39m├─dplyr::filter(., !grepl("_cmp", ASTlayername))
+[90m  9. [39m├─dplyr::rename(., LATITUDE = LatDD_actual, LONGITUDE = LonDD_actual)
+[90m 10. [39m├─dplyr::left_join(...)
+[90m 11. [39m├─dplyr::left_join(...)
+[90m 12. [39m├─dplyr::left_join(...)
+[90m 13. [39m├─dplyr::left_join(...)
+[90m 14. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 15. [39m└─[1mdplyr[22m::left_join(...)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:34:3[39m): csmi 2021 loads[22m
+Error: `path` does not exist: 'Data/CSMI/2021/Chem2021_detection limits.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m:::.LoadCSMI2021(csmi2021)[90m at test-CSMItransform.R:34:3[39m
+[90m  2. [39m│ └─... %>% dplyr::select(-`NA`)[90m at LMChla/R/csmi2021.R:16:3[39m
+[90m  3. [39m├─[1mdplyr[22m::select(., -`NA`)
+[90m  4. [39m├─[1mtidyr[22m::pivot_wider(...)
+[90m  5. [39m├─tidyr::pivot_longer(., -Limit, values_to = "RESULT", names_to = "ANALYTE")
+[90m  6. [39m├─[1mdplyr[22m::select(., -c(...23, ...24))
+[90m  7. [39m├─dplyr::mutate(., Limit = dplyr::coalesce(...23, ...24))
+[90m  8. [39m├─dplyr::select(., 23:38)
+[90m  9. [39m└─[1mreadxl[22m::read_xlsx(., sheet = "detection limits")
+[90m 10. [39m  └─readxl:::check_file(path)
+
+[1m[38;2;255;165;0mError[39m ([34mtest-CSMItransform.R:49:3[39m): csmi loads[22m
+Error: `path` does not exist: 'Data/CSMI/2010/GL2010db.xlsx'
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadCSMI(csmi2010, csmi2015, csmi2021)[90m at test-CSMItransform.R:49:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/csmiJoinAll.R:17:3[39m
+[90m  3. [39m│ ├─dplyr::bind_rows(...)
+[90m  4. [39m│ │ └─[1mrlang[22m::list2(...)
+[90m  5. [39m│ └─[1mLMChla[22m:::.LoadCSMI2010(directory2010)
+[90m  6. [39m│   ├─... %>% ...[90m at LMChla/R/csmi2010.R:16:3[39m
+[90m  7. [39m│   └─[1mreadxl[22m::read_xlsx(file.path(directoryPath, "GL2010db.xlsx"))
+[90m  8. [39m│     └─readxl:::check_file(path)
+[90m  9. [39m├─[1mdplyr[22m::mutate(...)
+[90m 10. [39m├─dplyr::mutate(...)
+[90m 11. [39m├─dplyr::select(., -c(Notes, QA_CODE))
+[90m 12. [39m├─[1mdplyr[22m::mutate(., UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
+[90m 13. [39m├─dplyr::select(...)
+[90m 14. [39m├─[1mtidyr[22m::pivot_longer(...)
+[90m 15. [39m├─[1mdplyr[22m::rename(., `Na+ mg/L` = `Na+ mg/l`, FRACTION = sampleType)
+[90m 16. [39m├─dplyr::select(., -dplyr::contains("..."), -dplyr::contains("__"))
+[90m 17. [39m├─dplyr::mutate(...)
+[90m 18. [39m├─[1mtidyr[22m::fill(., DATE, .direction = "down")
+[90m 19. [39m├─tidyr::pivot_longer(...)
+[90m 20. [39m├─tidyr::pivot_longer(...)
+[90m 21. [39m└─[1mdplyr[22m::filter(., !grepl("dup", `blk/dup other`))
+
+[1m[38;2;255;165;0mError[39m ([34mtest-GLENDAtransform.R:11:3[39m): Full GLENDA transformation on selected samples through 2023[22m
+Error in `gzfile(file, "rb")`: cannot open the connection
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mbase[22m::readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")[90m at test-GLENDAtransform.R:11:3[39m
+[90m 2. [39m  └─base::gzfile(file, "rb")
+
+[1m[38;2;255;165;0mError[39m ([34mtest-NCCAtransform.R:8:3[39m): NCCA Site data reads in, joins to itself, and has proper expected column names[22m
+Error in `sum(sapply(siteFiles, hasExpectedNames))`: invalid 'type' (list) of argument
+[1mBacktrace:[22m
+[90m    [39m▆
+[90m 1. [39m└─[1mtestthat[22m::expect_equal(...)[90m at test-NCCAtransform.R:8:3[39m
+[90m 2. [39m  └─testthat::quasi_label(enquo(object), label, arg = "object")
+[90m 3. [39m    └─[1mrlang[22m::eval_bare(expr, quo_get_env(quo))
+
+[1m[38;2;255;165;0mError[39m ([34mtest-NCCAtransform.R:17:3[39m): Full NCCA data can be loaded and joined[22m
+Error in `dplyr::distinct(., SITE_ID, .keep_all = T)`: Must use existing variables.
+x `SITE_ID` not found in `.data`.
+[1mBacktrace:[22m
+[90m     [39m▆
+[90m  1. [39m├─[1mLMChla[22m::LoadNCCAfull(...)[90m at test-NCCAtransform.R:17:3[39m
+[90m  2. [39m│ ├─... %>% ...[90m at LMChla/R/NCCAfulljoin.R:27:3[39m
+[90m  3. [39m│ └─[1mLMChla[22m:::.readNCCA(...)
+[90m  4. [39m│   └─.readNCCASites(siteFiles) %>% ...[90m at LMChla/R/NCCAwaterQuality.R:190:3[39m
+[90m  5. [39m├─[1mdplyr[22m::mutate(., UID = as.character(UID), STUDY = "NCCA")
+[90m  6. [39m├─dplyr::select(...)
+[90m  7. [39m├─dplyr::filter(...)
+[90m  8. [39m├─[1mdplyr[22m::distinct(., SITE_ID, .keep_all = T)
+[90m  9. [39m└─[1m[94mdplyr:::distinct.data.frame([39m[22m., SITE_ID, .keep_all = T[1m[94m)[39m[22m
+[90m 10. [39m  └─dplyr::distinct_prepare(...)
+[90m 11. [39m    └─[1mrlang[22m::abort(bullets, call = error_call)
+
 [1m[38;2;255;165;0mFailure[39m ([34mtest-readNclean.R:49:3[39m): GLENDA data file can be found, read, cleaned, and pivoted[22m
 file.exists(filepath) is not TRUE
 
@@ -201,7 +454,7 @@ Caused by error:
 [1mBacktrace:[22m
 [90m     [39m▆
 [90m  1. [39m├─[1mLMChla[22m:::.readNCCA(...)[90m at test-readNclean.R:120:3[39m
-[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:191:3[39m
+[90m  2. [39m│ └─LMChla:::.readNCCA2010(tenFiles)[90m at LMChla/R/NCCAwaterQuality.R:194:3[39m
 [90m  3. [39m│   └─... %>% ...[90m at LMChla/R/NCCAwaterQuality.R:117:3[39m
 [90m  4. [39m├─[1mdplyr[22m::rename(...)
 [90m  5. [39m├─[1mpurrr[22m::map_dfr(...)
@@ -221,4 +474,5 @@ Caused by error:
 [90m 19. [39m    └─[1mcli[22m::cli_abort(...)
 [90m 20. [39m      └─[1mrlang[22m::abort(...)
 
-[ [38;2;255;165;0mFAIL[39m 3 | [35mWARN[39m 4 | SKIP 0 | PASS 6 ]
+[ [38;2;255;165;0mFAIL[39m 10 | [35mWARN[39m 7 | SKIP 0 | PASS 6 ]
+══ Terminated early ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

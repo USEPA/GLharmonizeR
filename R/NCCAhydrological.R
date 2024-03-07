@@ -10,25 +10,19 @@
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
-    dplyr::mutate(
-      # Assume if not reported clear to bottom, it is not clear to bottom
-      CLEAR_TO_BOTTOM = ifelse(is.na(CLEAR_TO_BOTTOM), "N", CLEAR_TO_BOTTOM),
-      # Either it's clear to bottom, or they took measurements, so average them
-      # Only mean or both dissappear and reappear exist at a time, so we can include all three in average without biasing
-      Secchi = ifelse(CLEAR_TO_BOTTOM == "Y", STATION_DEPTH, rowMeans(dplyr::select(., MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), na.rm = TRUE))
-      ) %>% 
+      # Confirmed that the reference date with Hugh and by reformatting in Excel 
+      dplyr::mutate(DATE_COL = as.Date(DATE_COL, origin = "1900-1-1")) %>%
       # Average over all reps
       dplyr::reframe(
         SITE_ID = toString(unique(SITE_ID)),
-        DATE_COL = toString(unique(DATE_COL)), 
         ANALYTE = "Secchi",
-        RESULT = mean(Secchi, na.rm= T),
-        STATION_DEPTH_M = mean(STATION_DEPTH, na.rm=T),
-        QA_COMMENT = toString(unique(SECCHI_COMMENT)), 
-        .by = UID) %>%
-      # Temporarily drop the date until we figureo out how to parse it
-      dplyr::mutate(DATE_COL = lubridate::ymd("2015-01-01"))
+        DATE_COL = unique(DATE_COL),
 
+        #### Confirm that we should just be taking the mean column with Hugh
+        RESULT = mean(MEAN_SECCHI_DEPTH, na.rm= T),
+        STATION_DEPTH_M = mean(STATION_DEPTH, na.rm=T),
+        QA_COMMENT = toString(unique(SECCHI_COMMENT)),
+        .by = UID)
 }
 
 #' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
