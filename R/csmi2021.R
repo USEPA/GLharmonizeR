@@ -100,3 +100,7 @@
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.
 # Lat-longs are missing but probably can be found in profile data below TRUE
+
+
+df %>% 
+  distinct(ANALYTE, UNITS)

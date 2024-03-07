@@ -56,9 +56,10 @@ test <- readxl::read_xlsx(file.path("C:", "Users", "ccoffman", "Environmental Pr
 
 df %>% 
   drop_na(RESULT) %>%
+  mutate(FRACTION = NA) %>%
   filter(year(Date) == 2021) %>%
   filter(!ANALYTE %in% test$ANALYTE) %>%
-  reframe(n = n(), .by= c(ANALYTE, FRACTION, UNITS, AnalMethod)) %>%
+  reframe(n = n(), .by= c(ANALYTE, FRACTION, UNITS)) %>%
   arrange(ANALYTE) %>%
   write_csv("tempCSMI2021.csv")
 
