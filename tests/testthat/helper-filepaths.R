@@ -1,7 +1,9 @@
 # File paths
 # NCCA
-NCCAhydrofiles2010 = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv", 
-"https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv")
+NCCAhydrofiles2010 = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv"# , 
+# Not using not assessed data after Hugh's suggestion
+#"https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv"
+)
 NCCAhydrofile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_hydrographic_profile_great_lakes-data.csv"
 NCCAsecchifile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_secchi_great_lakes-data.csv" 
 
@@ -14,7 +16,7 @@ fifteenFiles <- file.path("Data", "NCCA", "ncca_2015_water_chemistry_great_lakes
 
 
 # GLENDA 
-glendaData <- file.path("Data", "GLENDA.csv")
+glendaData <- file.path("Data", "GLENDA.Rds")
 
 # L drive data
 # csmi2010 <- file.path("L:", "Priv", "Great lakes Coastal", "2002-2010 Water Quality", "2010")

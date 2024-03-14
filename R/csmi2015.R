@@ -52,7 +52,11 @@
         PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
         SurveyVessel, WQdepth_m,
         )
-        )
+        ) %>%
+    dplyr::mutate(
+      STUDY = "CSMI_2015",
+      YEAR = 2015
+      )
            
 
   # Unused tables

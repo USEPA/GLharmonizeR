@@ -25,8 +25,10 @@
     dplyr::mutate(DATE = lubridate::dmy(DATE),
             LATITUDE = as.numeric(`Acutal Lat (N)`),
             LONGITUDE = as.numeric(`Actual Lon (W)`),
-            STATION_DEPTH = as.numeric(`Stn Depth (m)`)) %>%
-    dplyr::select(-c(`Acutal Lat (N)`, `Actual Lon (W)`, `Stn Depth (m)`, `STIS #...1`))
+            STATION_DEPTH = as.numeric(`Stn Depth (m)`),
+            ) %>%
+    dplyr::select(-c(`Acutal Lat (N)`, `Actual Lon (W)`, `Stn Depth (m)`, `STIS #...1`)) %>%
+    dplyr::select(-dplyr::starts_with("Part")) %>%
 
   
   # Define where new mini tables are 
@@ -83,7 +85,7 @@
     dplyr::slice(1:2)
 
   dls <- df %>%
-    dplyr::filter(`STIS#` == "method detection limit") %>%
+    #dplyr::filter(`STIS#` == "method detection limit") %>%
     dplyr::distinct(ANALYTE, RESULT) %>% 
     tidyr::drop_na() %>%
     dplyr::rename(mdl = RESULT) %>%
@@ -97,7 +99,9 @@
     tidyr::drop_na(RESULT) %>%
     dplyr::mutate(
       RESULT = as.numeric(RESULT),
-      Date = lubridate::ymd("2010-06-15")
+      Date = lubridate::ymd("2010-06-15"),
+      Study = "CSMI_2010",
+      Year = 2010
       )
 
 
@@ -120,10 +124,3 @@
 
   return(df)
 }
-
-
-df2 %>% 
-
-  distinct(ANALYTE, FRACTION, UNITS) %>%
-  arrange(ANALYTE) %>%
-  write_csv("tempcsmi2010.csv")

@@ -98,7 +98,11 @@
                     "DO Cond" = "-",
                     "Trans Cond" = "-",
                   )) %>%
-    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT") 
+    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")  %>%
+    mutate(
+      sampleDepth = 0.5,
+      STUDY = "NCCA_WQ_2000s"
+    )
     # Make a missing columns for depths to align with other data sources
     #mutate(DEPTH = NA)
 }
@@ -129,7 +133,45 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      Date = DATE_COL)
+      Date = DATE_COL) %>%
+    dplyr::mutate(
+      # Combine Nitrate adn Nitrite
+      Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
+      Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
+      `Nitrate/Nitrite` = Nitrate + Nitrite,
+      RESULT = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
+        .default = RESULT
+      ),
+      # Change the names to CPAR
+      ANALYTE = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "Nitrate/Nitrite",
+        .default = ANALYTE
+      ),
+      ANL_CODE = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "NOx",
+        .default = ANALYTE
+      ),
+
+      .by = c(UID, SITE_ID, Date)
+    ) %>%
+    dplyr::select(
+      -dplyr::contains("Nitr")
+    ) %>%
+    # Don't need to drop Ambient PAR because we enter CPAR in its stead
+    dplyr::filter(
+      ANALYTE != "Nitrite"
+    ) %>%
+    # All NCCA WQ samples at 0.5m
+    dplyr::mutate(
+      sampleDepth = 0.5
+    ) %>%
+    dplyr::filter(
+      is.na(QACODE)
+    ) %>%
+    dplyr::mutate(
+      STUDY = "NCCA_WQ_2010"
+    )
 }
 
 #' Read in all NCCA water quality from 2015 
@@ -165,7 +207,35 @@
            UNITS = RESULT_UNITS,
            ANL_CODE = ANALYTE
           ) %>%
-    dplyr::mutate(Date = lubridate::dmy(Date)) 
+    dplyr::mutate(
+      Date = lubridate::dmy(Date), 
+      # Combine Nitrate adn Nitrite
+      Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
+      Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
+      `Nitrate/Nitrite` = Nitrate + Nitrite,
+      RESULT = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ `Nitrate/Nitrite`,
+        .default = RESULT
+      ),
+      # Change the names 
+      ANL_CODE = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ "NOx",
+        .default = ANL_CODE 
+      ),
+      .by = c(UID, SITE_ID, Date)
+    ) %>%
+    dplyr::select(
+      -dplyr::contains("NITR")
+    ) %>%
+    # Don't need to drop Ambient PAR because we enter CPAR in its stead
+    dplyr::filter(
+      ANL_CODE != "NITRITE_N"
+    ) %>%
+    # All NCCA WQ samples at 0.5m
+    dplyr::mutate(
+      sampleDepth = 0.5,
+      STUDY = "NCCA_WQ_2015"
+    )
 }
 
 # 2020/2021

@@ -1,23 +1,40 @@
-ANALYTE,FRACTION,UNITS,n
-Beam,NA,Attenuation 1/m,4341
-Beam,NA,Transmission %,4341
-CPAR/Corrected,NA,Irradiance %,4341
-Ca++,NA,mg/L,285
-Cl-,NA,mg/L,285
-Green,NA,Algae µg/l,4341
-K+,NA,mg/L,285
-Mean,NA,Size μm,4341
-Mg++,NA,mg/L,285
-Na+,NA,mg/L,285
-"PAR/Irradiance,",NA,Biospherical,4341
-SO4=,NA,mg/L,285
-"SPAR,",NA,Biospherical,4341
-Specific,NA,Conductance uS/cm,4341
-Total,NA,conc. µg/l,4341
-Total,NA,Volume Concentration PPM,4341
-Total,NA,Silt μl/l,4341
-Total,NA,Fine μl/l,4341
-Total,NA,Med Sand μl/l,4341
-Total,NA,Coarse Sand μl/l,4341
-Yellow,NA,substances r.u,4341
-chl-a,NA,ug/L,285
+ANALYTE,UNITS
+Beam,Attenuation 1/m
+Beam,Transmission %
+Bluegreen,µg/l
+CPAR/Corrected,Irradiance %
+Ca,mg/L
+Cl,mg/L
+Conductivity,uS/cm
+Cryptophyta,µg/l
+Diatoms,µg/l
+Fluorescence,mg/m^3
+Green,Algae µg/l
+K,mg/L
+Mean,Size μm
+Mg,mg/L
+NH4,ug N/L
+NOx,ug N/L
+Na,mg/L
+Oxygen,mg/l
+"PAR/Irradiance,",Biospherical
+SO4,mg/L
+"SPAR,",Biospherical
+SRP,ug P/L
+Si,mg SiO2/L
+Specific,Conductance uS/cm
+TN,ug N/L
+TP,ug P/L
+TSS,mg/L
+Temperature,deg C
+Total,conc. µg/l
+Total,Volume Concentration PPM
+Total,Silt μl/l
+Total,Fine μl/l
+Total,Med Sand μl/l
+Total,Coarse Sand μl/l
+Transmission,%
+VSS,mg/L
+Yellow,substances r.u
+chla,ug/L
+pH,

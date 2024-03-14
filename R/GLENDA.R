@@ -142,9 +142,19 @@
     { if (!is.null(nameMap))  {
       # Assume name map will always be in the GLENDA_MAP sheet
       dplyr::left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
-    } else . 
+    } else .
     } %>%
-    mutate(STUDY = "GLENDA")
+    mutate(
+      STUDY = "GLENDA",
+      VALUE = dplyr::case_when(
+        grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ NA,
+        .default = VALUE
+      ),
+      RESULT_REMARK= dplyr::case_when(
+        grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ paste(RESULT_REMARK, NA, sep=";"),
+        .default = VALUE
+      )
+    )
 }
 
 

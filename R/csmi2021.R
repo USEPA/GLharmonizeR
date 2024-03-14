@@ -89,7 +89,12 @@
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "\\S*", "\\s*", UNITS= ".*")) %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "\\]"),
-      UNITS = stringr::str_remove_all(UNITS, "\\[")
+      UNITS = stringr::str_remove_all(UNITS, "\\["),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\-"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\="),
+      Study = "CSMI_2021",
+      YEAR = 2021
       )
 
 
@@ -99,8 +104,5 @@
 
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.
-# Lat-longs are missing but probably can be found in profile data below TRUE
-
-
-df %>% 
-  distinct(ANALYTE, UNITS)
+# A few Lat-longs are missing but probably can be found in profile data below TRUE
+# But also, the lat/lons are incredibly low precision
