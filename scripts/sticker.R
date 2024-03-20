@@ -24,4 +24,10 @@ hexSticker::sticker(
   s_height = 1,
   s_x = 1,
   dpi = 320, filename = "docs/figsTables/logo.png"
+<<<<<<< HEAD
 )
+=======
+)
+
+usethis::use_logo("docs/figsTables/logo.png")
+>>>>>>> 38-tests-for-data-quality
