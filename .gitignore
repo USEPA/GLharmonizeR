@@ -65,18 +65,25 @@ vignettes/*.pdf
 *.pdf
 
 Results/Code/*/*_files
+<<<<<<< HEAD
 Data/*.xml
+=======
+>>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
 
 # Exceptions
 !Data/Formatted/*.csv
 !docs/*
 !docs/*/*
 !Data/Meta/*.csv
+<<<<<<< HEAD
 !Data/glendaRequestTokenTemplate.xml
+=======
+>>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
 
 desktop.ini
 
 /.quarto/
+<<<<<<< HEAD
 .Rproj.user
 .Rdata
 .DS_Store
@@ -84,3 +91,5 @@ desktop.ini
 inst/doc
 
 !Data/*.Rds
+=======
+>>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
