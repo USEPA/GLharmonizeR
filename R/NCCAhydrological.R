@@ -10,27 +10,6 @@
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
-<<<<<<< HEAD
-    dplyr::mutate(
-      # Assume if not reported clear to bottom, it is not clear to bottom
-      CLEAR_TO_BOTTOM = ifelse(is.na(CLEAR_TO_BOTTOM), "N", CLEAR_TO_BOTTOM),
-      # Either it's clear to bottom, or they took measurements, so average them
-      # Only mean or both dissappear and reappear exist at a time, so we can include all three in average without biasing
-      Secchi = ifelse(CLEAR_TO_BOTTOM == "Y", STATION_DEPTH, rowMeans(dplyr::select(., MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), na.rm = TRUE))
-      ) %>% 
-      # Average over all reps
-      dplyr::reframe(
-        SITE_ID = toString(unique(SITE_ID)),
-        DATE_COL = toString(unique(DATE_COL)), 
-        ANALYTE = "Secchi",
-        RESULT = mean(Secchi, na.rm= T),
-        STATION_DEPTH_M = mean(STATION_DEPTH, na.rm=T),
-        QA_COMMENT = toString(unique(SECCHI_COMMENT)), 
-        .by = UID) %>%
-      # Temporarily drop the date until we figureo out how to parse it
-      dplyr::mutate(DATE_COL = lubridate::ymd("2015-01-01"))
-
-=======
       # Confirmed that the reference date with Hugh and by reformatting in Excel 
       dplyr::mutate(
         SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
@@ -58,7 +37,6 @@
       dplyr::mutate(
         STUDY = "NCCA_secchi_2015"
       )
->>>>>>> 38-tests-for-data-quality
 }
 
 #' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
@@ -70,17 +48,6 @@
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
-<<<<<<< HEAD
-#' @return dataframe
-.readNCCAhydro2010 <- function(filepaths) {
-  filepaths %>%
-    purrr::map_dfr(readr::read_csv) %>%
-    dplyr::select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
-    dplyr::rename(
-      SAMPLE_DEPTH_M = SDEPTH,
-      ANALYTE = PARAMETER_NAME) %>%
-    dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL))
-=======
 #'  
 #' @return dataframe
 .readNCCAhydro2010 <- function(filepaths, tenQAfile) {
@@ -132,7 +99,6 @@
     dplyr::filter(!grepl("R", QAcode)) %>%
     dplyr::filter(!grepl("Q", QAcode))
 
->>>>>>> 38-tests-for-data-quality
 }
 
 
@@ -148,19 +114,6 @@
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
-<<<<<<< HEAD
-    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE), names_to = "ANALYTE", values_to = "RESULT") %>%
-    # combine measurements for similar depths across cast directions rounded to the nearest meter
-    dplyr::mutate(DEPTH = round(DEPTH, 0)) %>%
-    # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
-    dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
-            STATION_DEPTH = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE)) %>%
-    # I decided not to select or rename columns until we are at the joining step
-    # NOTE: I'm making up the Date so the join works for now but we
-    # need to figure out how to actually parse it
-    dplyr::mutate(DATE_COL = lubridate::ymd("2015-06-01"))
-=======
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
       DATE_COL = as.Date(DATE_COL, origin = "1900-1-1")
@@ -177,7 +130,6 @@
     dplyr::mutate(
       DATE_COL = lubridate::ymd("2015-06-01"),
       STUDY = "NCCA_hydro_2015")
->>>>>>> 38-tests-for-data-quality
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
