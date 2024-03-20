@@ -18,17 +18,44 @@
 #' @export
 LoadNCCAfull <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL, greatLakes=TRUE, Lakes=NULL,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) {
-  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) %>%
-    dplyr::select(UID, DATE_COL, SAMPLE_DEPTH_M, ANALYTE, RESULT, UNITS, STATION_DEPTH_M) %>%
-    dplyr::rename(Date=  DATE_COL, sampleDepth = SAMPLE_DEPTH_M, Depth = STATION_DEPTH_M) %>%
-    dplyr::mutate(UID = as.character(UID), STUDY = "NCCA")
+
+  sites <- .readNCCASites(siteFiles) %>%
+    dplyr::distinct(SITE_ID, .keep_all =T) 
+
+  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015)
+    # dplyr::rename(Date=  DATE_COL, sampleDepth = SAMPLE_DEPTH_M, Depth = STATION_DEPTH_M) %>%
+    dplyr::mutate(UID = as.character(UID))
 
   # Read NCCA WQ files 
-  nccaWQ <- .readNCCA(siteFiles, preFiles, tenFiles, fifteenFiles, greatLakes=TRUE, Lakes=NULL)  %>%
-    dplyr::filter(dplyr::between(LONGITUDE, -88, -84.9),
-           dplyr::between(LATITUDE, 41.7, 46)) %>%
-    dplyr::select(UID, SITE_ID, LATITUDE, LONGITUDE, Date, WTBDY_NM, NCCR_REG, STATION_DEPTH, ANALYTE, RESULT, UNITS, QAComment) %>%
-    dplyr::mutate(UID = as.character(UID), 
-            STUDY = "NCCA")
-  return(dplyr::bind_rows(NCCAhydro, nccaWQ))
+  nccaWQ <- .readNCCA(preFiles, tenFiles, fifteenFiles, tenQAfile, greatLakes=TRUE, Lakes=NULL)
+
+
+  final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
+    dplyr::left_join(sites, by = "SITE_ID") %>%
+    dplyr::mutate(
+      Latitude = dplyr::coalesce(LATITUDE.y, LATITUDE.x),
+      Longitude = dplyr::coalesce(LONGITUDE.y, LONGITUDE.x),
+      Depth = dplyr::coalesce(STATION_DEPTH.y, STATION_DEPTH.x, Depth),
+      waterName = dplyr::coalesce(WTBDY_NM.y, WTBDY_NM.x),
+      NCCRreg = dplyr::coalesce(NCCR_REG.y, NCCR_REG.x),
+      Date = dplyr::coalesce(DATE_COL, Date),
+      QAcomment = dplyr::coalesce(QA_COMMENT, QAconsiderations),
+      SAMPYEAR = lubridate::year(Date)
+      ) %>%
+    dplyr::select(-c(
+      LATITUDE.x, LATITUDE.y,
+      LONGITUDE.x, LONGITUDE.y,
+      STATION_DEPTH.x, STATION_DEPTH.y,
+      WTBDY_NM.x, WTBDY_NM.y,
+      NCCR_REG.x, NCCR_REG.y,
+      DATE_COL, QAconsiderations 
+    )) %>%
+    # Great lakes get's priority over spcifying each lake
+    {if (greatLakes) {
+      dplyr::filter(., NCCRreg == "Great Lakes")
+    } else if (!is.null(Lakes)) {
+      dplyr::filter(., waterName %in% Lakes)
+    }}
+
+  return(final)
 }

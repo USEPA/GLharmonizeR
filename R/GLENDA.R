@@ -147,7 +147,8 @@
     mutate(
       STUDY = "GLENDA",
       VALUE = dplyr::case_when(
-        grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ NA,
+        # MAKE SURE THIS IS EXPLICITLY secchi
+        (grepl("secchi", ANALYTE, ignore.case =TRUE)) & (grepl("estimate", RESULT_REMARK, ignore.case =TRUE)) ~ NA,
         .default = VALUE
       ),
       RESULT_REMARK= dplyr::case_when(

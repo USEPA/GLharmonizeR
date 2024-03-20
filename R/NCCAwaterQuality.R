@@ -117,7 +117,12 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2010 <- function(filepaths) {
+.readNCCA2010 <- function(filepaths, tenQAfile) {
+  QA <- readr::read_csv(tenQAfile) %>%
+    dplyr::select(-`...3`) %>%
+    dplyr::rename(QAconsiderations = Considerations)
+
+
   filepaths %>%
     purrr::map_dfr(readr::read_csv,
             col_types = readr::cols(
@@ -166,12 +171,10 @@
     dplyr::mutate(
       sampleDepth = 0.5
     ) %>%
-    dplyr::filter(
-      is.na(QACODE)
-    ) %>%
     dplyr::mutate(
       STUDY = "NCCA_WQ_2010"
-    )
+    ) %>%
+    dplyr::left_join(QA, by = c("QACODE" = "Unique Qualifier Code"))
 }
 
 #' Read in all NCCA water quality from 2015 
@@ -256,24 +259,15 @@
 #' @param Lakes a string or list of strings specifying specific great lakes to filter to
 #' 
 #' @return dataframe
-.readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL, greatLakes=TRUE, Lakes=NULL){
-  sites <- .readNCCASites(siteFiles) %>%
-    dplyr::distinct(SITE_ID, .keep_all =T) 
+.readNCCA <- function(preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL, tenQAfile =NULL, greatLakes=TRUE, Lakes=NULL){
   dfs <- list()
   if (!is.null(preFiles)) dfs[[1]] <- .readNCCA2000s(preFiles) else print("No early data specified")
-  if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
+  if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles, tenQAfile) else print("2010 files not specified")
   if (!is.null(fifteenFiles)) dfs[[3]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
-    dplyr::left_join(sites, by = "SITE_ID") %>%
+    dplyr::left_join(sites, by = "SITE_ID")
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
   # filter to the great lakes
-  { if (greatLakes) {
-    dplyr::filter(., NCCR_REG == "Great Lakes")
-  } else . } %>%
-  # filter to specific lakes
-  {if (!is.null(Lakes)) {
-    dplyr::filter(., WTBDY_NM %in% Lakes)
-  } else .}
 }
 

@@ -31,7 +31,7 @@
 
         #### Confirm that we should just be taking the mean column with Hugh
         RESULT = mean(MEAN_SECCHI_DEPTH, na.rm= T),
-        STATION_DEPTH_M = mean(STATION_DEPTH, na.rm=T),
+        Depth = mean(STATION_DEPTH, na.rm=T),
         QA_COMMENT = toString(unique(SECCHI_COMMENT)),
         .by = UID) %>%
       dplyr::mutate(
@@ -50,13 +50,18 @@
 #' @param filepath a string specifying the filepath of the data
 #'  
 #' @return dataframe
-.readNCCAhydro2010 <- function(filepaths) {
+.readNCCAhydro2010 <- function(filepaths, tenQAfile) {
+  QA <- readr::read_csv(tenQAfile) %>%
+    dplyr::select(-`...3`) %>%
+    dplyr::rename(QAconsiderations = Considerations)
+
   filepaths %>%
     purrr::map_dfr(readr::read_csv) %>%
-    dplyr::select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
+    # dplyr::select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
-      ANALYTE = PARAMETER_NAME) %>%
+      ANALYTE = PARAMETER_NAME,
+      Depth = `STATION_DEPTH(m)`) %>%
     dplyr::mutate(
       # This is unaffected by being grouped
       DATE_COL = lubridate::mdy(DATE_COL),
@@ -73,23 +78,27 @@
         ANALYTE == "Ambient PAR" ~ "Corrected PAR",
         .default = ANALYTE
       ),
-      .by = c(UID, sampleDepth)
+      .by = c(UID, sampleDepth, Depth)
     ) %>%
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
       ANALYTE != "Underwater PAR"
     ) %>%
     dplyr::reframe(
-      RESULT = mean(RESULT, na.rm = T),
-      .by = c(UID, sampleDepth, ANALYTE) 
+      RESULT = mean(RESULT, na.rm = TRUE),
+      Depth = mean(Depth, na.rm = TRUE),
+      QAcode= toString(unique(QA_CODE)),
+      .by = c(UID, sampleDepth, ANALYTE, DATE_COL, SITE_ID, Depth)
     ) %>%
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       STUDY = "NCCA_hydro_2010"
     ) %>%
-    dply::select(
-      -c(ambientPAR, underPAR)
-    )
+    dplyr::left_join(QA, by = c("QAcode" =  "Unique Qualifier Code")) %>%
+    # QC filter
+    dplyr::filter(!grepl("R", QAcode)) %>%
+    dplyr::filter(!grepl("Q", QAcode))
+
 }
 
 
@@ -106,19 +115,18 @@
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
     dplyr::mutate(
-      `Corrected PAR` = LIGHT_UW / LIGHT_AMB
+      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
+      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1")
     ) %>%
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
+    dplyr::rename(sampleDepth = DEPTH) %>%
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
     # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
     dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
-            STATION_DEPTH = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, DATE_COL, SITE_ID, DEPTH, ANALYTE)) %>%
-    # I decided not to select or rename columns until we are at the joining step
-    # NOTE: I'm making up the Date so the join works for now but we
-    # need to figure out how to actually parse it
+            Depth = mean(STATION_DEPTH, na.rm = T),
+            .by = c(UID, DATE_COL, SITE_ID, sampleDepth, ANALYTE)) %>%
     dplyr::mutate(
       DATE_COL = lubridate::ymd("2015-06-01"),
       STUDY = "NCCA_hydro_2015")

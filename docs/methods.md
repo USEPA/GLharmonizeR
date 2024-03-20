@@ -43,3 +43,12 @@ The data were cleaned wherever it was obvious that aspects would not be useful t
 - Combining flags
 
 ### Meta data
+
+
+
+
+# Resources
+## NCCA
+- [NCCA field manuals](https://www.epa.gov/national-aquatic-resource-surveys/manuals-used-national-aquatic-resource-surveys#National%20Coastal%20Condition%20Assessment)
+-	[NCCA 2010 Technical Report](https://www.epa.gov/national-aquatic-resource-surveys/national-coastal-condition-assessment-2010-results)
+-	[NCCA 2015 Technical Support document](https://www.epa.gov/national-aquatic-resource-surveys/reports-and-data-national-coastal-condition-assessment-2015)
