@@ -1,0 +1,44 @@
+NCCA 2010 Water Quality Indicator Status Metadata		
+		
+"It is the responsibility of the end data user to become familiar with the QA codes used in the NCCA 2010 assessment (NCCA_QA_Codes.csv) and review the ""QA_CODES"" column in each dataset to determine whether the data meet quality objectives for specific uses."		
+Location information for each site is contained in the SITEINFO File. Use UID as key column for merging data.		
+"For questions about these data, please contact Hugh Sullivan at sullivan.hugh@epa.gov or use the Contact Us link on the webpage: http://www.epa.gov/national-aquatic-resource-surveys/forms/national-aquatic-resource-surveys-contact-us"		
+		
+UID		Unique Identifier for site and visit number
+SITE_ID		Unique NCCA site dentifier
+LON_DD		Actual Longitude sampled (decimal degrees)
+LAT_DD		Actual Latitude sampled (decimal degrees)
+ALBERS_X		X-coordinate on Albers projection
+ALBERS_Y		Y-coordinate on Albers projection
+PSTL_CODE		State in which sample collection site is located
+WTBDY_NM		Waterbody name
+RSRC_CLASS		Resource classification
+NCCA_REG		Reporting region designations used in the National Coastal Condition Assessment Reports 
+GREAT_LAKE		Name of Great Lake within which the site is located (if applicable)
+NPSPARK		Name of National Park within which site is located (if applicable)
+NEP_NM		Name of National Estuary Program study area within which site is located area (if applicable)
+EPA_REG		Identifies EPA Region within which the site is located
+STATUS_ALL		Status of sampling at that site.  
+TNT_ALL		Target or not Target for sampling
+WGT_CATALL		Category used to derive weight for assesment of all parameters except Great Lakes Human Health Fish Tissue Analysis
+WGT_SQMI10		Adjusted site weight. USE for all population estimates with the exception of Great Lakes Human Helath Fish Tissue estimates. Units are Square miles.
+STATUS_FT		Status of Great Lakes Human Health Fish Tissue sampling at that site.
+TNT_FT		Target or not Target for Great Lakes Human Health Fish Tissue sampling
+WGT_CAT_FT		Category used to derive weight for assesment of Great Lakes Human Health Fish Tissue Analysis only
+WGT_SQMIFT		Adjusted site weight for population estimates of Great Lakes Human Helath Fish Tissue estimates only. Units are Square miles.
+CHLA		Surface Chlorophylla (ug/L). Numerical values.
+CHLA_COND		Chlorophyll a condition at the site
+CHLA_UNITS		Units - Chlorophyll-a as ug/L in water sample
+DIN		Surface Dissolved Inorganic Nitrogen (mg N/L). Numerical values. Not listed for Great Lakes sites.
+DIN_COND		Surface Dissolved Inorganic Nitrogen Condition at the site
+DIN_UNITS		mg N/L
+DIP		Surface Dissolved Inorganic Phosphorus
+DIP_COND		Surface Dissolved Inorganic Phosphorus condition at the site
+DIP_UNITS		mg P/L
+DO		Bottom Dissolved Oxygen (mg/L). Numerical values.
+DO_COND		Bottom Dissolved Oxygen condition at the site
+DO_UNITS		(mg/L)
+LIGHT_TRANS		Light Transmissivity; percent of incident light transmitted through onemeter of water. Units: % at 1m depth. Calculated from coefficient of attenuation (Kd): LIGHT_TRANS = exp(-Kd)*100
+SECCHI_FINAL		Mean Secchi Depth; used in place of light transmissity in Great Lakes. Units : meters
+TRANS_COND		"Ligh Transmissivity condition at the site, based upon LIGHT_TRANS in estuarine sites and SECCHI_FINAL at Great Lakes sites"
+CAT_WQI		"Water Quality Index (WQI); Condition by category (Good, Fair, Poor, Missing). At marine sites, the WQI is ased on categorical condition of five component metrics at marine sites (Chla, DIN, DIP, TRansmissivity, & DO), the same protocol used in NCCR IV (pg 15). At Great Lake sites, the WQI is based on only four component metrics (Chla, TP, DO & Secchi), following same rules as at marine sites (NCCR IV pg 15)."

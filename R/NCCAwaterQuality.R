@@ -31,6 +31,7 @@
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
 .readSite <- function(filepath) {
+<<<<<<< HEAD
 # pre 2000's doesn't report depth
 # 2010 reports depth units, need to check if they're same
 # all depths are reported in meters
@@ -50,6 +51,27 @@
     # bind to template table to get all of the columns (even if empty)
     dplyr::bind_rows(templateTable) %>%
     dplyr::mutate_at(dplyr::vars(dplyr::one_of('DEPTH')), as.numeric) %>%
+=======
+# all depths are reported in meters
+  readr::read_csv(filepath, show_col_types=FALSE) %>%
+    # cutdown number of lats and longs
+    dplyr::mutate(
+      LATITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LAT_DD"))),
+      LONGITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LON_DD"))),
+      ) %>%
+    #dplyr::select(SITE_ID, NCCR_REG, WTBDY_NM, LATITUDE, LONGITUDE, contains("STATION_DEPTH")) %>%
+    dplyr::select(-contains("UNITS")) %>%
+    dplyr::rename(STATION_DEPTH = names(.)[grepl("DEPTH", names(.), ignore.case= T)]) %>%
+    dplyr::rename(NCCR_REG = names(.)[grepl("NCCA_REG", names(.), ignore.case= T)]) %>%
+    dplyr::select(dplyr::any_of(c("SITE_ID", "LATITUDE", "LONGITUDE", "STATION_DEPTH", "WTBDY_NM", "NCCR_REG"))) %>%
+    # Add WTBDY_NM if it doesn't exist
+    { if (! ("WTBDY_NM" %in% names(.))) {
+      dplyr::mutate(., WTBDY_NM = NA)
+    } else . 
+    } %>%
+    dplyr::mutate_at(dplyr::vars(dplyr::one_of('WTBDY_NM')), as.character) %>%
+
+>>>>>>> 38-tests-for-data-quality
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
     tidyr::drop_na()
@@ -98,7 +120,15 @@
                     "DO Cond" = "-",
                     "Trans Cond" = "-",
                   )) %>%
+<<<<<<< HEAD
     tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT") 
+=======
+    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")  %>%
+    mutate(
+      sampleDepth = 0.5,
+      STUDY = "NCCA_WQ_2000s"
+    )
+>>>>>>> 38-tests-for-data-quality
     # Make a missing columns for depths to align with other data sources
     #mutate(DEPTH = NA)
 }
@@ -113,7 +143,16 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
+<<<<<<< HEAD
 .readNCCA2010 <- function(filepaths) {
+=======
+.readNCCA2010 <- function(filepaths, tenQAfile) {
+  QA <- readr::read_csv(tenQAfile) %>%
+    dplyr::select(-`...3`) %>%
+    dplyr::rename(QAconsiderations = Considerations)
+
+
+>>>>>>> 38-tests-for-data-quality
   filepaths %>%
     purrr::map_dfr(readr::read_csv,
             col_types = readr::cols(
@@ -129,7 +168,47 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
+<<<<<<< HEAD
       Date = DATE_COL)
+=======
+      Date = DATE_COL) %>%
+    dplyr::mutate(
+      # Combine Nitrate adn Nitrite
+      Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
+      Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
+      `Nitrate/Nitrite` = Nitrate + Nitrite,
+      RESULT = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
+        .default = RESULT
+      ),
+      # Change the names to CPAR
+      ANALYTE = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "Nitrate/Nitrite",
+        .default = ANALYTE
+      ),
+      ANL_CODE = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "NOx",
+        .default = ANALYTE
+      ),
+
+      .by = c(UID, SITE_ID, Date)
+    ) %>%
+    dplyr::select(
+      -dplyr::contains("Nitr")
+    ) %>%
+    # Don't need to drop Ambient PAR because we enter CPAR in its stead
+    dplyr::filter(
+      ANALYTE != "Nitrite"
+    ) %>%
+    # All NCCA WQ samples at 0.5m
+    dplyr::mutate(
+      sampleDepth = 0.5
+    ) %>%
+    dplyr::mutate(
+      STUDY = "NCCA_WQ_2010"
+    ) %>%
+    dplyr::left_join(QA, by = c("QACODE" = "Unique Qualifier Code"))
+>>>>>>> 38-tests-for-data-quality
 }
 
 #' Read in all NCCA water quality from 2015 
@@ -165,7 +244,39 @@
            UNITS = RESULT_UNITS,
            ANL_CODE = ANALYTE
           ) %>%
+<<<<<<< HEAD
     dplyr::mutate(Date = lubridate::dmy(Date)) 
+=======
+    dplyr::mutate(
+      Date = lubridate::dmy(Date), 
+      # Combine Nitrate adn Nitrite
+      Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
+      Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
+      `Nitrate/Nitrite` = Nitrate + Nitrite,
+      RESULT = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ `Nitrate/Nitrite`,
+        .default = RESULT
+      ),
+      # Change the names 
+      ANL_CODE = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ "NOx",
+        .default = ANL_CODE 
+      ),
+      .by = c(UID, SITE_ID, Date)
+    ) %>%
+    dplyr::select(
+      -dplyr::contains("NITR")
+    ) %>%
+    # Don't need to drop Ambient PAR because we enter CPAR in its stead
+    dplyr::filter(
+      ANL_CODE != "NITRITE_N"
+    ) %>%
+    # All NCCA WQ samples at 0.5m
+    dplyr::mutate(
+      sampleDepth = 0.5,
+      STUDY = "NCCA_WQ_2015"
+    )
+>>>>>>> 38-tests-for-data-quality
 }
 
 # 2020/2021
@@ -182,6 +293,7 @@
 #' The spatial information for sites is read in using the .readSites helper functions, this is then
 #' joined to the water quality and hydrographic data and ultimately output as a data table.
 #' @param filepath a string specifying the directory of the data
+<<<<<<< HEAD
 #' @return dataframe
 #' @export
 readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
@@ -190,10 +302,24 @@ readNCCA <- function(siteFiles, preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL)
   dfs <- list()
   if (!is.null(preFiles)) dfs[[1]] <- .readNCCA2000s(preFiles) else print("No early data specified")
   if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
+=======
+#' @param greatLakes boolean specifying whether to filter to just great lakes data
+#' @param Lakes a string or list of strings specifying specific great lakes to filter to
+#' 
+#' @return dataframe
+.readNCCA <- function(preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL, tenQAfile =NULL, greatLakes=TRUE, Lakes=NULL){
+  dfs <- list()
+  if (!is.null(preFiles)) dfs[[1]] <- .readNCCA2000s(preFiles) else print("No early data specified")
+  if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles, tenQAfile) else print("2010 files not specified")
+>>>>>>> 38-tests-for-data-quality
   if (!is.null(fifteenFiles)) dfs[[3]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
     dplyr::left_join(sites, by = "SITE_ID")
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
+<<<<<<< HEAD
+=======
+  # filter to the great lakes
+>>>>>>> 38-tests-for-data-quality
 }
 

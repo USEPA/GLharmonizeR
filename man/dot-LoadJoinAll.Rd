@@ -5,12 +5,21 @@
 \title{Load and join all WQ data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA}
 \usage{
 .LoadJoinAll(
+<<<<<<< HEAD
   hydrofiles2010,
   hydrofile2015,
   secchifile2015,
   siteFiles,
   preFiles,
   tenFiels,
+=======
+  NCCAhydrofiles2010,
+  NCCAhydrofile2015,
+  NCCAsecchifile2015,
+  siteFiles,
+  preFiles,
+  tenFiles,
+>>>>>>> 38-tests-for-data-quality
   fifteenFiles,
   glendaData,
   csmi2010,
@@ -19,17 +28,24 @@
 )
 }
 \arguments{
+<<<<<<< HEAD
 \item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
 
 \item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
 
 \item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
 
+=======
+>>>>>>> 38-tests-for-data-quality
 \item{siteFiles}{a string specifying the directory containing NCCA Site data}
 
 \item{preFiles}{a string specifying the path containing 2010's and earlier WQ data}
 
+<<<<<<< HEAD
 \item{tenFiels}{a string specifying the directory containing NCCA WQ 2010 data}
+=======
+\item{tenFiles}{a string specifying the directory containing NCCA WQ 2010 data}
+>>>>>>> 38-tests-for-data-quality
 
 \item{fifteenFiles}{a string specifying the directory containing NCCA wQ 2015 data}
 
@@ -40,6 +56,15 @@
 \item{csmi2015}{a string specifying the directory containing CSMI 2015 data}
 
 \item{csmi2021}{a string specifying the directory containing CSMI 2021 data}
+<<<<<<< HEAD
+=======
+
+\item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
+
+\item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
+
+\item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
+>>>>>>> 38-tests-for-data-quality
 }
 \value{
 dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021

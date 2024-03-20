@@ -1,0 +1,1 @@
+options(testthat.output_file = "test-out.xml")
