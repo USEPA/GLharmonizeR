@@ -117,6 +117,8 @@
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
+    # the only comments mention no measurment data or typo
+    dplyr::filter(is.na(NARS_COMMENT) %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
       DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
