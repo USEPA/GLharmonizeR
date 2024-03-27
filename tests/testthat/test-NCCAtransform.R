@@ -3,7 +3,6 @@ test_that("NCCA Site data reads in, joins to itself, and has proper expected col
     c("SITE_ID", "LATITUDE", "LONGITUDE", "STATION_DEPTH", "WTBDY_NM", "NCCR_REG") %in% names(.readSite(file))
   }
   # Test that the individual files have expected column names
-  siteFiles <- dir(path = siteDirectory, pattern = "site.*.csv", all.files =T, full.names=T, ignore.case = T)
   # Early studies don't report region and lake so won't be able to filter those yet
   expect_equal(sum(sapply(siteFiles, hasExpectedNames)), 34)
 
@@ -27,15 +26,17 @@ test_that("Full NCCA data can be loaded and joined", {
 
 })
 
-ncca %>% 
-  separate_longer_delim(QAcode, ",") %>%
-  mutate(QAcode = stringr::str_remove_all(QAcode, " ")) %>%
-  reframe(n = n(),
-          Region = toString(unique(NCCRreg)),
-          SAMPYEAR = toString(unique(SAMPYEAR)),
-          .by = c(ANALYTE, QAcode, Definition, QAcomment)) %>%
-  filter(!is.na(QAcode)) %>%
-  filter(QAcode != "NA") %>%
-  mutate(Definition = ifelse(is.na(Definition), toString(unique(Definition)), Definition)) 
-  write_csv("NCCA2010QAcounts.csv")
+
+# Generate QA codes spreadsheet to share for deliberation 
+# ncca %>% 
+#   separate_longer_delim(QAcode, ",") %>%
+#   mutate(QAcode = stringr::str_remove_all(QAcode, " ")) %>%
+#   reframe(n = n(),
+#           Region = toString(unique(NCCRreg)),
+#           SAMPYEAR = toString(unique(SAMPYEAR)),
+#           .by = c(ANALYTE, QAcode, Definition, QAcomment)) %>%
+#   filter(!is.na(QAcode)) %>%
+#   filter(QAcode != "NA") %>%
+#   mutate(Definition = ifelse(is.na(Definition), toString(unique(Definition)), Definition)) %>%
+#   write_csv("NCCAQAcounts.csv")
 
