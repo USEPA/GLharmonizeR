@@ -23,34 +23,56 @@
 #' Read in NCCA site data 
 #'
 #' @description
-#' `.readSite` returns spatial data relating to study sites
+#' `.readNCCASite2010` returns spatial data relating to study sites
 #' 
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readSite <- function(filepath) {
+.readNCCASite2010 <- function(filepath) {
 # all depths are reported in meters
   readr::read_csv(filepath, show_col_types=FALSE) %>%
     # cutdown number of lats and longs
-    dplyr::mutate(
-      LATITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LAT_DD"))),
-      LONGITUDE = dplyr::coalesce(!!!dplyr::select(., dplyr::matches("LON_DD"))),
-      ) %>%
-    #dplyr::select(SITE_ID, NCCR_REG, WTBDY_NM, LATITUDE, LONGITUDE, contains("STATION_DEPTH")) %>%
-    dplyr::select(-contains("UNITS")) %>%
-    dplyr::rename(STATION_DEPTH = names(.)[grepl("DEPTH", names(.), ignore.case= T)]) %>%
-    dplyr::rename(NCCR_REG = names(.)[grepl("NCCA_REG", names(.), ignore.case= T)]) %>%
-    dplyr::select(dplyr::any_of(c("SITE_ID", "LATITUDE", "LONGITUDE", "STATION_DEPTH", "WTBDY_NM", "NCCR_REG", "GREAT_LAKE"))) %>%
-    # Add WTBDY_NM if it doesn't exist
-    # This accommadates 2015 sites
-    { if ("GREAT_LAKE" %in% names(.)) {
-      dplyr::select(., -WTBDY_NM) %>%
-      dplyr::rename(., WTBDY_NM = GREAT_LAKE)
-    } else .
-    } %>%
-    dplyr::mutate_at(dplyr::vars(dplyr::one_of('WTBDY_NM')), as.character) %>%
+    dplyr::rename(
+      # No missingness, so no need to coalesce
+      Latitude = ALAT_DD,
+      Longitude = ALON_DD,
+      stationDepth = STATION_DEPTH,
+      NCCRreg = NCCR_REG
+    ) %>%
+    dplyr::select(SITE_ID, Latitude, Longitude, stationDepth, WTBDY_NM, NCCRreg) %>%
+
+    # file 3 has a bunch of empty rows at the end
+    # file 2 has missing lat/lons for some reason
+    tidyr::drop_na()
+}
+
+#' Read in NCCA site data 
+#'
+#' @description
+#' `.readNCCASite2015` returns spatial data relating to study sites
+#' 
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the directory of the data
+#' @return dataframe
+.readNCCASite2015 <- function(filepath) {
+# all depths are reported in meters
+  readr::read_csv(filepath, show_col_types=FALSE) %>%
+  # This column is all NAs
+  dplyr::select(-WTBDY_NM) %>%
+    # cutdown number of lats and longs
+    dplyr::rename(
+      # No missingness, so no need to coalesce
+      Latitude = LAT_DD,
+      Longitude = LON_DD,
+      stationDepth = STATION_DEPTH,
+      NCCRreg = NCCA_REG,
+      WTBDY_NM = GREAT_LAKE
+    ) %>%
+    dplyr::select(SITE_ID, Latitude, Longitude, stationDepth, WTBDY_NM, NCCRreg) %>%
 
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
@@ -68,9 +90,12 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCASites <- function(directory) {
-  dir(path = directory, pattern = "site.*.csv", all.files =T, full.names=T, ignore.case = T) %>%
-    purrr::map_dfr(.readSite)
+.readNCCASites <- function(ncca2010sites, ncca2015sites) {
+  df <- .readNCCASite2010(ncca2010sites)
+  df2 <- .readNCCASite2015(ncca2015sites) 
+
+  return(dplyr::bind_rows(df, df2) %>% distinct())
+
 }
 
 #' Read in all NCCA water quality from the early 2000s
@@ -254,11 +279,10 @@
 #' @param filepath a string specifying the directory of the data
 #' 
 #' @return dataframe
-.readNCCA <- function(preFiles=NULL, tenFiles=NULL, fifteenFiles=NULL){
+.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL){
   dfs <- list()
-  if (!is.null(preFiles)) dfs[[1]] <- .readNCCA2000s(preFiles) else print("No early data specified")
-  if (!is.null(tenFiles)) dfs[[2]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
-  if (!is.null(fifteenFiles)) dfs[[3]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
+  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
+  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
   dplyr::bind_rows(dfs) %>%
     dplyr::left_join(sites, by = "SITE_ID")
     # QC filters
