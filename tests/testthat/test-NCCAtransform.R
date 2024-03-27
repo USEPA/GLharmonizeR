@@ -15,8 +15,8 @@ test_that("NCCA Site data reads in, joins to itself, and has proper expected col
 
 test_that("Full NCCA data can be loaded and joined", {
   ncca <- LoadNCCAfull(
-    siteFiles = siteFiles, preFiles=preFiles, tenFiles=tenFiles, tenQAfile = tenQAfile, fifteenFiles=fifteenFiles,
-    greatLakes=FALSE, Lakes=NULL, NCCAhydrofiles2010 = NCCAhydrofiles2010, NCCAhydrofile2015 = NCCAhydrofile2015,
+    ncca2010sites = ncca2010sites, ncca2015sites = ncca2015sites, tenFiles=tenFiles, tenQAfile = tenQAfile, fifteenFiles=fifteenFiles,
+    greatLakes=TRUE, Lakes=c("Lake Michigan"), NCCAhydrofiles2010 = NCCAhydrofiles2010, NCCAhydrofile2015 = NCCAhydrofile2015,
     NCCAsecchifile2015 = NCCAsecchifile2015)
 
 
