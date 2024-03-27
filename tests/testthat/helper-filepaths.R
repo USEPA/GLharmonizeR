@@ -9,6 +9,7 @@ NCCAsecchifile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_
 
 #NCCA WQ files
 siteFiles <- file.path("Data", "NCCA")
+ncca2015siteFile <- file.path("Data", "NCCA", "ncca_2015_site_information_great_lakes-data.csv")
 preFiles <- file.path("Data", "NCCA", "nca_waterchemdata.csv")
 tenFiles<- c(file.path("Data", "NCCA", "assessed_ncca2010_waterchem.csv")# , file.path("Data", "NCCA", "nassessedWaterChem2010.csv")
             )
