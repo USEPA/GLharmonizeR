@@ -10,6 +10,15 @@
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(filepath) {
   readr::read_csv(filepath) %>%
+      dplyr::filter(
+        !grepl("mean secchi depth estimated", SECCHI_COMMENT, ignore.case = T),
+        !grepl("estimated", SECCHI_COMMENT, ignore.case = T),
+        !grepl("missing for this site", SECCHI_COMMENT, ignore.case = T),
+        !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T),
+        !grepl("based on trans", SECCHI_COMMENT, ignore.case = T),
+        !grepl("no secchi", SECCHI_COMMENT, ignore.case = T),
+
+      ) %>%
       # Confirmed that the reference date with Hugh and by reformatting in Excel 
       dplyr::mutate(
         SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
@@ -17,25 +26,26 @@
         Date = paste(DATE_COL, SECCHI_TIME, sep = "_"),
         Date = lubridate::ymd_h(Date),
         ) %>%
-      dplyr::mutate(
-        MEAN_SECCHI_DEPTH = ifelse((CLEAR_TO_BOTTOM == "Y") | (grepl("estimate", SECCHI_COMMENT, ignore.case =TRUE)),
-          NA, MEAN_SECCHI_DEPTH),
-        SECCHI_COMMENT = paste(SECCHI_COMMENT, "ClearToBottom", sep = ";"),
-        .by = c(UID)
-      ) %>%
-      # Average over all reps
+      tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
       dplyr::reframe(
         SITE_ID = toString(unique(SITE_ID)),
         ANALYTE = "Secchi",
         DATE_COL = unique(DATE_COL),
-
-        #### Confirm that we should just be taking the mean column with Hugh
-        RESULT = mean(MEAN_SECCHI_DEPTH, na.rm= T),
         Depth = mean(STATION_DEPTH, na.rm=T),
-        QA_COMMENT = toString(unique(SECCHI_COMMENT)),
-        .by = UID) %>%
+
+        # Mean of everything but the already meaned value
+        RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm =T),
+        # Compress all comments and note clear to bottom to be combined
+        CLEAR_TO_BOTTOM = sum(CLEAR_TO_BOTTOM == "Y") >= 1,
+        QAcomment = toString(unique(SECCHI_COMMENT)),
+        .by = c(UID)
+      ) %>%
       dplyr::mutate(
-        STUDY = "NCCA_secchi_2015"
+        RESULT = ifelse(CLEAR_TO_BOTTOM, NA, RESULT),
+        QAcomment= ifelse(CLEAR_TO_BOTTOM, paste("Clear to bottom", QAcomment, sep = ";"), QAcomment)
+      ) %>%
+      dplyr::mutate(
+        Study = "NCCA_secchi_2015"
       )
 }
 
@@ -90,7 +100,7 @@
     ) %>%
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
-      STUDY = "NCCA_hydro_2010"
+      Study = "NCCA_hydro_2010"
     )
 }
 

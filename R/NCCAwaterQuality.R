@@ -129,7 +129,7 @@
     tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")  %>%
     dplyr::mutate(
       sampleDepth = 0.5,
-      STUDY = "NCCA_WQ_2000s"
+      Study = "NCCA_WQ_2000s"
     )
     # Make a missing columns for depths to align with other data sources
     #mutate(DEPTH = NA)
@@ -259,7 +259,7 @@
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDepth = 0.5,
-      STUDY = "NCCA_WQ_2015"
+      Study = "NCCA_WQ_2015"
     )
 }
 

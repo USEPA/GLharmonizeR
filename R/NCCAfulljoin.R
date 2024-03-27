@@ -19,7 +19,8 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          greatLakes=TRUE, Lakes=c("Lake Michigan")) {
 
-  sites <- .readNCCASites(ncca2010sites, ncca2015sites)
+  sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
+    dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) %>%
     dplyr::mutate(UID = as.character(UID))
@@ -31,11 +32,13 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
 
   QA <- readr::read_csv(tenQAfile) %>%
     dplyr::select(-`...3`) %>%
-    dplyr::rename(QAconsiderations = Considerations)
+    dplyr::rename(QAconsiderations = Considerations,
+                  QAcode = `Unique Qualifier Code`) %>%
+    dplyr::distinct(QAcode, .keep_all = TRUE)
     
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
-    dplyr::left_join(., QA, by = c("QAcode" =  "Unique Qualifier Code")) %>%
+    dplyr::left_join(., QA, by = "QAcode") %>%
     dplyr::mutate(
       Latitude = dplyr::coalesce(Latitude.y, Latitude.x),
       Longitude = dplyr::coalesce(Longitude.y, Longitude.x),
@@ -43,7 +46,9 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       waterName = dplyr::coalesce(WTBDY_NM.y, WTBDY_NM.x),
       NCCRreg = dplyr::coalesce(NCCRreg.y, NCCRreg.x),
       Date = dplyr::coalesce(Date, DATE_COL),
-      SAMPYEAR = lubridate::year(Date)
+      SAMPYEAR = lubridate::year(Date),
+      QAcode = dplyr::coalesce(QAcode, QACODE),
+      QAcomment = dplyr::coalesce(QAcomment, QAComment, QA_COMMENT)
       ) %>%
     dplyr::select(-c(
       Latitude.x, Latitude.y,
@@ -51,8 +56,8 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       stationDepth.x, stationDepth.y, Depth,
       WTBDY_NM.x, WTBDY_NM.y,
       NCCRreg.x, NCCRreg.y,
-      DATE_COL#, QAconsiderations,
-      #QA_COMMENT, QAComment,
+      DATE_COL, #QAconsiderations,
+      QAComment, QA_COMMENT, QACODE
     )) %>%
     # Great lakes get's priority over spcifying each lake
     {if (greatLakes) {
@@ -60,5 +65,6 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     } else if (!is.null(Lakes)) {
       dplyr::filter(., waterName %in% Lakes)
     } else .}
+
   return(final)
 }
