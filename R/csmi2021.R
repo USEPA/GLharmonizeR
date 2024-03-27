@@ -27,17 +27,6 @@
     readxl::read_xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-dplyr::contains("...")) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
-<<<<<<< HEAD
-    tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::left_join(DL, by = "ANALYTE") %>%
-    dplyr::mutate(QA_CODE = dplyr::case_when(
-      # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-      RESULT < `method detection limit` ~ "nondetect"
-      )) %>%
-    dplyr::rename(STATION_DEPTH = `Site Depth (m)`, mdl = `method detection limit`, SAMPLE_DEPTH = `Separate depths (m)`) %>%
-    dplyr::select(-contains("detection limit corrected"), -c(Month, Ship, Lake, Site, Station, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                   `Time (EST)` ))
-=======
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::mutate(      # Haven't figured out how to parse these times, can come back to it if it's important 
       Date= lubridate::date(Date)
@@ -50,7 +39,6 @@
 
 
 
->>>>>>> 38-tests-for-data-quality
 
   #mutate(Time = case_when(
   #  grepl("/", `Time (EST)`) ~ # it's an interval
@@ -67,23 +55,6 @@
   ## 
   CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29)) %>% 
-<<<<<<< HEAD
-    dplyr::rename(Transect = ...1, Station = ...2, Date = ...3) 
-
-  # Any other QC'ing necessary such as number of scans per bin, time elapsed [Not supposing so]
-  CTD <- purrr::map2(list(first = CTD[,1:24],  second = CTD[,c(1:3, 25:35)], third = CTD[,c(1:3, 36:43)]),
-    list(5:24, 5:14, 5:11),
-    \(df, cols) tidyr::pivot_longer(
-     data = df, 
-     cols = cols, names_sep = " \\[", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT")) %>%
-    dplyr::bind_rows() %>%
-    dplyr::mutate(UNITS = stringr::str_remove_all(UNITS, "\\]"),
-           SAMPLE_DEPTH = dplyr::coalesce(`Depth [fresh water, m]`, `Depth [m]`)) %>%
-    dplyr::select(Date, ANALYTE, UNITS, RESULT, SAMPLE_DEPTH)
-
-  # return the joined data
-  return(dplyr::bind_rows(WQ, CTD))
-=======
     dplyr::rename(Transect = ...1, Station = ...2, Date = ...3,
                   Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
     # depth to nearest meter
@@ -129,14 +100,9 @@
 
   # return the joined data
   return(CTD)
->>>>>>> 38-tests-for-data-quality
 }
 
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.
-<<<<<<< HEAD
-# Lat-longs are missing but probably can be found in profile data below TRUE
-=======
 # A few Lat-longs are missing but probably can be found in profile data below TRUE
 # But also, the lat/lons are incredibly low precision
->>>>>>> 38-tests-for-data-quality

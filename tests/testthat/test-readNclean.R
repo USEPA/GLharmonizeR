@@ -1,21 +1,6 @@
 
 #%% CSMI
 test_that("CSMI data files can be found, read, cleaned, and joined.", {
-<<<<<<< HEAD
-  early <- file.path("L:", "Priv", "Great lakes Coastal", "2002-2010 Water Quality", "2010")
-  t15 <- file.path("L:", "Priv", "Great lakes Coastal", "2015 CSMI Lake Michigan",
-    "WQ data and database", "CSMI data & database", "CSMI_LkMich2015_Database_working_minsRivMouths.accdb")
-  t21 <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)",
-    "Lake Michign ML - General", "Raw_data", "CSMI", "2021")
-
-  files <- c(early, t15, t21)
-  goodFiles <- sum(sapply(files, file.exists))
-  gooddirs<- sum(sapply(files, dir.exists))
-  goodTotal <- goodFiles + gooddirs
-
-  testthat::expect_equal(length(files), goodTotal)
-  CSMI <- LoadCSMI(early, t15, t21)
-=======
   csmi2010 <- file.path(here::here(), "Data", "CSMI", "2010")
   csmi2015 <- file.path(here::here(), "Data", "CSMI", "CSMI2015_newQuery.accdb")
   csmi2021 <- file.path(here::here(), "Data", "CSMI", "2021")
@@ -54,17 +39,12 @@ test_that("CSMI data files can be found, read, cleaned, and joined.", {
 
 
   CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021)
->>>>>>> 38-tests-for-data-quality
   testthat::expect_s3_class(CSMI, "data.frame")
 })
 
 
 #%% GLENDA
 test_that("GLENDA data file can be found, read, cleaned, and pivoted", {
-<<<<<<< HEAD
-  filepath <- "Data/Raw/GLENDA/GLENDA.csv"
-  testthat::expect_true(file.exists(filepath))
-=======
   filepath <- "Data/GLENDA.csv"
   testthat::expect_true(file.exists(filepath))
 
@@ -108,7 +88,6 @@ test_that("GLENDA data file can be found, read, cleaned, and pivoted", {
     "logical", "logical", "logical", "logical", "logical")
   testthat::expect_equal(sum(test == glendaTypes), length(test))
 
->>>>>>> 38-tests-for-data-quality
   GLENDA <- readCleanGLENDA(filepath)
   testthat::expect_s3_class(GLENDA, "data.frame")
 })
@@ -134,19 +113,11 @@ test_that("NCCA hydrological data can be found, read, and cleaned", {
 
 
 test_that("NCCA water quality data read and cleaned", {
-<<<<<<< HEAD
-  siteFiles <- "Data/Raw/NCCA"
-  preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
-  tenFiles<- c("Data/Raw/NCCA/assessed_ncca2010_waterchem.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv") 
-  fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
-  nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)
-=======
   siteFiles <- file.path(here::here(), "Data", "NCCA")
   preFiles <- file.path(here::here(), "Data", "NCCA", "nca_waterchemdata.csv")
   tenFiles<- c(file.path(here::here(), "Data", "NCCA", "assessed_ncca2010_waterchem.csv"), file.path("Data", "NCCA", "nassessedWaterChem2010.csv"))
   fifteenFiles <- file.path(here::here(), "Data", "NCCA", "ncca_2015_water_chemistry_great_lakes-data.csv")
   nccaWQ <- .readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)
->>>>>>> 38-tests-for-data-quality
   testthat::expect_s3_class(nccaWQ, "data.frame")
 })
 

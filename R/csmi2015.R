@@ -32,15 +32,12 @@
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeUTC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
-<<<<<<< HEAD
-=======
     dplyr::mutate(
       ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
       ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
       ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
      ) %>%
 
->>>>>>> 38-tests-for-data-quality
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
     dplyr::rename(SAMPLE_DEPTH = CTDdepth,
            STATION_DEPTH = DepthM_actual,
@@ -54,16 +51,13 @@
         PlaceName, ProjectName, SiteType, DepthStrata, PositNS, `PositNS#`,
         PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
         SurveyVessel, WQdepth_m,
-        )
-<<<<<<< HEAD
-        )
-=======
-        ) %>%
+        )) %>%
     dplyr::mutate(
       STUDY = "CSMI_2015",
       YEAR = 2015
       )
->>>>>>> 38-tests-for-data-quality
+
+  RODBC::odbcClose(dbi)
            
 
   # Unused tables
@@ -73,7 +67,6 @@
   # transect <- RODBC::sqlFetch(dbi, "Qry_TransectData") # This might contain all of the data in the whole database
   # therm <- RODBC::sqlFetch(dbi, "L2b_ThermStructure") # Numbers describing sampling w/r/t thermocline structures
 
-  RODBC::odbcClose(dbi)
 
   # looking up, this seems like standard driver protocol if wanting to use more precise connection
   # For DBI and dbplyr

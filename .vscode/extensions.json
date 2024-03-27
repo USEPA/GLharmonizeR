@@ -8,6 +8,9 @@
 		"GitHub.vscode-pull-request-github",
 		"REditorSupport.r",
 		"ms-vscode-remote.vscode-remote-extensionpack",
+		"ms-python.python",
+		"quarto.quarto",
+		"ms-python.vscode-pylance"
 	],
 	// List of extensions recommended by VS Code that should not be recommended for users of this workspace.
 	"unwantedRecommendations": [

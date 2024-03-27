@@ -26,8 +26,5 @@ renv.lock
 ^NCCAmappings\.xlsx$
 ^SitesMissingLatLon\.csv$
 .qmd$
-<<<<<<< HEAD
-=======
 ^\.github$
 ^codecov\.yml$
->>>>>>> 38-tests-for-data-quality
