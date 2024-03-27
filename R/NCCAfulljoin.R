@@ -71,8 +71,8 @@ LoadNCCAfull <- function(siteFiles, preFiles, tenFiles, tenQAfile, fifteenFiles,
       dplyr::filter(., waterName %in% Lakes)
     } else .}
 
-final %>%
-  filter(SAMPYEAR == 2015) %>%
+final %>%  
+  filter(SAMPYEAR == 2015) %>% distinct(SITE_ID) %>% print(n = 1000)
   distinct(SITE_ID) %>% 
   print(n =63)
   return(final)
