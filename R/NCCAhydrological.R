@@ -50,18 +50,14 @@
 #' @param filepath a string specifying the filepath of the data
 #'  
 #' @return dataframe
-.readNCCAhydro2010 <- function(filepaths, tenQAfile) {
-  QA <- readr::read_csv(tenQAfile) %>%
-    dplyr::select(-`...3`) %>%
-    dplyr::rename(QAconsiderations = Considerations)
+.readNCCAhydro2010 <- function(filepaths) {
 
-  filepaths %>%
+  filepaths %>% 
     purrr::map_dfr(readr::read_csv) %>%
-    # dplyr::select(UID, SITE_ID, DATE_COL, SDEPTH, PARAMETER_NAME, RESULT, UNITS, QA_CODE, QA_COMMENT) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
       ANALYTE = PARAMETER_NAME,
-      Depth = `STATION_DEPTH(m)`) %>%
+      stationDepth = `STATION_DEPTH(m)`) %>%
     dplyr::mutate(
       # This is unaffected by being grouped
       DATE_COL = lubridate::mdy(DATE_COL),
@@ -78,7 +74,7 @@
         ANALYTE == "Ambient PAR" ~ "Corrected PAR",
         .default = ANALYTE
       ),
-      .by = c(UID, sampleDepth, Depth)
+      .by = c(UID, sampleDepth, stationDepth)
     ) %>%
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
@@ -86,19 +82,16 @@
     ) %>%
     dplyr::reframe(
       RESULT = mean(RESULT, na.rm = TRUE),
-      Depth = mean(Depth, na.rm = TRUE),
+      stationDepth = mean(stationDepth, na.rm = TRUE),
       QAcode= toString(unique(QA_CODE)),
-      .by = c(UID, sampleDepth, ANALYTE, DATE_COL, SITE_ID, Depth)
+      QAcomment = toString(unique(QA_COMMENT)),
+      # Cast flags comments and flags didn't seem to contain anything useful
+      .by = c(UID, sampleDepth, ANALYTE, DATE_COL, SITE_ID, stationDepth)
     ) %>%
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       STUDY = "NCCA_hydro_2010"
-    ) %>%
-    dplyr::left_join(QA, by = c("QAcode" =  "Unique Qualifier Code")) %>%
-    # QC filter
-    dplyr::filter(!grepl("R", QAcode)) %>%
-    dplyr::filter(!grepl("Q", QAcode))
-
+    )
 }
 
 
@@ -116,7 +109,8 @@
   readr::read_csv(filepath) %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1")
+      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
+      Study = "NCCA_hydro_2015"
     ) %>%
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
@@ -126,10 +120,7 @@
     # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
     dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
             Depth = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, DATE_COL, SITE_ID, sampleDepth, ANALYTE)) %>%
-    dplyr::mutate(
-      DATE_COL = lubridate::ymd("2015-06-01"),
-      STUDY = "NCCA_hydro_2015")
+            .by = c(UID, DATE_COL, SITE_ID, sampleDepth, ANALYTE, Study))
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
@@ -148,3 +139,4 @@
     .readNCCAhydro2015(hydrofile2015), 
     .readNCCASecchi2015(secchifile2015))
 }
+

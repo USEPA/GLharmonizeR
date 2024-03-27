@@ -21,7 +21,6 @@ Imports:
     purrr,
     readxl, 
     readr,
-    RODBC,
     tidyr,
     stringr
 Suggests: 

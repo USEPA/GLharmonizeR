@@ -14,36 +14,6 @@
 #' @return dataframe of the fully joined water quality data from CSMI 2010
 .LoadCSMI2010 <- function(directoryPath){
   df <- readxl::read_xlsx(file.path(directoryPath, "GL2010db.xlsx")) %>%
-<<<<<<< HEAD
-    # Should we remove blk, intercal, recal, Ipom?
-    dplyr::filter(!grepl("dup", `blk/dup other`)) %>%
-    # group all of the different tables together
-    tidyr::pivot_longer(dplyr::starts_with("STIS #"),
-                  names_to = "__stis", values_to = "STIS#") %>%
-    tidyr::pivot_longer(dplyr::starts_with("Sample Type"),
-                  names_to = "__sampleType", values_to = "sampleType") %>%
-    # Forward fill missingness in Date column
-    tidyr::fill(DATE, .direction = "down") %>%
-    # particulate nitroget was contained in muyltiple tables so combine them (they're distinguished by their sample type)
-    dplyr::mutate(`Part N ug/L` = dplyr::coalesce(`Part N ug/L...35`, `Part N ug/L...37`),
-            DATE = lubridate::dmy(DATE),
-            LATITUDE = as.numeric(`Acutal Lat (N)`),
-            LONGITUDE = as.numeric(`Actual Lon (W)`),
-            STATION_DEPTH = as.numeric(`Stn Depth (m)`)
-            ) %>%
-    dplyr::select(-dplyr::contains("..."), -dplyr::contains("__"))  %>%
-    dplyr::rename(`Na+ mg/L` = `Na+ mg/l`,
-    # Should double check that this is the station depth (maybe check to see if it was duplicated) 
-           FRACTION = sampleType) %>%
-    tidyr::pivot_longer(c(8:25, 27, 33), names_pattern = "^([[:graph:]]*) (.*/L)$", names_to = c("ANALYTE", "UNITS"), values_to = "RESULT") %>%
-    dplyr::select(-c(LAKE, SITE, STATION, STATION_DEPTH, PROJECT, `blk/dup other`, STIS, `Acutal Lat (N)`, `Actual Lon (W)`, DATE)) %>%
-    dplyr::mutate(UNITS = stringr::str_remove(UNITS, "^[[:space:]]*"))
-
-
-    # move detection limits to own column
-  dls <- df %>%
-    dplyr::filter(`STIS#` == "method detection limit") %>%
-=======
     dplyr::slice(9:n()) %>%
     # Move spatial information to front to simplify table conversion
     dplyr::relocate(contains(c("Stn Depth", "Acutal", "Actual"))) %>%
@@ -116,31 +86,23 @@
 
   dls <- df %>%
     #dplyr::filter(`STIS#` == "method detection limit") %>%
->>>>>>> 38-tests-for-data-quality
     dplyr::distinct(ANALYTE, RESULT) %>% 
     tidyr::drop_na() %>%
     dplyr::rename(mdl = RESULT) %>%
     dplyr::mutate(mdl = as.numeric(mdl))
 
   df <- df %>%
-<<<<<<< HEAD
-=======
     # WHAT IS THIS FILTER DOING? 
->>>>>>> 38-tests-for-data-quality
     dplyr::filter(`STIS#` != "STIS #") %>%
     dplyr::filter(! grepl("detection limit", `STIS#`)) %>%
     dplyr::left_join(dls, by = "ANALYTE") %>%
     tidyr::drop_na(RESULT) %>%
-<<<<<<< HEAD
-    dplyr::mutate(RESULT = as.numeric(RESULT)) 
-=======
     dplyr::mutate(
       RESULT = as.numeric(RESULT),
       Date = lubridate::ymd("2010-06-15"),
       Study = "CSMI_2010",
       Year = 2010
       )
->>>>>>> 38-tests-for-data-quality
 
 
 

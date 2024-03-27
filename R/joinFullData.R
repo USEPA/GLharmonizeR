@@ -19,72 +19,27 @@
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-<<<<<<< HEAD
-.LoadJoinAll <- function(hydrofiles2010, hydrofile2015, secchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021) {
-  # Read NCCA hydrographic data 
-  NCCAhydro <- .readNCCAhydro(
-    hydrofiles2010 = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv", 
-  "https://www.epa.gov/sites/default/files/2016-01/not_assessed_ncca2010_hydrolab.csv"),
-    hydrofile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_hydrographic_profile_great_lakes-data.csv",
-    secchifile2015 = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_secchi_great_lakes-data.csv" 
-    ) %>%
-    dplyr::select(UID, DATE_COL, SAMPLE_DEPTH_M, ANALYTE, RESULT, UNITS, STATION_DEPTH_M) %>%
-    dplyr::rename(Date=  DATE_COL, sampleDepth = SAMPLE_DEPTH_M, Depth = STATION_DEPTH_M) %>%
-    dplyr::mutate(UID = as.character(UID), STUDY = "NCCA")
-
-  # Read NCCA WQ files 
-  nccaWQ <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)  %>%
-    dplyr::filter(dplyr::between(LONGITUDE, -88, -84.9),
-           dplyr::between(LATITUDE, 41.7, 46)) %>%
-    dplyr::select(UID, Date, DEPTH, ANALYTE, RESULT, UNITS, QAComment) %>%
-    dplyr::rename(sampleDepth = DEPTH, Comment = QAComment) %>%
-    dplyr::mutate(UID = as.character(UID), 
-            STUDY = "NCCA")
-
-=======
 .LoadJoinAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021) {
   # Read NCCA hydrographic data 
   ncca <- LoadNCCAfull(siteFiles, preFiles, tenFiles, fifteenFiles, 
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015)
->>>>>>> 38-tests-for-data-quality
+
+
+
 
   # READ GLENDA
   GLENDA <- readCleanGLENDA(glendaData) %>%
     dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, Depth = STN_DEPTH_M, Comment = RESULT_REMARK, RESULT = VALUE, Date = sampleDate) %>%
     dplyr::select(UID, Date, Depth, sampleDepth, ANALYTE, RESULT, FRACTION, Comment, UNITS) %>%
-    dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT),
-    STUDY = "GLENDA")
-
-  # READ CSMI
-<<<<<<< HEAD
-  CSMI <- LoadCSMI(
-    csmi2010,
-    csmi2015,
-    csmi2021
-  ) %>%
-    dplyr::rename(UID = `STIS#`) %>%
-    #dplyr::select(Depth, FRACTION, LATITUDE, LONGITUDE, sampleDepth, ANALYTE, UNITS, RESULT, mdl, Date) %>%
-    dplyr::mutate(UID = as.character(UID),
-    STUDY = "CSMI") 
-  
-  # Join data
-  allWQ <- dplyr::bind_rows(NCCAhydro, nccaWQ, CSMI, GLENDA) %>%
-    tidyr::drop_na(RESULT) 
-  
-=======
+    dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT))
   CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
     dplyr::rename(UID = `STIS#`) %>%
     #dplyr::select(Depth, FRACTION, LATITUDE, LONGITUDE, sampleDepth, ANALYTE, UNITS, RESULT, mdl, Date) %>%
     dplyr::mutate(UID = as.character(UID),
     STUDY = "CSMI")
 
-  # Join data
-  allWQ <- dplyr::bind_rows(ncca, CSMI, GLENDA) %>%
-    tidyr::drop_na(RESULT)
 
->>>>>>> 38-tests-for-data-quality
   return(allWQ)
 }
 
@@ -100,14 +55,18 @@
 #' @param namingFile a string specifying the file containing naming and units information 
 #' @return dataframe with unified names and units 
 .UnifyUnitsNames <- function(data, namingFile) {
-  renamingTable <- dplyr::bind_rows(
-    readxl::read_xlsx(namingFile, sheet = "GLENDA_Map",
-    col_types = rep("text", 12)),
-    readxl::read_xlsx(namingFile, sheet = "NCCA_Map",
-    col_types = rep("text", 10)),
-    readxl::read_xlsx(namingFile, sheet = "CSMI_Map", 
-    col_types = rep("text", 11))
-  ) %>%
+  renamingTable <- purrr::map2(
+    list("GLENDA_Map", "NCCA_Map", "CSMI_Map"),
+    list(12, 10, 11),
+    .f = \(x,y)
+    readxl::read_xlsx(
+      namingFile, 
+      sheet = x,
+      col_types = rep("text", y)) %>%
+    dplyr::mutate(
+      Study = stringr::str_remove(x, "_Map$")
+    )) %>%
+  dplyr::bind_rows() %>%
     dplyr::distinct(ANALYTE, FRACTION, CodeName)
   Key <- readxl::read_xlsx(namingFile, sheet = "Key") 
   UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
@@ -116,13 +75,6 @@
   data <- data %>%
     dplyr::left_join(renamingTable, by = c("ANALYTE", "FRACTION")) %>%
     dplyr::arrange(ANALYTE) %>%
-<<<<<<< HEAD
-    dplyr::select(-c(ANALYTE, FRACTION, AnalMethod, ANL_CODE,  Comment)) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-=======
-    # dplyr::select(-c(ANALYTE, FRACTION, AnalMethod, ANL_CODE,  Comment)) %>%
-    #dplyr::filter(CodeName != "Remove") %>%
->>>>>>> 38-tests-for-data-quality
 
   # Unit conversions
     dplyr::mutate(UNITS = ifelse(
@@ -151,15 +103,6 @@
 #' @inheritParams .UnifyUnitsNames
 #' 
 #' @return dataframe with unified names and units for all WQ data
-<<<<<<< HEAD
-LoadWQdata <- function(hydrofiles2010, hydrofile2015, secchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021,
-                         namingFile) {
-  df <- .LoadJoinAll(
-    hydrofiles2010 = hydrofiles2010,
-    hydrofile2015 = hydrofile2015,
-    secchifile2015 = secchifile2015,
-=======
 LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021,
                          namingFile) {
@@ -167,7 +110,6 @@ LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015
     NCCAhydrofiles2010 = NCCAhydrofiles2010,
     NCCAhydrofile2015 = NCCAhydrofile2015,
     NCCAsecchifile2015 = NCCAsecchifile2015,
->>>>>>> 38-tests-for-data-quality
     siteFiles = siteFiles,
     preFiles = preFiles,
     tenFiles = tenFiles,

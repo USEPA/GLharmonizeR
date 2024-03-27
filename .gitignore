@@ -65,43 +65,22 @@ vignettes/*.pdf
 *.pdf
 
 Results/Code/*/*_files
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
 Data/*.xml
-=======
->>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
->>>>>>> 38-tests-for-data-quality
 
 # Exceptions
 !Data/Formatted/*.csv
 !docs/*
 !docs/*/*
 !Data/Meta/*.csv
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
 !Data/glendaRequestTokenTemplate.xml
-=======
->>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
->>>>>>> 38-tests-for-data-quality
 
 desktop.ini
 
 /.quarto/
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 38-tests-for-data-quality
 .Rproj.user
 .Rdata
 .DS_Store
 .quarto
 inst/doc
-<<<<<<< HEAD
-=======
 
 !Data/*.Rds
-=======
->>>>>>> 6a6e4f86dbb881e0dce6f8e293ce0cad6fd74713
->>>>>>> 38-tests-for-data-quality

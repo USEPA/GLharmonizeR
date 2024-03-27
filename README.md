@@ -1,15 +1,3 @@
-<<<<<<< HEAD
-<img src="docs/figsTables/logo.png" alt="Lake Michigan with sampled locations represented as points" width="600"/>
-
-# LM_Chla
-![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
-
-This repository contains code to merge Lake Michigan chlorophyll a and predictor data from diverse sources. This repo also contains code to fit models to predict chla.
-
-
-<img src="docs/figsTables/logo.png" alt="Lake Michigan with sampled locations represented as points" width="300"/>
-
-=======
 # LMChla <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
@@ -20,7 +8,6 @@ This repository contains code to merge Lake Michigan chlorophyll a and predictor
 
 This repository contains code to merge Lake Michigan chlorophyll a and predictor data from diverse sources. This repo also contains code to fit models to predict chla.
 
->>>>>>> 38-tests-for-data-quality
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document.
 
 

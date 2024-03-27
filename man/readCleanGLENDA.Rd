@@ -9,13 +9,9 @@ readCleanGLENDA(
   flagsPath = NULL,
   siteCoords = NULL,
   imputeCoordinates = FALSE,
-<<<<<<< HEAD
-  nameMap = NULL
-=======
   nameMap = NULL,
   n_max = Inf,
   sampleIDs = NULL
->>>>>>> 38-tests-for-data-quality
 )
 }
 \arguments{
