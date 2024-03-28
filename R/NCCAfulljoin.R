@@ -38,26 +38,17 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
+    dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
+    dplyr::select(-QACODE) %>%
     dplyr::left_join(., QA, by = "QAcode") %>%
     dplyr::mutate(
-      Latitude = dplyr::coalesce(Latitude.y, Latitude.x),
-      Longitude = dplyr::coalesce(Longitude.y, Longitude.x),
       stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x, Depth),
-      waterName = dplyr::coalesce(WTBDY_NM.y, WTBDY_NM.x),
-      NCCRreg = dplyr::coalesce(NCCRreg.y, NCCRreg.x),
       Date = dplyr::coalesce(Date, DATE_COL),
-      SAMPYEAR = lubridate::year(Date),
-      QAcode = dplyr::coalesce(QAcode, QACODE),
-      QAcomment = dplyr::coalesce(QAcomment, QAComment, QA_COMMENT)
+      SAMPYEAR = lubridate::year(Date)
       ) %>%
     dplyr::select(-c(
-      Latitude.x, Latitude.y,
-      Longitude.x, Longitude.y,
       stationDepth.x, stationDepth.y, Depth,
-      WTBDY_NM.x, WTBDY_NM.y,
-      NCCRreg.x, NCCRreg.y,
-      DATE_COL, #QAconsiderations,
-      QAComment, QA_COMMENT, QACODE
+      DATE_COL #QAconsiderations,
     )) %>%
     # Great lakes get's priority over spcifying each lake
     {if (greatLakes) {

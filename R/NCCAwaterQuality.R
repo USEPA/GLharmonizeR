@@ -83,7 +83,7 @@
 #' Read in all NCCA site data
 #' 
 #' @description
-#' `.readNCCAsites` returns spatial data relating to study sites
+#' `.readNCCASites` returns spatial data relating to study sites
 #' 
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -94,7 +94,7 @@
   df <- .readNCCASite2010(ncca2010sites)
   df2 <- .readNCCASite2015(ncca2015sites) 
 
-  return(dplyr::bind_rows(df, df2) %>% distinct())
+  return(dplyr::bind_rows(df, df2) %>% dplyr::distinct())
 
 }
 
@@ -195,7 +195,7 @@
       sampleDepth = 0.5
     ) %>%
     dplyr::mutate(
-      STUDY = "NCCA_WQ_2010"
+      Study = "NCCA_WQ_2010"
     )
 }
 
@@ -227,8 +227,8 @@
              .default = "-"
            )) %>%
     dplyr::rename(Date = DATE_COL,
-           QACODE = NARS_FLAG,
-           QAComment = NARS_COMMENT,
+           QAcode= NARS_FLAG,
+           QAcomment = NARS_COMMENT,
            UNITS = RESULT_UNITS,
            ANL_CODE = ANALYTE
           ) %>%
@@ -281,10 +281,9 @@
 #' @return dataframe
 .readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL){
   dfs <- list()
-  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 files not specified")
-  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 files not specified")
-  dplyr::bind_rows(dfs) %>%
-    dplyr::left_join(sites, by = "SITE_ID")
+  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 WQ filepath not specified or trouble finding")
+  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 WQ filepath not specified or trouble finding")
+  dplyr::bind_rows(dfs)
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
 }

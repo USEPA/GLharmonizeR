@@ -30,13 +30,14 @@ test_that("Full NCCA data can be loaded and joined", {
 # Generate QA codes spreadsheet to share for deliberation 
 # ncca %>% 
 #   separate_longer_delim(QAcode, ",") %>%
+#   filter(!is.na(QAcode), QAcode != "NA") %>% 
 #   mutate(QAcode = stringr::str_remove_all(QAcode, " ")) %>%
+#   dplyr::select(-c(Definition, QAcomment, QAconsiderations)) %>%
+#   left_join(QA, by = "QAcode") %>%
 #   reframe(n = n(),
 #           Region = toString(unique(NCCRreg)),
 #           SAMPYEAR = toString(unique(SAMPYEAR)),
-#           .by = c(ANALYTE, QAcode, Definition, QAcomment)) %>%
-#   filter(!is.na(QAcode)) %>%
-#   filter(QAcode != "NA") %>%
-#   mutate(Definition = ifelse(is.na(Definition), toString(unique(Definition)), Definition)) %>%
-#   write_csv("NCCAQAcounts.csv")
+#           .by = c(ANALYTE, ANL_CODE, QAcode, Definition, QAconsiderations)) %>%
+#   arrange(SAMPYEAR, ANALYTE) %>%
+#   write_csv("NCCAQAcounts2.csv")
 
