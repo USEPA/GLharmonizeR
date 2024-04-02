@@ -28,7 +28,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
   # Read NCCA WQ files 
   nccaWQ <- .readNCCA(tenFiles, fifteenFiles) %>%
     dplyr::mutate(UID = as.character(UID)) %>%
-    dplyr::mutate(SAMPYEAR = lubridate::year(Date)) #%>%
+    dplyr::mutate(Year = lubridate::year(sampleDate)) #%>%
 
   QA <- readr::read_csv(tenQAfile) %>%
     dplyr::select(-`...3`) %>%
@@ -43,8 +43,8 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     dplyr::left_join(., QA, by = "QAcode") %>%
     dplyr::mutate(
       stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x, Depth),
-      Date = dplyr::coalesce(Date, DATE_COL),
-      SAMPYEAR = lubridate::year(Date)
+      sampleDate = dplyr::coalesce(sampleDate, DATE_COL),
+      Year = lubridate::year(sampleDate)
       ) %>%
     dplyr::select(-c(
       stationDepth.x, stationDepth.y, Depth,

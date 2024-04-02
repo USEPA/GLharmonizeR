@@ -126,7 +126,7 @@
                     "DO Cond" = "-",
                     "Trans Cond" = "-",
                   )) %>%
-    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")  %>%
+    tidyr::pivot_longer(-c(SITE_ID, Year), names_to = "ANALYTE", values_to = "RESULT")  %>%
     dplyr::mutate(
       sampleDepth = 0.5,
       Study = "NCCA_WQ_2000s"
@@ -161,7 +161,7 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      Date = DATE_COL) %>%
+      sampleDate = DATE_COL) %>%
     dplyr::mutate(
       # Combine Nitrate adn Nitrite
       Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
@@ -181,7 +181,7 @@
         .default = ANALYTE
       ),
 
-      .by = c(UID, SITE_ID, Date)
+      .by = c(UID, SITE_ID, sampleDate)
     ) %>%
     dplyr::select(
       -dplyr::contains("Nitr")
@@ -226,14 +226,15 @@
              "RESULT_UNITS" = "c",
              .default = "-"
            )) %>%
-    dplyr::rename(Date = DATE_COL,
-           QAcode= NARS_FLAG,
-           QAcomment = NARS_COMMENT,
-           UNITS = RESULT_UNITS,
-           ANL_CODE = ANALYTE
-          ) %>%
+    dplyr::rename(
+      sampleDate = DATE_COL,
+      QAcode= NARS_FLAG,
+      QAcomment = NARS_COMMENT,
+      UNITS = RESULT_UNITS,
+      ANL_CODE = ANALYTE
+    ) %>%
     dplyr::mutate(
-      Date = lubridate::dmy(Date), 
+      sampleDate = lubridate::dmy(sampleDate), 
       # Combine Nitrate adn Nitrite
       Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
@@ -247,7 +248,7 @@
         ANL_CODE == "NITRATE_N" ~ "NOx",
         .default = ANL_CODE 
       ),
-      .by = c(UID, SITE_ID, Date)
+      .by = c(UID, SITE_ID, sampleDate)
     ) %>%
     dplyr::select(
       -dplyr::contains("NITR")

@@ -29,13 +29,13 @@
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::mutate(      # Haven't figured out how to parse these times, can come back to it if it's important 
-      Date= lubridate::date(Date)
+      sampleDate= lubridate::date(Date)
     ) %>%
     # thinking that the first three letters of Site are all that matters
     dplyr::mutate(Site = stringr::str_extract(Site, "^[:alnum:]{3}")) %>%
-    dplyr::rename(STATION_DEPTH = `Site Depth (m)`,  SAMPLE_DEPTH = `Separate depths (m)`) %>%
+    dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                    `Time (EST)`, Station ))
+                    `Time (EST)`, Station, Date ))
 
 
 
@@ -55,29 +55,28 @@
   ## 
   CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29)) %>% 
-    dplyr::rename(Transect = ...1, Station = ...2, Date = ...3,
+    dplyr::rename(Transect = ...1, Station = ...2, sampleDate = ...3,
                   Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
     # depth to nearest meter
     dplyr::mutate(
       dplyr::across(dplyr::contains("Depth"), round),
       )
 
-  timeSpace <- CTD %>% select(Transect:Date, Latitude, Longitude)
-  CTD <- CTD %>% select(-c(Transect:Date, Latitude, Longitude))
+  timeSpace <- CTD %>% dplyr::select(Transect:sampleDate, Latitude, Longitude)
+  CTD <- CTD %>% dplyr::select(-c(Transect:sampleDate, Latitude, Longitude))
 
   # Any other QC'ing necessary such as number of scans per bin, time elapsed [Not supposing so]
   # only keep one depth, and temperature
   CTD <- purrr::map(list(first = CTD[,c(1:11, 18)],  second = CTD[,20:27], third = CTD[,c(31, 33:38)]),
     \(df)  df %>%
-            dplyr::rename(Depth = 1) %>%
+            dplyr::rename(sampleDepth = 1) %>%
             dplyr::bind_cols(timeSpace, .)) %>%
-    purrr::reduce(dplyr::full_join, by = c("Transect", "Station", "Date", "Depth", "Latitude", "Longitude")) %>%
+    purrr::reduce(dplyr::full_join, by = c("Transect", "Station", "sampleDate", "sampleDepth", "Latitude", "Longitude")) %>%
     dplyr::mutate(Station = stringr::str_remove(Station, "_")) %>%
-    dplyr::full_join(WQ, by = c("Transect" = "Site", "Date", "Depth" = "SAMPLE_DEPTH")) %>%
+    dplyr::full_join(WQ, by = c("Transect" = "Site", "sampleDate", "sampleDepth" = "sampleDepth")) %>%
     dplyr::select(-contains("Station"), -c(`STIS#`)) %>%
     tidyr::pivot_longer(
-      cols = -c(Transect:Depth), names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::rename(SAMPLE_DEPTH = Depth) %>%
+      cols = -c(Transect:sampleDepth), names_to = "ANALYTE", values_to = "RESULT") %>%
     ## ADD MDLS at the end
     dplyr::left_join(DL, by = "ANALYTE") %>%
     dplyr::rename(mdl = `method detection limit`, SITE_ID = Transect) %>%
@@ -94,7 +93,7 @@
       ANALYTE = stringr::str_remove_all(ANALYTE, "\\-"),
       ANALYTE = stringr::str_remove_all(ANALYTE, "\\="),
       Study = "CSMI_2021",
-      YEAR = 2021
+      Year = 2021
       )
 
 
