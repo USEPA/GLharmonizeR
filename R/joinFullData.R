@@ -19,27 +19,33 @@
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-.LoadJoinAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
+.LoadAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021) {
   # Read NCCA hydrographic data 
-  ncca <- LoadNCCAfull(siteFiles, preFiles, tenFiles, fifteenFiles, 
-                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015)
-
-
+  ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
+                         NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"))
 
 
   # READ GLENDA
   GLENDA <- readCleanGLENDA(glendaData) %>%
-    dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, Depth = STN_DEPTH_M, Comment = RESULT_REMARK, RESULT = VALUE, Date = sampleDate) %>%
-    dplyr::select(UID, Date, Depth, sampleDepth, ANALYTE, RESULT, FRACTION, Comment, UNITS) %>%
+    dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK, RESULT = VALUE) %>%
     dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT))
+
   CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
-    dplyr::rename(UID = `STIS#`) %>%
-    #dplyr::select(Depth, FRACTION, LATITUDE, LONGITUDE, sampleDepth, ANALYTE, UNITS, RESULT, mdl, Date) %>%
-    dplyr::mutate(UID = as.character(UID),
-    STUDY = "CSMI")
+    dplyr::rename(UID = STIS) %>%
+    dplyr::mutate(UID = as.character(UID))
 
-
+  allWQ <- dplyr::bind_rows(
+    ncca, GLENDA, CSMI
+  ) %>% 
+  dplyr::mutate(
+    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID, SITE)
+  ) %>%
+  dplyr::select(
+    -c(CLEAR_TO_BOTTOM, numerator, denominator, MONTH, SEASON, CRUISE_ID, VISIT_ID, DEPTH_CODE, SAMPLE_TYPE,
+    QC_TYPE, PROJECT, `blk/dup other`, LATITUDE, LONGITUDE, STATION_ID, SITE, STATION, QA_CODE)
+  )
   return(allWQ)
 }
 
@@ -81,7 +87,7 @@
       is.na(UNITS),
       names(sort(table(UNITS, useNA = "always")))[[1]],
       UNITS
-    ), .by = c(CodeName, STUDY)) %>%
+    ), .by = c(CodeName, Study)) %>%
     dplyr::mutate(ReportedUnits = stringr::str_remove_all(UNITS, "/")) %>%
     dplyr::left_join(Key, by = "CodeName") %>%
     dplyr::left_join(UnitConversions, by = c("UNITS" = "ReportedUnits")) %>% 
@@ -99,14 +105,14 @@
 #' @details
 #' Loading data from all of these sources required QC on each respective source.
 #'
-#' @inheritParams .LoadJoinAll
+#' @inheritParams .LoadAll
 #' @inheritParams .UnifyUnitsNames
 #' 
 #' @return dataframe with unified names and units for all WQ data
 LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021,
                          namingFile) {
-  df <- .LoadJoinAll(
+  df <- .LoadAll(
     NCCAhydrofiles2010 = NCCAhydrofiles2010,
     NCCAhydrofile2015 = NCCAhydrofile2015,
     NCCAsecchifile2015 = NCCAsecchifile2015,

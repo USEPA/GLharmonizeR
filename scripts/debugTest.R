@@ -1,11 +1,20 @@
 library(tidyverse)
 
 
-df <- data.frame(
-  "c" = c(1,12,3),
-  "d" = c(2,3,4)
+
+filter_N_plot <- function(df, threshold) {
+  df %>%
+    dplyr::filter(., a < threshold) %>%
+    ggplot(aes(x = a)) +
+    geom_histogram() 
+}
+
+A <- data.frame(
+  "a" = rnorm(100),
+  "b" = rnorm(100) 
 )
 
-df %>% 
-ggplot(aes(x = c, y = d)) +
-  geom_point()
+A %>%
+  filter_N_plot(., -1)
+
+

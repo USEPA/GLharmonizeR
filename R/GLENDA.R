@@ -36,10 +36,10 @@
         # This is so that everything can be pivoted, we change 
         # to final datatypes later once it's in long format
         dplyr::mutate(across(everything(), as.character)) %>%
-        dplyr::mutate(YEAR = as.integer(YEAR),
+        dplyr::mutate(Year = as.integer(YEAR),
               STN_DEPTH_M = as.double(STN_DEPTH_M),
-              LATITUDE = as.double(LATITUDE),
-              LONGITUDE = as.double(LONGITUDE),
+              Latitude = as.double(LATITUDE),
+              Longitude = as.double(LONGITUDE),
               SAMPLE_DEPTH_M = as.double(SAMPLE_DEPTH_M),
               SAMPLING_DATE = lubridate::ymd_hm(SAMPLING_DATE)) %>%
               dplyr::select(-Row)
@@ -122,19 +122,19 @@
       # impute the missing sites from that file
       dplyr::left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x")) %>%
         dplyr::mutate(
-          LATITUDE = dplyr::coalesce(LATITUDE, LATITUDE.x),
-          LONGITUDE = dplyr::coalesce(LONGITUDE, LONGITUDE.x),
-          STN_DEPTH_M = dplyr::coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
+          Latitude = dplyr::coalesce(Latitude, LATITUDE),
+          Longitude = dplyr::coalesce(Longitude, LONGITUDE),
+          stationDepth = dplyr::coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
         ) %>%
-        dplyr::select(-c(LATITUDE.x, LONGITUDE.x, `AVG_DEPTH, m`))
+        dplyr::select(-c(LATITUDE, LONGITUDE, `AVG_DEPTH, m`, STN_DEPTH_M))
     } else .
     } %>%
     # Impute site coordinates as the mean of that Site's recorded coordinates
     { if (imputeCoordinates) {
       dplyr::mutate(.,
-        LATITUDE = ifelse(is.na(LATITUDE), mean(LATITUDE, na.rm = T), LATITUDE),
-        LONGITUDE = ifelse(is.na(LONGITUDE), mean(LONGITUDE, na.rm = T), LONGITUDE),
-        STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
+        Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude),
+        Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
+        stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth),
         .by = STATION_ID
       ) 
     } else .
@@ -144,8 +144,8 @@
       dplyr::left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
     } else .
     } %>%
-    mutate(
-      STUDY = "GLENDA",
+    dplyr::mutate(
+      Study = "GLENDA",
       VALUE = dplyr::case_when(
         # MAKE SURE THIS IS EXPLICITLY secchi
         (grepl("secchi", ANALYTE, ignore.case =TRUE)) & (grepl("estimate", RESULT_REMARK, ignore.case =TRUE)) ~ NA,
