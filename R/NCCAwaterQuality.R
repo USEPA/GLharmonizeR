@@ -177,10 +177,13 @@
         .default = ANALYTE
       ),
       ANL_CODE = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "NOx",
+        ANALYTE == "Nitrate" ~ "Diss_NOx",
         .default = ANALYTE
       ),
-
+      Units = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "ugL",
+        .default = ANALYTE
+      ),
       .by = c(UID, SITE_ID, sampleDate)
     ) %>%
     dplyr::select(
@@ -245,7 +248,11 @@
       ),
       # Change the names 
       ANL_CODE = dplyr::case_when(
-        ANL_CODE == "NITRATE_N" ~ "NOx",
+        ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
+        .default = ANL_CODE 
+      ),
+      Units = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ "ugL",
         .default = ANL_CODE 
       ),
       .by = c(UID, SITE_ID, sampleDate)

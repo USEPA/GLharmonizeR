@@ -32,11 +32,11 @@
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeUTC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
-    dplyr::mutate(
-      ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
-     ) %>%
+    #dplyr::mutate(
+    #  ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
+    #  ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+    #  ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
+    # ) %>%
 
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
     dplyr::rename(sampleDepth = CTDdepth,
@@ -56,7 +56,7 @@
       Study = "CSMI_2015",
       Year = 2015
       )  %>%
-    dplyr::rename(STIS = `STIS#`)
+    dplyr::rename(STIS = `STIS#`, METHOD = AnalMethod)
 
   RODBC::odbcClose(dbi)
            

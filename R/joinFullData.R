@@ -61,38 +61,74 @@
 #' @param namingFile a string specifying the file containing naming and units information 
 #' @return dataframe with unified names and units 
 .UnifyUnitsNames <- function(data, namingFile) {
+  # compile the list of names for each data source
   renamingTable <- purrr::map2(
     list("GLENDA_Map", "NCCA_Map", "CSMI_Map"),
-    list(12, 10, 11),
+    list(13, 11, 12),
     .f = \(x,y)
     readxl::read_xlsx(
       namingFile, 
       sheet = x,
-      col_types = rep("text", y)) %>%
-    dplyr::mutate(
-      Study = stringr::str_remove(x, "_Map$")
-    )) %>%
+      col_types = rep("text", y))) %>%
   dplyr::bind_rows() %>%
-    dplyr::distinct(ANALYTE, FRACTION, CodeName)
-  Key <- readxl::read_xlsx(namingFile, sheet = "Key") 
-  UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
+  dplyr::select(-Units) %>%
+  # remove empty rows from excel cells
+  janitor::remove_empty(which = c("rows", "cols")) %>%
+  dplyr::select(Study, ANALYTE, ANL_CODE, MEDIUM, FRACTION, Methods, CodeName) %>%
+    #dplyr::mutate(
+    #  ANL_CODE = ifelse(ANALYTE == ANL_CODE, NA, ANL_CODE),
+    #  ANL_CODE = ifelse(is.na(ANL_CODE), mode(ANL_CODE), ANL_CODE),
+    #  ANL_CODE = ifelse(ANL_CODE == "character", NA, ANL_CODE),
+    #  .by = c(Study, ANALYTE, MEDIUM, FRACTION, Methods)
+    #) %>%
+    dplyr::rename(METHOD = Methods) %>%
+    dplyr::distinct(Study, ANALYTE, ANL_CODE, FRACTION, MEDIUM, METHOD, .keep_all = TRUE)
+
+
+
+  data <- data %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    # Make Analyte anl_code more consistent
+    # dplyr::mutate(
+    #   ANL_CODE = ifelse(ANALYTE == ANL_CODE, NA, ANL_CODE),
+    #   ANL_CODE = ifelse(is.na(ANL_CODE), mode(ANL_CODE), ANL_CODE),
+    #   ANL_CODE = ifelse(ANL_CODE == "character", NA, ANL_CODE),
+    #   .by = c(Study, ANALYTE, MEDIUM, FRACTION, METHOD)
+    # ) %>%
+    # match nw to old names
+    dplyr::left_join(renamingTable, 
+      by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION", "METHOD", "MEDIUM")) %>%
+    # match desired units
+    dplyr::left_join(
+      readxl::read_xlsx(namingFile, sheet = "Key") %>%
+        dplyr::rename(TargetUnits = Units),
+      by = "CodeName") %>%
+    dplyr::filter(CodeName != "Remove")
+
+# TODO: Identify all analytes with missing Code Names and add to naming shee
+# - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
+# - Then fill all missing ANL_CODE with nonmissing
+# test <- data  %>% 
+#   filter(is.na(CodeName)) %>%
+#   count(Study, ANALYTE, ANL_CODE, FRACTION, METHOD, MEDIUM)
+
+# TODO: ID all conversions with na (that aren't identical) 
+
+  #UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
 
   # Relabel analytes and remove unwanted ones
-  data <- data %>%
-    dplyr::left_join(renamingTable, by = c("ANALYTE", "FRACTION")) %>%
-    dplyr::arrange(ANALYTE) %>%
 
   # Unit conversions
-    dplyr::mutate(UNITS = ifelse(
-      is.na(UNITS),
-      names(sort(table(UNITS, useNA = "always")))[[1]],
-      UNITS
-    ), .by = c(CodeName, Study)) %>%
-    dplyr::mutate(ReportedUnits = stringr::str_remove_all(UNITS, "/")) %>%
-    dplyr::left_join(Key, by = "CodeName") %>%
-    dplyr::left_join(UnitConversions, by = c("UNITS" = "ReportedUnits")) %>% 
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor),
-           RESULT2 = RESULT * ConversionFactor)
+  #  dplyr::mutate(UNITS = ifelse(
+  #    is.na(UNITS),
+  #    names(sort(table(UNITS, useNA = "always")))[[1]],
+  #    UNITS
+  #  ), .by = c(CodeName, Study)) %>%
+  #  dplyr::mutate(ReportedUnits = stringr::str_remove_all(UNITS, "/")) %>%
+  #  dplyr::left_join(Key, by = "CodeName") %>%
+  #  dplyr::left_join(UnitConversions, by = c("UNITS" = "ReportedUnits")) %>% 
+  #  dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor),
+  #         RESULT2 = RESULT * ConversionFactor)
   return(data)
 }
 
@@ -109,21 +145,12 @@
 #' @inheritParams .UnifyUnitsNames
 #' 
 #' @return dataframe with unified names and units for all WQ data
-LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, siteFiles, preFiles, tenFiles, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021,
-                         namingFile) {
-  df <- .LoadAll(
-    NCCAhydrofiles2010 = NCCAhydrofiles2010,
-    NCCAhydrofile2015 = NCCAhydrofile2015,
-    NCCAsecchifile2015 = NCCAsecchifile2015,
-    siteFiles = siteFiles,
-    preFiles = preFiles,
-    tenFiles = tenFiles,
-    fifteenFiles = fifteenFiles,
-    glendaData = glendaData,
-    csmi2010 = csmi2010,
-    csmi2015 = csmi2015,
-    csmi2021 = csmi2021)
+LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, 
+      tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, namingFile) {
+  
+  df <- .LoadAll(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites,
+   tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021)
+
 
   df <- .UnifyUnitsNames(data = df, namingFile = namingFile) 
   return(df)

@@ -1,0 +1,48 @@
+ANALYTE,ANL_CODE,QAcode,Definition,QAconsiderations,n,Region,SAMPYEAR
+Ammonia,Ammonia,J03,reported value is between MDL and RL and therefore considered an estimate,NA,73,Great Lakes,2010
+Ammonia,Ammonia,J02,Reported value is less than MDL but greater than zero.,NA,26,Great Lakes,2010
+Ammonia,Ammonia,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,31,Great Lakes,2010
+Chlorophyll A,Chlorophyll A,J01,No MDL Reported;  MDL set to lowest result value reported by lab,NA,370,Great Lakes,2010
+Chlorophyll A,Chlorophyll A,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,5,Great Lakes,2010
+Conductivity,NA,R,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,consider comment if not explained by other QA code,19,Great Lakes,2010
+Conductivity,NA,Q01,field equipment questionable/failure,NA,15,Great Lakes,2010
+Corrected PAR,NA,Q14,Record not used in regression calculation of Kd,use in hydroprofile with one of the following comments: Less than three PAR records; Unacceptable regression; UW values suspect; AMB values suspect,262,Great Lakes,2010
+Corrected PAR,NA,NA,NA,NA,48,Great Lakes,2010
+Corrected PAR,NA,Q10,Field Procedure QC not met,"consider comment (i.e. ""benthic grab depth less than 7 cm,"" etc.)",4,Great Lakes,2010
+Dissolved Inorganic Nitrogen,Dissolved Inorganic Nitrogen,Q23,Result value calculated by NARS IM team,NA,402,Great Lakes,2010
+Dissolved Inorganic Nitrogen,Dissolved Inorganic Nitrogen,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,3,Great Lakes,2010
+Dissolved Inorganic Phosphate,Dissolved Inorganic Phosphate,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,35,Great Lakes,2010
+Dissolved Inorganic Phosphate,Dissolved Inorganic Phosphate,J03,reported value is between MDL and RL and therefore considered an estimate,NA,27,Great Lakes,2010
+Dissolved oxygen,NA,R,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,consider comment if not explained by other QA code,13,Great Lakes,2010
+Dissolved oxygen,NA,Q01,field equipment questionable/failure,NA,13,Great Lakes,2010
+Mean secchi,NA,B,Clear to bottom; indicates where no Secchi measurements were possible because the disk did not disappear.,This is not a QA problem; rather it gives the reason for a null value for mean Secchi depth.,133,Great Lakes,2010
+Mean secchi,NA,Q10,Field Procedure QC not met,"consider comment (i.e. ""benthic grab depth less than 7 cm,"" etc.)",4,Great Lakes,2010
+Mean secchi,NA,R,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,consider comment if not explained by other QA code,4,Great Lakes,2010
+Mean secchi,NA,Q01,field equipment questionable/failure,NA,4,Great Lakes,2010
+Nitrate/Nitrite,Nitrate/Nitrite,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,21,Great Lakes,2010
+Nitrate/Nitrite,Nitrate/Nitrite,Q08,Holding Time Exceeded,NA,2,Great Lakes,2010
+Total Kjeldahl Nitrogen,Total Kjeldahl Nitrogen,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,9,Great Lakes,2010
+Total Nitrogen,Total Nitrogen,J01,No MDL Reported;  MDL set to lowest result value reported by lab,NA,30,Great Lakes,2010
+Total Nitrogen,Total Nitrogen,Q23,Result value calculated by NARS IM team,NA,4,Great Lakes,2010
+Total Phosphorus,Total Phosphorus,N,Non-detect; numeric zero entered in results field to simplify database manipulation,NA,59,Great Lakes,2010
+Total Phosphorus,Total Phosphorus,J03,reported value is between MDL and RL and therefore considered an estimate,NA,87,Great Lakes,2010
+Total Phosphorus,Total Phosphorus,Q08,Holding Time Exceeded,NA,14,Great Lakes,2010
+pH,NA,R,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,consider comment if not explained by other QA code,16,Great Lakes,2010
+pH,NA,Q01,field equipment questionable/failure,NA,15,Great Lakes,2010
+NA,NTL,H,NA,NA,3,Great Lakes,2015
+NA,AMMONIA_N,ND,NA,NA,72,Great Lakes,2015
+NA,NOx,ND,NA,NA,13,Great Lakes,2015
+NA,SRP,H,NA,NA,23,Great Lakes,2015
+NA,SRP,ND,NA,NA,15,Great Lakes,2015
+NA,CHLA,Q,Did not meet quality control requirements,Use this code for atypical QC issues; comment required,23,Great Lakes,2015
+NA,NTL,Q,Did not meet quality control requirements,Use this code for atypical QC issues; comment required,6,Great Lakes,2015
+NA,PTL,Q,Did not meet quality control requirements,Use this code for atypical QC issues; comment required,2,Great Lakes,2015
+NA,PTL,L,"Value reported as ""<MDL""; numeric zero entered in results field to simplify database manipulation",NA,15,Great Lakes,2015
+NA,CHLORIDE,H,NA,NA,7,Great Lakes,2015
+NA,AMMONIA_N,H,NA,NA,5,Great Lakes,2015
+NA,SULFATE,H,NA,NA,7,Great Lakes,2015
+NA,NOx,H,NA,NA,5,Great Lakes,2015
+NA,AMMONIA_N,ND;H,NA,NA,2,Great Lakes,2015
+NA,NOx,ND;H,NA,NA,2,Great Lakes,2015
+NA,PTL,ND,NA,NA,4,Great Lakes,2015
+NA,PTL,ND;Q,NA,NA,1,Great Lakes,2015

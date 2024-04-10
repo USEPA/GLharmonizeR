@@ -17,7 +17,7 @@
 #' @export
 LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan")) {
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile) {
 
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
@@ -57,5 +57,26 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       dplyr::filter(., waterName %in% Lakes)
     } else .}
 
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "NCCA_Map", na = c("", "NA")) 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  final %>%
+  # rename
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches="na") %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    # unit conversions
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits"))
+
+  renamingTable %>% 
+    count(Study, ANALYTE, ANL_CODE) %>%
+    filter(n > 1)
+
+  
   return(final)
 }

@@ -1,0 +1,21 @@
+SITE_ID	Unique site identification for National Coastal Assessment sites
+LON_DD	Latitude in decimal degrees
+LAT_DD	Longitude in decimal degrees
+ALBERS_X	x-coordinate for USGS Albers national projection
+ALBERS_Y	y-coordinate for USGS Albers national projection
+PSTL_CODE	State two letter abbreviation
+EPA_REG	US EPA Region in which site is located
+NCA_REGION	National Coastal Assessment Region in which site is located
+SAMPYEAR	Year sampling took place
+ESTUARY	Estuary name in which site is located
+STATUS_ALL	"Status:ÿ indicates that all sites with weights were determined to be target and were sampled.ÿ Target population from the 99-01 time period and the 05-06 time period (which also includes a few 2004 Puget Sound sites), were matched to the target population used for the National Coastal Condition Assessment 2010.ÿ "
+WGT_56_CAT	"Indicates the categories used to determine the weights. In this case, the two digit state abbreviation for sites that are in the 2005-2006 assessment period"
+WGT_NCA_56	Use these weights to obtain the best status estimate for the 2005-2006 time period.
+WGT_91_CAT	"Indicates the categories used to determine the weights. In this case, the the two digit state abbreviation for sites that are in the 1999-2001 assessment period"
+WGT_NCA_91	Use these weights to obtain the best status estimate for the 1991-2001 time period.
+CHG_PERIOD	Identifies the change period the site belongs in.
+CH9156_USE	Identifies whether to use this site in a change analysis between the two time periods 1991-2001 and 2005-2006.
+CH9156_WGT	Use these weights when you compare 1999/01 to 2005/06 data?
+	
+	
+"Note -- these sites constitute a subset of all National Coastal Assessment sites sampled between 1999 and 2006.   These sites represent two time periods -- 1999-201; and 2005-2006 (with a few 2004 Puget Sound sites to round out coverage) that equate to the same target population as used in the National Coastal Condition Assessment 2010.  Once the 2010 data are available, this subset of sites will be used for change analysis between all three time periods."	

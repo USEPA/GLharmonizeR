@@ -9,6 +9,38 @@
 #' @param filepath a string specifying the filepath of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2021
 .LoadCSMI2021 <- function(directoryPath){
+  # CTD
+  # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
+  # Contact is James Gerads
+
+  ## bin averaged over 1 meter depth intervals
+  ## -9.99E-29 is NA
+  ## There are already processed, formatted ready to use files Should we use that?
+  ## 
+  CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
+    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29)) %>% 
+    dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
+                  Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
+    # depth to nearest meter
+    dplyr::mutate(
+      dplyr::across(dplyr::contains("Depth"), round),
+      ) %>% 
+    dplyr::select(c(Transect:`CPAR/Corrected Irradiance [%]`, pH:Longitude, 26:32, 38:43)) %>%
+    dplyr::rename(sampleDepth = `Depth [fresh water, m]`) %>%
+    tidyr::pivot_longer(
+      -c(Transect, Site, sampleDate, sampleDepth, Latitude, Longitude),
+      names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::mutate(
+      UNITS = stringr::str_extract(ANALYTE, "\\[.*\\]"),
+      ANALYTE = stringr::str_remove(ANALYTE, "\\s\\[.*\\]"),
+      UNITS = stringr::str_remove(UNITS, "\\["),
+      UNITS = stringr::str_remove(UNITS, "\\]"),
+      Site = stringr::str_remove(Site, "_")
+    )
+
+
+  latlons <- CTD %>% 
+    dplyr::reframe(Latitude = mean(Latitude, na.rm = TRUE), Longitude = mean(Longitude, na.rm = TRUE), .by = Site)
 
 # Water chemistry  copied from 
 # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
@@ -31,74 +63,42 @@
     dplyr::mutate(      # Haven't figured out how to parse these times, can come back to it if it's important 
       sampleDate= lubridate::date(Date)
     ) %>%
-    # thinking that the first three letters of Site are all that matters
-    dplyr::mutate(Site = stringr::str_extract(Site, "^[:alnum:]{3}")) %>%
     dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                    `Time (EST)`, Station, Date ))
+                    `Time (EST)`, Station, Date )) %>%
+    tidyr::pivot_longer(-c(1:4, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # figured out parsing before joining with CTD is WAAAAAAY easier
+    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
+    dplyr::left_join(latlons, by = "Site")
 
+  # Add station depths
+  latlons <- latlons %>% 
+    dplyr::left_join(WQ, by = c("Site", "Longitude", "Latitude")) %>%
+    dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
+    dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
+    dplyr::arrange(Site)
 
+  CTD <- CTD %>%
+    dplyr::left_join(latlons, by = "Site") %>%
+    dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
+    dplyr::select(-c(Latitude.y, Longitude.y))
 
-
-  #mutate(Time = case_when(
-  #  grepl("/", `Time (EST)`) ~ # it's an interval
-  #  as.numeric(`Time (EST)`) == FALSE ~ # time of day is a decimal
-  #  ymd_hm(paste(Date, `Time (EST)`))) %>% # Need to fix time zones here
-
-  # CTD
-  # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
-  # Contact is James Gerads
-
-  ## bin averaged over 1 meter depth intervals
-  ## -9.99E-29 is NA
-  ## There are already processed, formatted ready to use files Should we use that?
-  ## 
-  CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29)) %>% 
-    dplyr::rename(Transect = ...1, Station = ...2, sampleDate = ...3,
-                  Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
-    # depth to nearest meter
-    dplyr::mutate(
-      dplyr::across(dplyr::contains("Depth"), round),
-      )
-
-  timeSpace <- CTD %>% dplyr::select(Transect:sampleDate, Latitude, Longitude)
-  CTD <- CTD %>% dplyr::select(-c(Transect:sampleDate, Latitude, Longitude))
-
-  # Any other QC'ing necessary such as number of scans per bin, time elapsed [Not supposing so]
-  # only keep one depth, and temperature
-  CTD <- purrr::map(list(first = CTD[,c(1:11, 18)],  second = CTD[,20:27], third = CTD[,c(31, 33:38)]),
-    \(df)  df %>%
-            dplyr::rename(sampleDepth = 1) %>%
-            dplyr::bind_cols(timeSpace, .)) %>%
-    purrr::reduce(dplyr::full_join, by = c("Transect", "Station", "sampleDate", "sampleDepth", "Latitude", "Longitude")) %>%
-    dplyr::mutate(Station = stringr::str_remove(Station, "_")) %>%
-    dplyr::full_join(WQ, by = c("Transect" = "Site", "sampleDate", "sampleDepth" = "sampleDepth")) %>%
-    dplyr::select(-contains("Station"), -c(`STIS#`)) %>%
-    tidyr::pivot_longer(
-      cols = -c(Transect:sampleDepth), names_to = "ANALYTE", values_to = "RESULT") %>%
-    ## ADD MDLS at the end
+  WQ <- dplyr::bind_rows(WQ, CTD) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
-    dplyr::rename(mdl = `method detection limit`, SITE_ID = Transect) %>%
+    dplyr::rename(mdl = `method detection limit`, SITE_ID = Site) %>%
     dplyr::select(-contains("detection limit corrected")) %>%
     dplyr::mutate(QA_CODE = dplyr::case_when(
       # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
       RESULT < mdl ~ "nondetect"
     )) %>%
-    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "\\S*", "\\s*", UNITS= ".*")) %>%
     dplyr::mutate(
-      UNITS = stringr::str_remove_all(UNITS, "\\]"),
-      UNITS = stringr::str_remove_all(UNITS, "\\["),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\-"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\="),
       Study = "CSMI_2021",
       Year = 2021
-      )
+    )
 
 
   # return the joined data
-  return(CTD)
+  return(WQ)
 }
 
 

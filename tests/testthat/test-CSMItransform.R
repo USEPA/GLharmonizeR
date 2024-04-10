@@ -46,7 +46,7 @@ test_that("csmi loads", {
      "Longitude", "STUDY") %in% names(df)
   }
 
-  df <- LoadCSMI(csmi2010, csmi2015, csmi2021)
+  df <- LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile)
 
   expect_s3_class(df, "data.frame")
   expect_equal(sum(hasExpectedNames(df)), 18)

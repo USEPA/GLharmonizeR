@@ -21,7 +21,7 @@ fifteenFiles <- file.path("Data", "NCCA", "ncca_2015_water_chemistry_great_lakes
 
 
 # GLENDA 
-glendaData <- file.path("Data", "GLENDA.Rds")
+glendaData <- file.path("Data", "GLENDA", "GLENDA.Rds")
 
 # L drive data
 # csmi2010 <- file.path("L:", "Priv", "Great lakes Coastal", "2002-2010 Water Quality", "2010")
@@ -37,6 +37,7 @@ csmi2015 <- file.path("Data", "CSMI", "CSMI2015_newQuery.accdb")
 csmi2021 <- file.path("Data", "CSMI", "2021")
 
 namingFile <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx")
+#namingFile <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3_chargeRemoved.xlsx")
 
 
 

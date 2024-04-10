@@ -28,7 +28,7 @@
             stationDepth = as.numeric(`Stn Depth (m)`),
             ) %>%
     dplyr::select(-c(`Acutal Lat (N)`, `Actual Lon (W)`, `Stn Depth (m)`, `STIS #...1`)) %>%
-    dplyr::select(-dplyr::starts_with("Part"))
+    dplyr::select(-dplyr::starts_with("Part"), -DATE)
 
   
   # Define where new mini tables are 
