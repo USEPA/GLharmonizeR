@@ -1,0 +1,40 @@
+Study,ANALYTE
+CSMI_2021,NH4
+CSMI_2021,NOx
+CSMI_2021,SRP
+CSMI_2021,TN
+CSMI_2021,TP
+CSMI_2021,K+
+CSMI_2021,Na+
+CSMI_2021,Ca++
+CSMI_2021,Mg++
+CSMI_2021,Cl-
+CSMI_2021,SO4=
+CSMI_2021,Si
+CSMI_2021,chl-a
+CSMI_2021,TSS
+CSMI_2021,VSS
+CSMI_2021,Temperature
+CSMI_2021,Fluorescence
+CSMI_2021,Oxygen
+CSMI_2021,Conductivity
+CSMI_2021,Specific Conductance
+CSMI_2021,Beam Attenuation
+CSMI_2021,Beam Transmission
+CSMI_2021,"SPAR, Biospherical"
+CSMI_2021,"PAR/Irradiance, Biospherical"
+CSMI_2021,CPAR/Corrected Irradiance
+CSMI_2021,pH
+CSMI_2021,Green Algae
+CSMI_2021,Bluegreen
+CSMI_2021,Diatoms
+CSMI_2021,Cryptophyta
+CSMI_2021,Yellow substances
+CSMI_2021,Total conc.
+CSMI_2021,Transmission
+CSMI_2021,Mean Size
+CSMI_2021,Total Volume Concentration
+CSMI_2021,Total Silt
+CSMI_2021,Total Fine
+CSMI_2021,Total Med Sand
+CSMI_2021,Total Coarse Sand
