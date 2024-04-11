@@ -15,9 +15,9 @@
 #' @param sampleIDs a list of sampleIDs to keep in the final dataset
 #'
 #' @return a dataframe
-.readPivotGLENDA <- function(filepath, n_max = Inf, sampleIDs = NULL) {
-  filepath %>%
-    { if (grepl(tools::file_ext(filepath), ".csv", ignore.case = TRUE)) {
+.readPivotGLENDA <- function(glendaData, n_max = Inf, sampleIDs = NULL) {
+  glendaData %>%
+    { if (grepl(tools::file_ext(glendaData), ".csv", ignore.case = TRUE)) {
       readr::read_csv(.,
              col_types = readr::cols(
               YEAR = "i",
@@ -31,7 +31,7 @@
               .default = "c"),
             n_max = n_max) 
       } else . } %>% 
-    { if (grepl(tools::file_ext(filepath), ".Rds", ignore.case = TRUE)) {
+    { if (grepl(tools::file_ext(glendaData), ".Rds", ignore.case = TRUE)) {
       readRDS(.) %>%
         # This is so that everything can be pivoted, we change 
         # to final datatypes later once it's in long format
@@ -169,8 +169,39 @@
 #'
 #' @return a dataframe
 #' @export
-readCleanGLENDA <- function(filepath, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL, n_max = Inf, sampleIDs = NULL) {
-  .cleanGLENDA(.readPivotGLENDA(filepath, n_max = n_max, sampleIDs = sampleIDs), flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) 
+readCleanGLENDA <- function(glendaData, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL, n_max = Inf, sampleIDs = NULL, namingFile) {
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA")) 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  test <- .cleanGLENDA(.readPivotGLENDA(glendaData, n_max = n_max, sampleIDs = sampleIDs),
+    flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) %>%
+    dplyr::mutate(RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)) %>%
+    dplyr::select(-c(VALUE, LONGITUDE, LATITUDE)) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "MEDIUM", "ANALYTE", "FRACTION", "METHOD"= "Methods")) %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::mutate(
+      ReportedUnits = tolower(ReportedUnits),
+      ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
+    ) %>%
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits"))
+
+  # Turn into test
+  # test %>%
+  #   filter(! TargetUnits == ReportedUnits) %>%
+  #   filter(is.na(ConversionFactor)) %>%
+  #   count(ReportedUnits, TargetUnits, ConversionFactor)
+  # test %>% 
+  #   filter(is.na(CodeName)) %>%
+  #   count(Study, ANALYTE, ANL_CODE, METHOD)
+
+
 }
 # Useful links
 # Water chemistry descriptions
