@@ -66,7 +66,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
   conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  test <- final %>%
+  final <- final %>%
   # rename
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches="na") %>%
     dplyr::rename(ReportedUnits = Units) %>%
