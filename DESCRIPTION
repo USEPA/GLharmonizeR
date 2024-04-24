@@ -19,10 +19,11 @@ Imports:
     lubridate,
     magrittr,
     purrr,
-    readxl, 
+    readxl,
     readr,
     tidyr,
-    stringr
+    stringr,
+    oce
 Suggests: 
     knitr,
     rmarkdown,

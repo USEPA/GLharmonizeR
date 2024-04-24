@@ -23,6 +23,13 @@ fifteenFiles <- file.path("Data", "NCCA", "ncca_2015_water_chemistry_great_lakes
 # GLENDA 
 glendaData <- file.path("Data", "GLENDA", "GLENDA.Rds")
 
+# SeaBird data 
+seaBirdFiles <- list.files(path = file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", 
+  "Lake Michigan ML - General", "Raw_data", "Seabird_bulk_file_download_2024_04_18_101587"), 
+  pattern = , "*.cnv", full.names=T) 
+
+
+
 # L drive data
 # csmi2010 <- file.path("L:", "Priv", "Great lakes Coastal", "2002-2010 Water Quality", "2010")
 # csmi2015 <- file.path("L:", "Priv", "Great lakes Coastal", "2015 CSMI Lake Michigan",
