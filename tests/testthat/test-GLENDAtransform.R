@@ -9,7 +9,7 @@ test_that("Full GLENDA transformation on selected samples through 2023", {
   # Once data is verified load it in right here.
   # testData <- readRDS("tests/testthat/fixtures/GLENDAfullTest.csv")
   testIDs <- readRDS("tests/testthat/fixtures/GLENDAtestIDs.Rds")
-  df <- readCleanGLENDA("Data/GLENDA.Rds", sampleIDs = testIDs)
+  df <- readCleanGLENDA("Data/GLENDA/GLENDA.Rds", sampleIDs = testIDs, namingFile = namingFile)
 
   expect_s3_class(df, "data.frame")
   expect_true(is.contained(c("LATITUDE", "LONGITUDE", "sampleDate", 
