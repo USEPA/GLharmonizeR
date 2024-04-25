@@ -180,9 +180,9 @@
         ANALYTE == "Nitrate" ~ "Diss_NOx",
         .default = ANALYTE
       ),
-      Units = dplyr::case_when(
+      UNITS = dplyr::case_when(
         ANALYTE == "Nitrate" ~ "ugL",
-        .default = ANALYTE
+        .default = UNITS 
       ),
       .by = c(UID, SITE_ID, sampleDate)
     ) %>%
@@ -251,9 +251,13 @@
         ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
         .default = ANL_CODE 
       ),
-      Units = dplyr::case_when(
+      UNITS = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ "ugL",
-        .default = ANL_CODE 
+        (ANL_CODE == "AMMONIA_N") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "Diss_NOx") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "SRP") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "PTL") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        .default = UNITS
       ),
       .by = c(UID, SITE_ID, sampleDate)
     ) %>%
@@ -287,12 +291,37 @@
 #' @param filepath a string specifying the directory of the data
 #' 
 #' @return dataframe
-.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL){
+.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL, nccaWQqaFile = NULL){
   dfs <- list()
   if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 WQ filepath not specified or trouble finding")
   if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 WQ filepath not specified or trouble finding")
-  dplyr::bind_rows(dfs)
+  dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
-}
+    dplyr::mutate(SAMPYEAR = lubridate::year(sampleDate))
+  
+  QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2") 
 
+  dfs %>%
+    dplyr::left_join(QA, by = c("SAMPYEAR", "QAcode", "ANALYTE", "ANL_CODE")) %>%
+    # Drop the "suspect" values based off of correspondance with Hugh Sullivan
+    dplyr::filter(
+      !grepl("suspect", QAcomment, ignore.case = T)
+    ) %>%
+    dplyr::mutate(
+      RESULT = case_when(
+        Decision == "CTB" ~  NA,
+        Decision == "Keep" ~ RESULT,
+        Decision == "Impute" ~ NA,
+        Decision == "Estimate" ~ RESULT,
+        Decision == "Remove" ~ NA,
+        .default = RESULT),
+      FLAG = case_when(
+        Decision == "CTB" ~  "Clear to Bottom",
+        Decision == "Keep" ~ NA,
+        Decision == "Impute" ~ "Impute value using one or more detect limits (see QA comment)",
+        Decision == "Estimate" ~ "Value estimate",
+        Decision == "Remove" ~ NA,
+        .default = NA)
+    )
+}
