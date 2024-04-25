@@ -23,7 +23,8 @@ Imports:
     readr,
     tidyr,
     stringr,
-    oce
+    oce,
+    tools
 Suggests: 
     knitr,
     rmarkdown,

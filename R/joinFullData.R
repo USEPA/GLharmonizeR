@@ -20,7 +20,7 @@
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 .LoadAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021) {
+                         csmi2010, csmi2015, csmi2021, seaBirdFiles) {
   # Read NCCA hydrographic data 
   ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
@@ -31,6 +31,12 @@
   GLENDA <- readCleanGLENDA(glendaData) %>%
     dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK, RESULT = VALUE) %>%
     dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT))
+  seaBirdDf <- seaBirdFiles %>%
+    purrr::map(seabird2df) %>%
+    dplyr::bind_rows()
+
+  GLENDA <- dplyr::full_join(GLENDA, seaBirdDf, by = c("STATION_ID" = "Station", "sampleDate"))
+
 
   CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
     dplyr::rename(UID = STIS) %>%
@@ -146,10 +152,10 @@
 #' 
 #' @return dataframe with unified names and units for all WQ data
 LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, 
-      tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, namingFile) {
+      tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile) {
   
   df <- .LoadAll(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites,
-   tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021)
+   tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, seaBirdFiles)
 
 
   df <- .UnifyUnitsNames(data = df, namingFile = namingFile) 
