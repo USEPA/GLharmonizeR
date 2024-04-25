@@ -21,7 +21,8 @@
 # # They are not the same
 
 
-
+# Convert conductance with the following (suggested by James Gerads)
+# [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
 seabird2df <- function(filepath) {
   # load data as oce object 
   data <- suppressWarnings(oce::read.oce(filepath))
@@ -31,6 +32,8 @@ seabird2df <- function(filepath) {
   meta$longitude  <- data@metadata$longitude
   meta$startTime  <- data@metadata$startTime
   meta$waterDepth <- data@metadata$waterDepth
+  units <- data@metadata$unit
+
 
   meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
     # Parse it from the filename
@@ -57,7 +60,7 @@ seabird2df <- function(filepath) {
   # Bin data
   # start at 0.5m so that measures will be at integers matching other 
   temp <- oce::binAverage(y = data$temperature, x = data$depth, xmin = 0.5, xinc = 1)
-  df <- data.frame("sampleDepth" = temp$x, "Temperature" = temp$y)
+  df <- data.frame("sampleDepth" = temp$x, "temperature" = temp$y)
 
   for (analyte in possibleNames) {
     {if (analyte %in% names(data)) {
@@ -82,8 +85,20 @@ seabird2df <- function(filepath) {
       Station = stringr::str_remove_all(Station, "-"),
       Station = stringr::str_remove_all(Station, "_"),
       Station = toupper(Station)
-    )
+    ) %>%
+    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, Time, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::rename(STATION_ID = Station)
+  
+  unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))
+  unitTable$UNITS <- sapply(unitTable$ANALYTE, function(x) as.character(units[[x]]$unit))
+  unitTable <- unitTable %>%
+    dplyr::mutate(UNITS = ifelse(grepl("/", UNITS), 
+      stringr::str_remove_all(UNITS, pattern = "/"),
+      stringr::str_extract(UNITS, pattern = "C$")
+    ))
 
+  df <- df %>%
+    dplyr::left_join(unitTable, by = "ANALYTE")
 
   return(df)
 }
