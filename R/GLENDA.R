@@ -85,12 +85,21 @@
 #' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
 #' @param imputeCoordinages (optional) Boolean specifying whether to impute missing station coordinates 
 #' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons
-#' @param nameMap (optional) filepath to a file containing remappings for analyte names 
+#' @param namingFile (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-.cleanGLENDA <- function(df, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, nameMap= NULL) {
+.cleanGLENDA <- function(df, namingFile, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL) {
 
-  df %>%
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA")) 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+
+  df <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
       TIME_ZONE= dplyr::case_when(
@@ -139,11 +148,6 @@
       ) 
     } else .
     } %>%
-    { if (!is.null(nameMap))  {
-      # Assume name map will always be in the GLENDA_MAP sheet
-      dplyr::left_join(., readxl::read_xlsx(nameMap, sheet = "GLENDA_Map"), by = "ANALYTE")
-    } else .
-    } %>%
     dplyr::mutate(
       Study = "GLENDA",
       VALUE = dplyr::case_when(
@@ -155,54 +159,22 @@
         grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ paste(RESULT_REMARK, NA, sep=";"),
         .default = VALUE
       )
-    )
-}
-
-
-#' readCleanGLENDA 
-#'
-#' A function to read and clean the full GLENDA csv file. This is generally the
-#' function users will interact with, the comprising read and clean functions 
-#' are moreso for development purposes.
-#' 
-#' @param filepath a filepath to the GLENDA csv
-#'
-#' @return a dataframe
-#' @export
-readCleanGLENDA <- function(glendaData, flagsPath = NULL, siteCoords = NULL, imputeCoordinates= FALSE, nameMap = NULL, n_max = Inf, sampleIDs = NULL, namingFile) {
-  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA")) 
-  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-
-  test <- .cleanGLENDA(.readPivotGLENDA(glendaData, n_max = n_max, sampleIDs = sampleIDs),
-    flagsPath = flagsPath, imputeCoordinates = imputeCoordinates, nameMap = nameMap) %>%
+    ) %>%
     dplyr::mutate(RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)) %>%
     dplyr::select(-c(VALUE, LONGITUDE, LATITUDE)) %>%
+    dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK) %>%
+    dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT)) %>%
+    # Standardize analyte names
     dplyr::left_join(renamingTable, by = c("Study", "MEDIUM", "ANALYTE", "FRACTION", "METHOD"= "Methods")) %>%
-    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits),
       ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
     ) %>%
     dplyr::left_join(key, by = "CodeName") %>%
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits"))
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
-  # Turn into test
-  # test %>%
-  #   filter(! TargetUnits == ReportedUnits) %>%
-  #   filter(is.na(ConversionFactor)) %>%
-  #   count(ReportedUnits, TargetUnits, ConversionFactor)
-  # test %>% 
-  #   filter(is.na(CodeName)) %>%
-  #   count(Study, ANALYTE, ANL_CODE, METHOD)
-
-
+  return (df)
 }
-# Useful links
-# Water chemistry descriptions
-# https://www.epa.gov/great-lakes-monitoring/great-lakes-water-quality-monitoring-program-0#chemistry

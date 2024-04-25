@@ -20,22 +20,42 @@
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 .LoadAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021, seaBirdFiles) {
+                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile) {
+  # Load standardization files
+  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  seaBirdrenamingTable <- readxl::read_xlsx(namingFile, sheet= "SeaBird_Map", na = c("", "NA")) 
+
   # Read NCCA hydrographic data 
   ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          greatLakes=TRUE, Lakes=c("Lake Michigan"))
 
-
   # READ GLENDA
-  GLENDA <- readCleanGLENDA(glendaData) %>%
-    dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK, RESULT = VALUE) %>%
-    dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT))
+  GLENDA <- .readPivotGLENDA(glendaData) %>%
+    .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = FALSE)
+
   seaBirdDf <- seaBirdFiles %>%
     purrr::map(seabird2df) %>%
-    dplyr::bind_rows()
+    dplyr::bind_rows() %>% 
+    dplyr::mutate(Study = "SeaBird") %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
+    dplyr::mutate(
+      ReportedUnits = tolower(ReportedUnits),
+      ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
+    ) %>%
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
-  GLENDA <- dplyr::full_join(GLENDA, seaBirdDf, by = c("STATION_ID" = "Station", "sampleDate"))
+  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf)
 
 
   CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
@@ -94,13 +114,6 @@
 
   data <- data %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
-    # Make Analyte anl_code more consistent
-    # dplyr::mutate(
-    #   ANL_CODE = ifelse(ANALYTE == ANL_CODE, NA, ANL_CODE),
-    #   ANL_CODE = ifelse(is.na(ANL_CODE), mode(ANL_CODE), ANL_CODE),
-    #   ANL_CODE = ifelse(ANL_CODE == "character", NA, ANL_CODE),
-    #   .by = c(Study, ANALYTE, MEDIUM, FRACTION, METHOD)
-    # ) %>%
     # match nw to old names
     dplyr::left_join(renamingTable, 
       by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION", "METHOD", "MEDIUM")) %>%
