@@ -18,30 +18,40 @@
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
+#' @param out (optional) filepath to save the dataset to
+#' @param test (optional) boolean, if testing that data loads and joins, this flag only loads 
+#' parts of the datasets to test it faster
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-.LoadAll <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile) {
-  # Load standardization files
-  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
+                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE) {
+  print("Step 1/6: Load naming and unit conversion files")
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  seaBirdrenamingTable <- readxl::read_xlsx(namingFile, sheet= "SeaBird_Map", na = c("", "NA")) 
+  seaBirdrenamingTable <- readxl::read_xlsx(namingFile, sheet= "SeaBird_Map", na = c("", "NA"), 
+    .name_repair = "unique_quiet") 
 
-  # Read NCCA hydrographic data 
+  print("Step 2/6: Read and clean NCCA")
   ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"))
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile) %>%
+          dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
 
-  # READ GLENDA
+  print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(glendaData) %>%
     .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = FALSE)
+  # Silicon, Elemental	Si, 2.13918214
 
+  print("Step 4/6: Read and clean SeaBird files associated with GLENDA")
+  if (test) {
+    seaBirdFiles <- seaBirdFiles[c(1:5, (length(seaBirdFiles) - 5): length(seaBirdFiles))]
+  }
   seaBirdDf <- seaBirdFiles %>%
-    purrr::map(seabird2df) %>%
+    purrr::map(seabird2df, .progress = TRUE) %>%
     dplyr::bind_rows() %>% 
     dplyr::mutate(Study = "SeaBird") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
@@ -55,13 +65,17 @@
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
-  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf)
+  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
+    dplyr::mutate(Year = as.numeric(YEAR)) %>%
+    dplyr::select(-c(YEAR, Years))
 
-
-  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021) %>%
+  print("Step 5/6: Read and clean CSMI data")
+  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile) %>%
     dplyr::rename(UID = STIS) %>%
-    dplyr::mutate(UID = as.character(UID))
+    dplyr::mutate(UID = as.character(UID)) %>%
+    dplyr::select(-Years)
 
+  print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
     ncca, GLENDA, CSMI
   ) %>% 
@@ -69,9 +83,23 @@
     SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID, SITE)
   ) %>%
   dplyr::select(
-    -c(CLEAR_TO_BOTTOM, numerator, denominator, MONTH, SEASON, CRUISE_ID, VISIT_ID, DEPTH_CODE, SAMPLE_TYPE,
-    QC_TYPE, PROJECT, `blk/dup other`, LATITUDE, LONGITUDE, STATION_ID, SITE, STATION, QA_CODE)
-  )
+    # time and space
+    UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDate,
+    # analyte name
+    CodeName, ANALYTE, Category,
+    # unit conversion
+    ConversionFactor, TargetUnits, Conversion, ReportedUnits,
+    # measurement and limits 
+    RESULT,    MDL, MRL, PQL, 
+    # QA
+    QAcode, QAcomment, LAB, LRL, contains("QAconsiderations"), Decision, Action, FLAG
+    )
+
+  if (!is.null(out)) {
+    print("Writing data to")
+    print(out)
+    write.csv(allWQ, file = out)
+  }
   return(allWQ)
 }
 
@@ -95,7 +123,9 @@
     readxl::read_xlsx(
       namingFile, 
       sheet = x,
-      col_types = rep("text", y))) %>%
+      col_types = rep("text", y)),
+      .name_repair = "unique_quiet"
+      ) %>%
   dplyr::bind_rows() %>%
   dplyr::select(-Units) %>%
   # remove empty rows from excel cells
@@ -119,7 +149,7 @@
       by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION", "METHOD", "MEDIUM")) %>%
     # match desired units
     dplyr::left_join(
-      readxl::read_xlsx(namingFile, sheet = "Key") %>%
+      readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
         dplyr::rename(TargetUnits = Units),
       by = "CodeName") %>%
     dplyr::filter(CodeName != "Remove")
@@ -149,28 +179,4 @@
   #  dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor),
   #         RESULT2 = RESULT * ConversionFactor)
   return(data)
-}
-
-#' Read and unite water quality data from CSMI, NCCA, and GLENDA across 2010, 2015, and 2020/2021
-#'
-#' @description
-#' `LoadWQdata` is the main function of this package and returns a dataframe data from 2010, 2015,
-#' and 2020/2021 from CSMI, GLENDA, and NCCA'
-#'
-#' @details
-#' Loading data from all of these sources required QC on each respective source.
-#'
-#' @inheritParams .LoadAll
-#' @inheritParams .UnifyUnitsNames
-#' 
-#' @return dataframe with unified names and units for all WQ data
-LoadWQdata <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, 
-      tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile) {
-  
-  df <- .LoadAll(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites,
-   tenFiles, tenQAfile, fifteenFiles, glendaData, csmi2010, csmi2015, csmi2021, seaBirdFiles)
-
-
-  df <- .UnifyUnitsNames(data = df, namingFile = namingFile) 
-  return(df)
 }

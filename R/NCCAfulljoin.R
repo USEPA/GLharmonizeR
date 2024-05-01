@@ -17,7 +17,7 @@
 #' @export
 LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile) {
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile) {
 
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
@@ -26,7 +26,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     dplyr::mutate(UID = as.character(UID))
 
   # Read NCCA WQ files 
-  nccaWQ <- .readNCCA(tenFiles, fifteenFiles) %>%
+  nccaWQ <- .readNCCA(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile) %>%
     dplyr::mutate(UID = as.character(UID)) %>%
     dplyr::mutate(Year = lubridate::year(sampleDate)) #%>%
 
@@ -35,6 +35,14 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     dplyr::rename(QAconsiderations = Considerations,
                   QAcode = `Unique Qualifier Code`) %>%
     dplyr::distinct(QAcode, .keep_all = TRUE)
+  
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "NCCA_Map", na = c("", "NA"), .name_repair = "unique_quiet") 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
     
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
@@ -56,20 +64,9 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     } else if (!is.null(Lakes)) {
       dplyr::filter(., waterName %in% Lakes)
     } else .} %>%
-    dplyr::select(-Units)
-
-  renamingTable <- readxl::read_xlsx(namingFile, sheet= "NCCA_Map", na = c("", "NA")) 
-  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-
-  final <- final %>%
-  # rename
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    # rename
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches="na") %>%
-    dplyr::rename(ReportedUnits = Units) %>%
     # unit conversions
     dplyr::left_join(key, by = "CodeName") %>%
     # standardize units
@@ -81,13 +78,14 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
                     RESULT  * ConversionFactor)) %>%
+    dplyr::select(-Units) %>%
     dplyr::rename(Units = TargetUnits)
 
   # Turn into test
-  # test %>%
-  #   filter(! TargetUnits == ReportedUnits) %>%
+  # final %>%
+  #   filter(Units != ReportedUnits) %>%
   #   filter(is.na(ConversionFactor)) %>%
-  #   count(ReportedUnits, TargetUnits, ConversionFactor)
+  #   count(ReportedUnits, Units, ConversionFactor)
   # test %>% 
   #   filter(is.na(CodeName)) %>%
   #   count(Study, ANALYTE, ANL_CODE, METHOD)

@@ -90,12 +90,13 @@
 #' @return a dataframe
 .cleanGLENDA <- function(df, namingFile, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL) {
 
-  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA")) 
-  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA"),
+    .name_repair = "unique_quiet") 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
 
@@ -124,12 +125,13 @@
     dplyr::select(-Number) %>%
     # Adding verbose remark descriptions is purely optional
     {if (!is.null(flagsPath)) {
-      dplyr::left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"))
+      dplyr::left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"), .name_repair = "unique_quiet")
       } else .
     } %>%
     { if (!is.null(siteCoords)) {
       # impute the missing sites from that file
-      dplyr::left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x")) %>%
+      dplyr::left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x"),
+                        .name_repair = "unique_quiet") %>%
         dplyr::mutate(
           Latitude = dplyr::coalesce(Latitude, LATITUDE),
           Longitude = dplyr::coalesce(Longitude, LONGITUDE),
@@ -174,7 +176,10 @@
     dplyr::left_join(key, by = "CodeName") %>%
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
+    dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
+    dplyr::mutate(RESULT = ifelse(
+      ANALYTE == "Silicon, Elemental", RESULT / 2.13918214, RESULT
+    ))
 
   return (df)
 }

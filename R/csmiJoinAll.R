@@ -15,7 +15,8 @@
 #' @export
 LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile) {
   # Load file to map analyte names to standard names 
-  renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA")) 
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
+    .name_repair = "unique_quiet") 
 
   CSMI <- dplyr::bind_rows(
     .LoadCSMI2010(csmi2010),
@@ -50,9 +51,9 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile) {
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION"), na_matches="na") %>%
     dplyr::rename(ReportedUnits = Units)
 
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  key <- readxl::read_xlsx(namingFile, sheet = "Key") %>%
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 

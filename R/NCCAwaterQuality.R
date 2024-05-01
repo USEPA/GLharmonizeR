@@ -153,7 +153,7 @@
               "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
               "LAB_SAMPLE_ID" = "-",
               "SAMPLE_ID" = "-",
-              "STATE" = "-",
+              #"STATE" = "-",
               "BATCH_ID" = "-",
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
@@ -199,7 +199,9 @@
     ) %>%
     dplyr::mutate(
       Study = "NCCA_WQ_2010"
-    )
+    ) %>%
+    dplyr::mutate(
+      QACODE = paste(QACODE, ifelse(STATE == "WI", "WSLH", ""), sep = ";"))
 }
 
 #' Read in all NCCA water quality from 2015 
@@ -226,8 +228,7 @@
              "NARS_FLAG" = "c",
              "NARS_COMMENT" = "c",
              "RESULT" = "d",
-             "RESULT_UNITS" = "c",
-             .default = "-"
+             "RESULT_UNITS" = "c"
            )) %>%
     dplyr::rename(
       sampleDate = DATE_COL,
@@ -272,7 +273,11 @@
     dplyr::mutate(
       sampleDepth = 0.5,
       Study = "NCCA_WQ_2015"
-    )
+    ) %>%
+    dplyr::mutate(
+      QAcode = paste(QAcode, ifelse(LAB == "WSLH", "WSLH", ""), sep = ";"),
+      QAcomment = paste(QAcode, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";")
+      )
 }
 
 # 2020/2021
@@ -300,7 +305,7 @@
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
     dplyr::mutate(SAMPYEAR = lubridate::year(sampleDate))
   
-  QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2") 
+  QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet") 
 
   dfs %>%
     dplyr::left_join(QA, by = c("SAMPYEAR", "QAcode", "ANALYTE", "ANL_CODE")) %>%
@@ -309,14 +314,14 @@
       !grepl("suspect", QAcomment, ignore.case = T)
     ) %>%
     dplyr::mutate(
-      RESULT = case_when(
+      RESULT = dplyr::case_when(
         Decision == "CTB" ~  NA,
         Decision == "Keep" ~ RESULT,
         Decision == "Impute" ~ NA,
         Decision == "Estimate" ~ RESULT,
         Decision == "Remove" ~ NA,
         .default = RESULT),
-      FLAG = case_when(
+      FLAG = dplyr::case_when(
         Decision == "CTB" ~  "Clear to Bottom",
         Decision == "Keep" ~ NA,
         Decision == "Impute" ~ "Impute value using one or more detect limits (see QA comment)",
