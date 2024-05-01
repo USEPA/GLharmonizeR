@@ -18,7 +18,8 @@
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
   CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29)) %>% 
+    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29),
+    .name_repair = "unique_quiet") %>% 
     dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
                   Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
     # depth to nearest meter
@@ -47,7 +48,7 @@
 # Contact is Annie Fosso
   DL <- file.path(directoryPath, "Chem2021_detection limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
-    readxl::read_xlsx(sheet = "detection limits") %>%
+    readxl::read_xlsx(sheet = "detection limits", .name_repair = "unique_quiet") %>%
     dplyr::select(23:38) %>%
     dplyr::mutate(Limit = dplyr::coalesce(...23, ...24)) %>%
     dplyr::select(-c(...23, ...24)) %>%
@@ -56,7 +57,7 @@
     dplyr::select(-`NA`) 
 
   WQ <- file.path(directoryPath, "Chem2021_FinalShare.xlsx") %>%
-    readxl::read_xlsx(sheet = "DetLimitCorr") %>%
+    readxl::read_xlsx(sheet = "DetLimitCorr", .name_repair = "unique_quiet") %>%
     dplyr::select(-dplyr::contains("...")) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%

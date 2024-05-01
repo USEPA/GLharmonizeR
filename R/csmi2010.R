@@ -13,7 +13,7 @@
 #' @param csmi2010 a string specifying the directory path of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2010
 .LoadCSMI2010 <- function(csmi2010){
-  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx")) %>%
+  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), .name_repair = "unique_quiet") %>%
     dplyr::slice(9:dplyr::n()) %>%
     # Move spatial information to front to simplify table conversion
     dplyr::relocate(contains(c("Stn Depth", "Acutal", "Actual"))) %>%
@@ -78,7 +78,7 @@
 
 
     # move detection limits to own column
-  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx")) %>%
+  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), .name_repair = "unique_quiet") %>%
     dplyr::slice(1:2)
 
   dls <- df %>%
