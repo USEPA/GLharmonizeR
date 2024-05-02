@@ -16,7 +16,7 @@
 #'
 #' @return a dataframe
 .readPivotGLENDA <- function(glendaData, n_max = Inf, sampleIDs = NULL) {
-  glendaData %>%
+  df <- glendaData %>%
     { if (grepl(tools::file_ext(glendaData), ".csv", ignore.case = TRUE)) {
       readr::read_csv(.,
              col_types = readr::cols(
@@ -70,6 +70,7 @@
       # measurements
       !((MEDIUM == "air: ambient") & (ANALYTE == "Temperature"))
       )
+  return(df)
 }
 
 #' cleanGLENDA

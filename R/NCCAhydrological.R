@@ -9,7 +9,7 @@
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(NCCAsecchifile2015) {
-  readr::read_csv(NCCAsecchifile2015) %>%
+  df <- readr::read_csv(NCCAsecchifile2015) %>%
       dplyr::filter(
         !grepl("mean secchi depth estimated", SECCHI_COMMENT, ignore.case = T),
         !grepl("estimated", SECCHI_COMMENT, ignore.case = T),
@@ -41,12 +41,23 @@
         .by = c(UID)
       ) %>%
       dplyr::mutate(
-        RESULT = ifelse(CLEAR_TO_BOTTOM, NA, RESULT),
-        QAcomment= ifelse(CLEAR_TO_BOTTOM, paste("Clear to bottom", QAcomment, sep = ";"), QAcomment)
+        RESULT = dplyr::case_when(
+          CLEAR_TO_BOTTOM == TRUE ~ NA,
+          CLEAR_TO_BOTTOM == FALSE ~ RESULT,
+          is.na(CLEAR_TO_BOTTOM) ~ RESULT
+        ),
+        QAcomment= dplyr::case_when(
+          CLEAR_TO_BOTTOM == TRUE ~ paste("Clear to bottom", QAcomment, sep = ";"),
+          CLEAR_TO_BOTTOM == FALSE ~ QAcomment,
+          is.na(CLEAR_TO_BOTTOM) ~ QAcomment
+        ) 
       ) %>%
       dplyr::mutate(
         Study = "NCCA_secchi_2015"
-      )
+      ) %>%
+      # 1/3 of values are averages that we are removing here
+      tidyr::drop_na(RESULT)
+  return(df)
 }
 
 #' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
@@ -145,10 +156,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(hydrofiles2010, hydrofile2015, secchifile2015) {
+.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(hydrofiles2010), 
-    .readNCCAhydro2015(hydrofile2015), 
-    .readNCCASecchi2015(secchifile2015))
+    .readNCCAhydro2010(NCCAhydrofiles2010), 
+    .readNCCAhydro2015(NCCAhydrofile2015), 
+    .readNCCASecchi2015(NCCAsecchifile2015))
 }
-

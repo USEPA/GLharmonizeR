@@ -1,0 +1,46 @@
+---
+title: "Data Checks"
+date: today
+---
+
+```{r setup}
+library(tidyverse)
+library(kable)
+library(kableExtra)
+df <- read_csv("Data/fulldata.csv")
+```
+
+
+# Missingness
+```{r}
+colMeans(is.na(df)) %>%
+  kable() %>%
+  kableExtra::kable_paper()
+
+df %>%
+  reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
+  kable() %>%
+  kableExtra::kable_paper()
+```
+
+Notes on missingness:
+- GLENDA
+  - Missing 36% of lat/longs depths because of historical data not having them (what years?)
+  - missing values is a function of how inefficient 
+- SeaBird
+  - Can't locate station depth in their files
+- NCCA
+  - WQ 2010 has 15% missingness
+  - WQ 2015 has 30% missingness
+    - Has ANL_CODE not ANALYTE
+  - Secchi missing sample depth because it is an integrated sample (over water column)
+
+- CSMI
+  - 2010
+    - Lat/Lon reported only to nearest whole number 
+      - there are real Lat/ real Lon in smpstts10.xls, but not sure what they mean
+    - Lat/Lon/depth/sampleDate partially missing because odd reporting in file
+      - Can we use forward filling to fill in the missing values?
+    - Can't find sampleDepth
+      - Just report the water layer
+
