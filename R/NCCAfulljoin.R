@@ -23,7 +23,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) %>%
-    dplyr::mutate(UID = as.character(UID))
+    dplyr::mutate(UID = paste0("NCCA-hydro", "-", as.character(UID)))
 
   # Read NCCA WQ files 
   nccaWQ <- .readNCCA(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile) %>%
@@ -74,12 +74,22 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       ReportedUnits = tolower(ReportedUnits),
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+      ReportedUnits = dplyr::case_when(
+        CodeName == "DO" ~ "mgl",
+        CodeName == "Secchi" ~ "m",
+        CodeName == "Temp" ~ "c",
+        CodeName == "Cond" ~ "uscm",
+        CodeName == "CPAR" ~ "%"
+      )
     ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
-                    RESULT  * ConversionFactor)) %>%
+    dplyr::mutate(RESULT = dplyr::case_when(
+      ReportedUnits == TargetUnits ~ RESULT,
+      is.na(ReportedUnits) ~ RESULT,
+      .default = RESULT  * ConversionFactor)) %>%
     dplyr::select(-Units) %>%
-    dplyr::rename(Units = TargetUnits)
+    dplyr::rename(Units = TargetUnits) %>%
+    dplyr::filter(CodeName != "Remove")
 
   # Turn into test
   # final %>%
@@ -91,3 +101,12 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
   #   count(Study, ANALYTE, ANL_CODE, METHOD)
   return(final)
 }
+
+
+# list of measures without units
+# - Secchi - assumed m
+# - Temp  - assumed c
+# - Cond  - assumed uscm
+# - DO - assume  mgl
+# - pH - no units is fine
+# - CPAR - always %

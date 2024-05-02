@@ -98,7 +98,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   if (!is.null(out)) {
     print("Writing data to")
     print(out)
-    write.csv(allWQ, file = out)
+    readr::write_csv(allWQ, file = out)
   }
   return(allWQ)
 }

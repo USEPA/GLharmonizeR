@@ -1,4 +1,3 @@
-
 # Check to see if names are same across all seabird files
 .getSeaBirdNames <- function(file) {
   try(oce::read.oce(file) |>
@@ -44,18 +43,32 @@ seabird2df <- function(filepath) {
   data <- data %>%
     oce::ctdTrim(method = 'downcast') %>% 
     # QC: apply despike over all columns then grab dataframe
-    oce::despike(reference = "median") %>% 
+    oce::despike(reference = "median") %>%
+    # handleFlags is not working
+    #oce::handleFlags(object =  , flags = oce::defaultFlags()) %>%
     .@data %>%
-    as.data.frame() %>%
-    {if (("par" %in% names(data)) & ("spar" %in% names(data))) {
+    as.data.frame()
+
+  if (("par" %in% names(data)) & ("spar" %in% names(data))) {
+    data <- data %>%
       dplyr::mutate(
       # Derivatives
       CPAR = par / spar
-      )} else .} %>%
-    dplyr::filter(depth > 0.1)
+    )} 
+  data <- data %>%
+    dplyr::filter(depth > 0.1) %>%
+    # Select which sensor for each type of data
+    dplyr::select(dplyr::one_of("depth", "temperature", "CPAR", "oxygen", "specificConductance")) %>%
+    dplyr::mutate(UID = paste0(
+      "SeaBird-",
+      stringr::str_remove_all(tools::file_path_sans_ext(basename(filepath)), pattern = "[[:blank:]]*"),
+      "-", 
+      1:nrow(.))
+    )
+      
 
   # possible names
-  possibleNames <- c("temperature2", "conductivity", "conductivity2", "conductivity3", "oxygen", "oxygen2")
+  possibleNames <- c("temperature", "CPAR", "oxygen", "specificConductance")
   
   # Bin data
   # start at 0.5m so that measures will be at integers matching other 
@@ -102,3 +115,7 @@ seabird2df <- function(filepath) {
 
   return(df)
 }
+
+
+
+

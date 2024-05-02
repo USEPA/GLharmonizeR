@@ -21,13 +21,14 @@
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29),
     .name_repair = "unique_quiet") %>% 
     dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
-                  Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]` ) %>%
+                  Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]`, 
+                  sampleDepth = `Depth [fresh water, m]` ) %>%
     # depth to nearest meter
     dplyr::mutate(
       dplyr::across(dplyr::contains("Depth"), round),
-      ) %>% 
+      UID= as.character(1:nrow(.))
+    ) %>%
     dplyr::select(c(Transect:`CPAR/Corrected Irradiance [%]`, pH:Longitude, 26:32, 38:43)) %>%
-    dplyr::rename(sampleDepth = `Depth [fresh water, m]`) %>%
     tidyr::pivot_longer(
       -c(Transect, Site, sampleDate, sampleDepth, Latitude, Longitude),
       names_to = "ANALYTE", values_to = "RESULT") %>%
@@ -94,7 +95,8 @@
     )) %>%
     dplyr::mutate(
       Study = "CSMI_2021",
-      Year = 2021
+      Year = 2021,
+      UID = paste0(Study, "-", 1:nrow(.))
     )
 
 

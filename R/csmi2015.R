@@ -40,6 +40,7 @@
 
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
     dplyr::rename(sampleDepth = CTDdepth,
+           SITE_ID = Chem_site,
            stationDepth = DepthM_actual,
            UNITS = WQUnits,
            mdl = DetectLimit,
@@ -47,7 +48,7 @@
            sampleDate = SampleDate) %>%
     dplyr::select(
       -dplyr::contains(c("DD", "_target", "Cruise", "Time")),
-      -c(Chem_site, Chem_layer, SampleEvent, Analyst, AltStationName, 
+      -c(Chem_layer, SampleEvent, Analyst, AltStationName, 
         PlaceName, ProjectName, SiteType, DepthStrata, PositNS, `PositNS#`,
         PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
         SurveyVessel, WQdepth_m,
