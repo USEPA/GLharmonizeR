@@ -17,16 +17,16 @@
 #' @export
 LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile) {
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
 
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
-  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) %>%
+  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA-hydro", "-", as.character(UID)))
 
   # Read NCCA WQ files 
-  nccaWQ <- .readNCCA(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile) %>%
+  nccaWQ <- .readNCCA(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
     dplyr::mutate(UID = as.character(UID)) %>%
     dplyr::mutate(Year = lubridate::year(sampleDate)) #%>%
 

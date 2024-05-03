@@ -13,15 +13,15 @@
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data 
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021 
 #' @export
-LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile) {
+LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   # Load file to map analyte names to standard names 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") 
 
   CSMI <- dplyr::bind_rows(
-    .LoadCSMI2010(csmi2010),
+    .LoadCSMI2010(csmi2010, n_max = n_max),
     .LoadCSMI2015(csmi2015),
-    .LoadCSMI2021(csmi2021)
+    .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
     dplyr::mutate(FRACTION = dplyr::case_when(
       FRACTION == "F" ~ "Filtrate",
@@ -64,7 +64,14 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile) {
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
                     RESULT  * ConversionFactor)) %>%
-    dplyr::rename(Units = TargetUnits)
+    dplyr::rename(Units = TargetUnits) %>%
+    dplyr::mutate(
+      UID = as.character(UID),
+      STIS = as.character(STIS),
+      `STIS#` = as.character(`STIS#`),
+      UID = dplyr::coalesce(UID, STIS, `STIS#`),
+      UID = paste0("CSMI-", UID, 1:nrow(.))
+      )
 
   # Turn into test
   # test %>%

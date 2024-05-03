@@ -89,7 +89,7 @@
 #' @param namingFile (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-.cleanGLENDA <- function(df, namingFile, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL) {
+.cleanGLENDA <- function(df, namingFile, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, limitsPath = NULL) {
 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") 
@@ -99,7 +99,6 @@
 
   conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-
 
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
@@ -129,24 +128,30 @@
       dplyr::left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"), .name_repair = "unique_quiet")
       } else .
     } %>%
+    # HAven't pursued because only has limits prior to 2012 
+    # So downgraded it's priority
+    #{if (!is.null(limitsPath)) {
+    #  dplyr::left_join(., readRDS(limitsPath))
+    #} else . 
+    #} %>%
     { if (!is.null(siteCoords)) {
       # impute the missing sites from that file
-      dplyr::left_join(., readxl::read_xlsx(sitecoords, sheet =1 ), by = c("STATION_ID" = "STATION"), suffix = c("", ".x"),
-                        .name_repair = "unique_quiet") %>%
+      dplyr::left_join(., readRDS(siteCoords), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
         dplyr::mutate(
-          Latitude = dplyr::coalesce(Latitude, LATITUDE),
-          Longitude = dplyr::coalesce(Longitude, LONGITUDE),
-          stationDepth = dplyr::coalesce(STN_DEPTH_M, `AVG_DEPTH, m`)
+          LATITUDE = dplyr::coalesce(Latitude, LATITUDE),
+          LONGITUDE = dplyr::coalesce(Longitude, LONGITUDE)
         ) %>%
-        dplyr::select(-c(LATITUDE, LONGITUDE, `AVG_DEPTH, m`, STN_DEPTH_M))
+        dplyr::select(-c(Latitude, Longitude))
     } else .
     } %>%
     # Impute site coordinates as the mean of that Site's recorded coordinates
     { if (imputeCoordinates) {
       dplyr::mutate(.,
-        Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude),
-        Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
-        stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth),
+        LATITUDE = as.numeric(LATITUDE),
+        LONGITUDE = as.numeric(LONGITUDE),
+        LATITUDE = ifelse(is.na(LATITUDE), mean(LATITUDE, na.rm = T), LATITUDE),
+        LONGITUDE = ifelse(is.na(LONGITUDE), mean(LONGITUDE, na.rm = T), LONGITUDE),
+        STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
         .by = STATION_ID
       ) 
     } else .
@@ -167,6 +172,7 @@
     dplyr::select(-c(VALUE, LONGITUDE, LATITUDE)) %>%
     dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK) %>%
     dplyr::mutate(UID = as.character(UID), RESULT = as.numeric(RESULT)) %>%
+
     # Standardize analyte names
     dplyr::left_join(renamingTable, by = c("Study", "MEDIUM", "ANALYTE", "FRACTION", "METHOD"= "Methods")) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%

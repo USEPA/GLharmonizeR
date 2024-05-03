@@ -24,6 +24,7 @@
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
                          csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE) {
+  n_max = ifelse(test, 50, Inf)
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -38,14 +39,16 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   print("Step 2/6: Read and clean NCCA")
   ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile) %>%
+                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile,
+                         n_max = n_max) %>%
           dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
 
   print("Step 3/6: Read and clean GLENDA")
-  GLENDA <- .readPivotGLENDA(glendaData) %>%
-    .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = FALSE)
+  GLENDA <- .readPivotGLENDA(glendaData, n_max = n_max) %>%
+    .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = TRUE,
+    siteCoords = "Data/GLENDA/GLENDAsiteInfo.Rds")
   # Silicon, Elemental	Si, 2.13918214
-
+  
   print("Step 4/6: Read and clean SeaBird files associated with GLENDA")
   if (test) {
     seaBirdFiles <- seaBirdFiles[c(1:5, (length(seaBirdFiles) - 5): length(seaBirdFiles))]
@@ -70,9 +73,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     dplyr::select(-c(YEAR, Years))
 
   print("Step 5/6: Read and clean CSMI data")
-  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile) %>%
-    dplyr::rename(UID = STIS) %>%
-    dplyr::mutate(UID = as.character(UID)) %>%
+  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
     dplyr::select(-Years)
 
   print("Step 6/6: Combine and return full data")

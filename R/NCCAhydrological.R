@@ -8,8 +8,8 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
-.readNCCASecchi2015 <- function(NCCAsecchifile2015) {
-  df <- readr::read_csv(NCCAsecchifile2015) %>%
+.readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
+  df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max) %>%
       dplyr::filter(
         !grepl("mean secchi depth estimated", SECCHI_COMMENT, ignore.case = T),
         !grepl("estimated", SECCHI_COMMENT, ignore.case = T),
@@ -71,10 +71,10 @@
 #' @param filepath a string specifying the filepath of the data
 #'  
 #' @return dataframe
-.readNCCAhydro2010 <- function(NCCAhydrofiles2010) {
+.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
 
   NCCAhydrofiles2010 %>% 
-    purrr::map_dfr(readr::read_csv) %>%
+    purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
       ANALYTE = PARAMETER_NAME,
@@ -126,8 +126,8 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro2015 <- function(filepath) {
-  readr::read_csv(filepath) %>%
+.readNCCAhydro2015 <- function(filepath, n_max = Inf) {
+  readr::read_csv(filepath, n_max = n_max) %>%
     # the only comments mention no measurment data or typo
     dplyr::filter(is.na(NARS_COMMENT)) %>%
     dplyr::mutate(
@@ -156,9 +156,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) {
+.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = Inf) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(NCCAhydrofiles2010), 
-    .readNCCAhydro2015(NCCAhydrofile2015), 
-    .readNCCASecchi2015(NCCAsecchifile2015))
+    .readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max), 
+    .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max), 
+    .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max))
 }

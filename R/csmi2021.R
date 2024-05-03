@@ -8,7 +8,7 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2021
-.LoadCSMI2021 <- function(directoryPath){
+.LoadCSMI2021 <- function(directoryPath, n_max = Inf){
   # CTD
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
@@ -18,7 +18,7 @@
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
   CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29),
+    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29, n_max = n_max),
     .name_repair = "unique_quiet") %>% 
     dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
                   Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]`, 

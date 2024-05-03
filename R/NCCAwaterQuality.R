@@ -108,8 +108,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2000s <- function(filepath) {
+.readNCCA2000s <- function(filepath, n_max = Inf) {
   readr::read_csv(filepath,
+                  n_max = n_max,
                   col_types = readr::cols(
                     # Doesn't contain date nor time
                     .default = "-",
@@ -145,9 +146,10 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2010 <- function(filepaths) {
+.readNCCA2010 <- function(filepaths, n_max = Inf) {
   filepaths %>%
     purrr::map_dfr(readr::read_csv,
+            n_max = n_max,
             col_types = readr::cols(
               # Doesn't contain time
               "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
@@ -214,8 +216,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2015 <- function(filepath) {
+.readNCCA2015 <- function(filepath, n_max = Inf) {
   readr::read_csv(filepath,
+           n_max = n_max,
            col_types = readr::cols(
              "UID" = "d",
              "SITE_ID" = "c",
@@ -296,10 +299,10 @@
 #' @param filepath a string specifying the directory of the data
 #' 
 #' @return dataframe
-.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL, nccaWQqaFile = NULL){
+.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL, nccaWQqaFile = NULL, n_max = n_max){
   dfs <- list()
-  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 WQ filepath not specified or trouble finding")
-  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 WQ filepath not specified or trouble finding")
+  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
+  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
   dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
