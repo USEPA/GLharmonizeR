@@ -66,6 +66,7 @@ vignettes/*.pdf
 
 Results/Code/*/*_files
 Data/*.xml
+Data/fullData.csv
 
 # Exceptions
 !Data/Formatted/*.csv
