@@ -28,34 +28,36 @@
     dplyr::left_join(RODBC::sqlFetch(dbi, "L3a_SampleLayerList"), by = c("STIS#" = "STISkey")) %>%
     # actual coordinates
     dplyr::left_join(RODBC::sqlFetch(dbi, "L2a_StationSampleEvent"), by = c("SampleEventFK" = "SampleEventKey")) %>%
-    dplyr::rename(LATITUDE = LatDD_actual, LONGITUDE = LonDD_actual) %>%
+    dplyr::rename(Latitude = LatDD_actual, Longitude = LonDD_actual) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeUTC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
-    dplyr::mutate(
-      ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
-     ) %>%
+    #dplyr::mutate(
+    #  ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
+    #  ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+    #  ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
+    # ) %>%
 
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
-    dplyr::rename(SAMPLE_DEPTH = CTDdepth,
-           STATION_DEPTH = DepthM_actual,
+    dplyr::rename(sampleDepth = CTDdepth,
+           SITE_ID = Chem_site,
+           stationDepth = DepthM_actual,
            UNITS = WQUnits,
            mdl = DetectLimit,
            ANL_CODE = WQlabelname,
-           Date = SampleDate) %>%
+           sampleDate = SampleDate) %>%
     dplyr::select(
       -dplyr::contains(c("DD", "_target", "Cruise", "Time")),
-      -c(Chem_site, Chem_layer, SampleEvent, Analyst, AltStationName, 
+      -c(Chem_layer, SampleEvent, Analyst, AltStationName, 
         PlaceName, ProjectName, SiteType, DepthStrata, PositNS, `PositNS#`,
         PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
         SurveyVessel, WQdepth_m,
         )) %>%
     dplyr::mutate(
-      STUDY = "CSMI_2015",
-      YEAR = 2015
-      )
+      Study = "CSMI_2015",
+      Year = 2015
+      )  %>%
+    dplyr::rename(STIS = `STIS#`, METHOD = AnalMethod)
 
   RODBC::odbcClose(dbi)
            

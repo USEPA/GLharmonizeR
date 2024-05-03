@@ -8,8 +8,8 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
-.readNCCASecchi2015 <- function(filepath) {
-  readr::read_csv(filepath) %>%
+.readNCCASecchi2015 <- function(NCCAsecchifile2015) {
+  df <- readr::read_csv(NCCAsecchifile2015) %>%
       dplyr::filter(
         !grepl("mean secchi depth estimated", SECCHI_COMMENT, ignore.case = T),
         !grepl("estimated", SECCHI_COMMENT, ignore.case = T),
@@ -23,8 +23,8 @@
       dplyr::mutate(
         SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
         DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
-        Date = paste(DATE_COL, SECCHI_TIME, sep = "_"),
-        Date = lubridate::ymd_h(Date),
+        sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
+        sampleDate = lubridate::ymd_h(sampleDate),
         ) %>%
       tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
       dplyr::reframe(
@@ -41,12 +41,23 @@
         .by = c(UID)
       ) %>%
       dplyr::mutate(
-        RESULT = ifelse(CLEAR_TO_BOTTOM, NA, RESULT),
-        QAcomment= ifelse(CLEAR_TO_BOTTOM, paste("Clear to bottom", QAcomment, sep = ";"), QAcomment)
+        RESULT = dplyr::case_when(
+          CLEAR_TO_BOTTOM == TRUE ~ NA,
+          CLEAR_TO_BOTTOM == FALSE ~ RESULT,
+          is.na(CLEAR_TO_BOTTOM) ~ RESULT
+        ),
+        QAcomment= dplyr::case_when(
+          CLEAR_TO_BOTTOM == TRUE ~ paste("Clear to bottom", QAcomment, sep = ";"),
+          CLEAR_TO_BOTTOM == FALSE ~ QAcomment,
+          is.na(CLEAR_TO_BOTTOM) ~ QAcomment
+        ) 
       ) %>%
       dplyr::mutate(
         Study = "NCCA_secchi_2015"
-      )
+      ) %>%
+      # 1/3 of values are averages that we are removing here
+      tidyr::drop_na(RESULT)
+  return(df)
 }
 
 #' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
@@ -60,9 +71,9 @@
 #' @param filepath a string specifying the filepath of the data
 #'  
 #' @return dataframe
-.readNCCAhydro2010 <- function(filepaths) {
+.readNCCAhydro2010 <- function(NCCAhydrofiles2010) {
 
-  filepaths %>% 
+  NCCAhydrofiles2010 %>% 
     purrr::map_dfr(readr::read_csv) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
@@ -121,7 +132,7 @@
     dplyr::filter(is.na(NARS_COMMENT)) %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
+      sampleDate = as.Date(DATE_COL, origin = "1900-1-1"),
       Study = "NCCA_hydro_2015"
     ) %>%
     dplyr::select(
@@ -132,7 +143,7 @@
     # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
     dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
             Depth = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, DATE_COL, SITE_ID, sampleDepth, ANALYTE, Study))
+            .by = c(UID, sampleDate, SITE_ID, sampleDepth, ANALYTE, Study))
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
@@ -145,10 +156,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(hydrofiles2010, hydrofile2015, secchifile2015) {
+.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(hydrofiles2010), 
-    .readNCCAhydro2015(hydrofile2015), 
-    .readNCCASecchi2015(secchifile2015))
+    .readNCCAhydro2010(NCCAhydrofiles2010), 
+    .readNCCAhydro2015(NCCAhydrofile2015), 
+    .readNCCASecchi2015(NCCAsecchifile2015))
 }
-

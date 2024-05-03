@@ -1,0 +1,18 @@
+"0","df <- readPivotGLENDA(""Data/Raw/GLENDA.csv"") %>%
+  filter(is.na(as.numeric(VALUE)) | VALUE == ""0"") %>%
+  select(ANALYTE, FRACTION, METHOD, VALUE, RESULT_REMARK, YEAR) %>%
+  group_by(ANALYTE, FRACTION, METHOD, VALUE, RESULT_REMARK) %>%
+  summarize(n = n(), FirstYear = min(YEAR, na.rm = T), LastYear = max(YEAR, na.rm=T)) %>%
+  left_join(remarkCodes, by= c(""RESULT_REMARK""= ""NAME"")) %>%
+  unite(FirstYear, LastYear, col = ""Years"", sep = ""-"", remove= T ) %>%
+  arrange(ANALYTE, Years, METHOD) %>%
+  select(ANALYTE, FRACTION, METHOD, Years, VALUE, n, CLASS, CODE, RESULT_REMARK, DESCRIPTION) %>%
+  map_df(str_replace_all, pattern = "","", replacement = ""."")  %>%
+  write.csv(""Data/Formatted/naList.csv"", quote = F, row.names = F)
+"
+"2","New names:"
+"2","Warning: [38;5;255mThere was 1 warning in `filter()`.[39m
+[38;5;255m[36mℹ[38;5;255m In argument: `is.na(as.numeric(VALUE)) | VALUE == ""0""`.[39m
+Caused by warning:
+[33m![39m NAs introduced by coercion"
+"2","`summarise()` has grouped output by 'ANALYTE', 'FRACTION', 'METHOD', 'VALUE'. You can override using the `.groups` argument."

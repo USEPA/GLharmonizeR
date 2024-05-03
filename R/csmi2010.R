@@ -10,25 +10,25 @@
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @importFrom magrittr "%>%"
-#' @param directorypath a string specifying the directory path of the access database
+#' @param csmi2010 a string specifying the directory path of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2010
-.LoadCSMI2010 <- function(directoryPath){
-  df <- readxl::read_xlsx(file.path(directoryPath, "GL2010db.xlsx")) %>%
-    dplyr::slice(9:n()) %>%
+.LoadCSMI2010 <- function(csmi2010){
+  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), .name_repair = "unique_quiet") %>%
+    dplyr::slice(9:dplyr::n()) %>%
     # Move spatial information to front to simplify table conversion
     dplyr::relocate(contains(c("Stn Depth", "Acutal", "Actual"))) %>%
     dplyr::select(-Notes)
   sampleCols <- which(grepl("Sample Type", names(df), ignore.case = T))
   tallFormatted <- df %>% 
-    select(`Stn Depth (m)`:STIS) %>%
+    dplyr::select(`Stn Depth (m)`:STIS) %>%
     tidyr::fill(DATE, .direction = "down") %>%
-    dplyr::mutate(DATE = lubridate::dmy(DATE),
-            LATITUDE = as.numeric(`Acutal Lat (N)`),
-            LONGITUDE = as.numeric(`Actual Lon (W)`),
-            STATION_DEPTH = as.numeric(`Stn Depth (m)`),
+    dplyr::mutate(sampleDate = lubridate::dmy(DATE),
+            Latitude = as.numeric(`Acutal Lat (N)`),
+            Longitude = as.numeric(`Actual Lon (W)`),
+            stationDepth = as.numeric(`Stn Depth (m)`),
             ) %>%
     dplyr::select(-c(`Acutal Lat (N)`, `Actual Lon (W)`, `Stn Depth (m)`, `STIS #...1`)) %>%
-    dplyr::select(-dplyr::starts_with("Part")) %>%
+    dplyr::select(-dplyr::starts_with("Part"), -DATE)
 
   
   # Define where new mini tables are 
@@ -44,7 +44,7 @@
             # drop STIS
             dplyr::select(!dplyr::contains("STIS")) %>%
             dplyr::bind_cols(tallFormatted, .) %>%
-            tidyr::pivot_longer(-c(FRACTION, LAKE, SITE, STATION, PROJECT, DATE, `blk/dup other`, STIS, STATION_DEPTH, LATITUDE, LONGITUDE), names_to = "ANALYTE", values_to = "RESULT")
+            tidyr::pivot_longer(-c(FRACTION, LAKE, SITE, STATION, PROJECT, sampleDate, `blk/dup other`, STIS, stationDepth, Latitude, Longitude), names_to = "ANALYTE", values_to = "RESULT")
             ) %>%
 
     purrr::reduce(dplyr::bind_rows) %>%
@@ -77,29 +77,26 @@
                         .default = FRACTION))
 
 
-####### NEEED TO UNBREAK THIS SINCE THE NEW STUFF ADDED ABOVE 
-
-
     # move detection limits to own column
-  df <- readxl::read_xlsx(file.path(directoryPath, "GL2010db.xlsx")) %>%
+  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), .name_repair = "unique_quiet") %>%
     dplyr::slice(1:2)
 
   dls <- df %>%
-    #dplyr::filter(`STIS#` == "method detection limit") %>%
-    dplyr::distinct(ANALYTE, RESULT) %>% 
-    tidyr::drop_na() %>%
-    dplyr::rename(mdl = RESULT) %>%
-    dplyr::mutate(mdl = as.numeric(mdl))
+    dplyr::select(dplyr::one_of((names(.)[colMeans(is.na(.)) ==0]))) %>%
+    dplyr::select(-1) %>%
+    tidyr::pivot_longer(dplyr::everything(), names_to = "ANALYTE", values_to = "mdl") %>%
+    dplyr::distinct(ANALYTE, mdl) %>% 
+    dplyr::mutate(mdl = as.numeric(mdl)) %>%
+    tidyr::drop_na()
 
-  df <- df %>%
-    # WHAT IS THIS FILTER DOING? 
-    dplyr::filter(`STIS#` != "STIS #") %>%
-    dplyr::filter(! grepl("detection limit", `STIS#`)) %>%
+  df <- tallFormatted %>%
+    # Drop missing STIS number or placeholder values
+    dplyr::filter(STIS != "STIS #") %>%
+    dplyr::filter(! grepl("detection limit", STIS)) %>%
     dplyr::left_join(dls, by = "ANALYTE") %>%
     tidyr::drop_na(RESULT) %>%
     dplyr::mutate(
       RESULT = as.numeric(RESULT),
-      Date = lubridate::ymd("2010-06-15"),
       Study = "CSMI_2010",
       Year = 2010
       )

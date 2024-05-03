@@ -126,7 +126,7 @@
                     "DO Cond" = "-",
                     "Trans Cond" = "-",
                   )) %>%
-    tidyr::pivot_longer(-c(SITE_ID, SAMPYEAR), names_to = "ANALYTE", values_to = "RESULT")  %>%
+    tidyr::pivot_longer(-c(SITE_ID, Year), names_to = "ANALYTE", values_to = "RESULT")  %>%
     dplyr::mutate(
       sampleDepth = 0.5,
       Study = "NCCA_WQ_2000s"
@@ -153,7 +153,7 @@
               "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
               "LAB_SAMPLE_ID" = "-",
               "SAMPLE_ID" = "-",
-              "STATE" = "-",
+              #"STATE" = "-",
               "BATCH_ID" = "-",
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
@@ -161,7 +161,7 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      Date = DATE_COL) %>%
+      sampleDate = DATE_COL) %>%
     dplyr::mutate(
       # Combine Nitrate adn Nitrite
       Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
@@ -177,11 +177,14 @@
         .default = ANALYTE
       ),
       ANL_CODE = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "NOx",
+        ANALYTE == "Nitrate" ~ "Diss_NOx",
         .default = ANALYTE
       ),
-
-      .by = c(UID, SITE_ID, Date)
+      UNITS = dplyr::case_when(
+        ANALYTE == "Nitrate" ~ "ugL",
+        .default = UNITS 
+      ),
+      .by = c(UID, SITE_ID, sampleDate)
     ) %>%
     dplyr::select(
       -dplyr::contains("Nitr")
@@ -196,7 +199,9 @@
     ) %>%
     dplyr::mutate(
       Study = "NCCA_WQ_2010"
-    )
+    ) %>%
+    dplyr::mutate(
+      QACODE = paste(QACODE, ifelse(STATE == "WI", "WSLH", ""), sep = ";"))
 }
 
 #' Read in all NCCA water quality from 2015 
@@ -223,17 +228,17 @@
              "NARS_FLAG" = "c",
              "NARS_COMMENT" = "c",
              "RESULT" = "d",
-             "RESULT_UNITS" = "c",
-             .default = "-"
+             "RESULT_UNITS" = "c"
            )) %>%
-    dplyr::rename(Date = DATE_COL,
-           QAcode= NARS_FLAG,
-           QAcomment = NARS_COMMENT,
-           UNITS = RESULT_UNITS,
-           ANL_CODE = ANALYTE
-          ) %>%
+    dplyr::rename(
+      sampleDate = DATE_COL,
+      QAcode= NARS_FLAG,
+      QAcomment = NARS_COMMENT,
+      UNITS = RESULT_UNITS,
+      ANL_CODE = ANALYTE
+    ) %>%
     dplyr::mutate(
-      Date = lubridate::dmy(Date), 
+      sampleDate = lubridate::dmy(sampleDate), 
       # Combine Nitrate adn Nitrite
       Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
@@ -244,10 +249,18 @@
       ),
       # Change the names 
       ANL_CODE = dplyr::case_when(
-        ANL_CODE == "NITRATE_N" ~ "NOx",
+        ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
         .default = ANL_CODE 
       ),
-      .by = c(UID, SITE_ID, Date)
+      UNITS = dplyr::case_when(
+        ANL_CODE == "NITRATE_N" ~ "ugL",
+        (ANL_CODE == "AMMONIA_N") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "Diss_NOx") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "SRP") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "PTL") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        .default = UNITS
+      ),
+      .by = c(UID, SITE_ID, sampleDate)
     ) %>%
     dplyr::select(
       -dplyr::contains("NITR")
@@ -260,7 +273,11 @@
     dplyr::mutate(
       sampleDepth = 0.5,
       Study = "NCCA_WQ_2015"
-    )
+    ) %>%
+    dplyr::mutate(
+      QAcode = paste(QAcode, ifelse(LAB == "WSLH", "WSLH", ""), sep = ";"),
+      QAcomment = paste(QAcode, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";")
+      )
 }
 
 # 2020/2021
@@ -279,12 +296,37 @@
 #' @param filepath a string specifying the directory of the data
 #' 
 #' @return dataframe
-.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL){
+.readNCCA <- function(tenFiles=NULL, fifteenFiles=NULL, nccaWQqaFile = NULL){
   dfs <- list()
   if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles) else print("2010 WQ filepath not specified or trouble finding")
   if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles) else print("2015 WQ filepath not specified or trouble finding")
-  dplyr::bind_rows(dfs)
+  dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
-}
+    dplyr::mutate(SAMPYEAR = lubridate::year(sampleDate))
+  
+  QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet") 
 
+  dfs %>%
+    dplyr::left_join(QA, by = c("SAMPYEAR", "QAcode", "ANALYTE", "ANL_CODE")) %>%
+    # Drop the "suspect" values based off of correspondance with Hugh Sullivan
+    dplyr::filter(
+      !grepl("suspect", QAcomment, ignore.case = T)
+    ) %>%
+    dplyr::mutate(
+      RESULT = dplyr::case_when(
+        Decision == "CTB" ~  NA,
+        Decision == "Keep" ~ RESULT,
+        Decision == "Impute" ~ NA,
+        Decision == "Estimate" ~ RESULT,
+        Decision == "Remove" ~ NA,
+        .default = RESULT),
+      FLAG = dplyr::case_when(
+        Decision == "CTB" ~  "Clear to Bottom",
+        Decision == "Keep" ~ NA,
+        Decision == "Impute" ~ "Impute value using one or more detect limits (see QA comment)",
+        Decision == "Estimate" ~ "Value estimate",
+        Decision == "Remove" ~ NA,
+        .default = NA)
+    )
+}

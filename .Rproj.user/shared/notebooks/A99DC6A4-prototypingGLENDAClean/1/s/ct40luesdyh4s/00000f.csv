@@ -1,0 +1,7 @@
+"0","temp %>%"
+"0","  group_by(INSITU_MEAS) %>%"
+"0","  summarize(propInd = mean(Individual, na.rm=T)) %>%"
+"0","  kable() %>%"
+"0","  kable_paper()"
+"2","Error: object 'temp' not found
+"

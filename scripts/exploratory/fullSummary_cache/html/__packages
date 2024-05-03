@@ -1,0 +1,16 @@
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+lubridate
+kableExtra
+ggh4x
+usethis
+devtools
+testthat
+LMChla

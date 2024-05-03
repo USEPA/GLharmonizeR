@@ -1,0 +1,512 @@
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+)
+# If value and results are missing, we assume sample was never taken
+filter(!is.na(VALUE) & !is.na(RESULT_REMARK))
+df <- read_csv("Data/Raw/GLENDA.csv",
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+) %>%
+# If value and results are missing, we assume sample was never taken
+filter(!is.na(VALUE) & !is.na(RESULT_REMARK))
+glimpse(df)
+dim(df)
+unique(df$ANALYTE)
+df <- read_csv("Data/Raw/GLENDA.csv",
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+)
+unique(df$ANALYTE)
+df %>%
+count(ANALYTE, SAMPLE_TYPE) %>%
+ggplot(aes(x = ANALYTE, y = n, fill = SAMPLE_TYPE)) +
+geom_bar() +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+df %>%
+count(ANALYTE, SAMPLE_TYPE)
+df %>%
+count(ANALYTE, SAMPLE_TYPE) %>%
+ggplot(aes(x = ANALYTE, y = n, fill = SAMPLE_TYPE)) +
+geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+df %>%
+drop_na(ANALYTE) %>%
+count(ANALYTE, SAMPLE_TYPE) %>%
+ggplot(aes(x = ANALYTE, y = n, fill = SAMPLE_TYPE)) +
+geom_bar(stat = "identity") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+df %>%
+drop_na(ANALYTE) %>%
+count(ANALYTE, SAMPLE_TYPE) %>%
+ggplot(aes(x = ANALYTE, y = n, fill = SAMPLE_TYPE)) +
+geom_bar(stat = "identity", position = "fill") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+source("~/Projects/LM_Chla/Code/dataCleaning/readCleanGLENDA.R", echo=TRUE)
+df <- readCleanGLENDA("Data/Raw/GLENDA.csv")
+unique(df$ANALYTE)
+df <- readCleanGLENDA("Data/Raw/GLENDA.csv")
+unique(df$ANALYTE)
+df %>%
+drop_na(ANALYTE) %>%
+count(ANALYTE, SAMPLE_TYPE) %>%
+ggplot(aes(x = ANALYTE, y = n, fill = SAMPLE_TYPE)) +
+geom_bar(stat = "identity", position = "fill") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+df %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+ggplot(aes(x = MONTH, group = SAMPLE_TYPE, fill = SAMPLE_TYPE)) +
+geom_bar() +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+colnames(df)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+ggplot(aes(x = MONTH, group = SAMPLE_TYPE, fill = SAMPLE_TYPE)) +
+geom_bar() +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+count(YEAR, MONTH, SAMPLE_TYPE)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n))
+unique(df$SAMPLE_TYPE)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE = "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "May", "June", "July", "August",
+"September", "October", "November", "December"))) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite") %>%
+ggplot(aes(x = MONTH, y = prop, col = YEAR)) +
+geom_point()
+glimpse(df)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total
+)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total ) %>%
+filter(SAMPLE_TYPE == "Composite")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+group_by(YEAR, MONTH) %>%
+mutate(total = sum(n), prop = n/total )
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+pivot_wider(id_cols = c("YEAR", "MONTH"), values_from = "n", names_from = "SAMPLE_TYPE")
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+pivot_wider(id_cols = c("YEAR", "MONTH"), values_from = "n", names_from = "SAMPLE_TYPE") %>%
+mutate(total = Individual + Composite + INSITU_MEAS, prop= Composite / total) %>%
+select(YEAR, MONTH, prop)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+pivot_wider(id_cols = c("YEAR", "MONTH"), values_from = "n", names_from = "SAMPLE_TYPE") %>%
+replace_na(0) %>%
+mutate(total = Individual + Composite + INSITU_MEAS, prop= Composite / total) %>%
+select(YEAR, MONTH, prop)
+df %>%
+distinct(VISIT_ID, .keep_all = T) %>%
+count(YEAR, MONTH, SAMPLE_TYPE) %>%
+pivot_wider(id_cols = c("YEAR", "MONTH"), values_from = "n", names_from = "SAMPLE_TYPE") %>%
+replace_na(0)
+unique(df$ANALYTE)
+df <- read_csv("Data/Raw/GLENDA.csv",
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+# filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+#       ) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+) %>%
+# If value and results are missing, we assume sample was never taken
+filter(!is.na(VALUE) & !is.na(RESULT_REMARK)) %>%
+filter(is.na(as.numeric(VALUE)) | VALUE == "0") %>%
+select(ANALYTE, METHOD, VALUE, RESULT_REMARK, YEAR) %>%
+group_by(ANALYTE, METHOD, VALUE, RESULT_REMARK) %>%
+summarize(n = n(), FirstYear = min(YEAR, na.rm = T), LastYear = max(YEAR, na.rm=T)) %>%
+left_join(remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
+unite(FirstYear, LastYear, col = "Years", sep = "-", remove= T ) %>%
+arrange(ANALYTE, Years, METHOD) %>%
+select(ANALYTE, METHOD, Years, VALUE, n, CLASS, CODE, RESULT_REMARK, DESCRIPTION) %>%
+map_df(str_replace_all, pattern = ",", replacement = ".") %>%
+write.csv("Data/Formatted/naList.csv", quote = F, row.names = F)
+df <- read_csv("Data/Raw/GLENDA.csv",
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+# filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+#       ) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+) %>%
+# If value and results are missing, we assume sample was never taken
+filter(!is.na(VALUE) & !is.na(RESULT_REMARK)) %>%
+filter(is.na(as.numeric(VALUE)) | VALUE == "0") %>%
+select(ANALYTE, METHOD, VALUE, RESULT_REMARK, YEAR) %>%
+group_by(ANALYTE, METHOD, VALUE, RESULT_REMARK) %>%
+summarize(n = n(), FirstYear = min(YEAR, na.rm = T), LastYear = max(YEAR, na.rm=T)) %>%
+left_join(remarkCodes, by= c("RESULT_REMARK"= "NAME")) %>%
+unite(FirstYear, LastYear, col = "Years", sep = "-", remove= T ) %>%
+arrange(ANALYTE, Years, METHOD) %>%
+select(ANALYTE, METHOD, Years, VALUE, n, CLASS, CODE, RESULT_REMARK, DESCRIPTION) %>%
+map_df(str_replace_all, pattern = ",", replacement = ".")
+unique(df$ANALYTE)
+df <- read_csv("Data/Raw/GLENDA.csv",
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+# Select samples that haven't been combined
+# filter(QC_TYPE == "routine field sample",
+#SAMPLE_TYPE != "Composite"
+#       ) %>%
+# These columns are redundant with the "Analyte" columns
+select(-contains("ANL_CODE_")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$",
+)
+unique(df$ANALYTE)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+glimpse(df)
+dim(df)
+df <- read_csv("Data/Raw/GLENDA.csv")
+colnames(df)
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -Row:SAMPLE_ID,
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -Row:SAMPLE_ID,
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+colnames(df)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -YEAR:SAMPLE_ID,
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+1:4
+?pick
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -pick(YEAR:SAMPLE_ID),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+colnames(df)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+glimpse(df)
+unique(df$QC_TYPE)
+df %>%
+ggplot(aes(x = ANALYTE, group = QC_TYPE, fill = QC_TYPE)) +
+geom_bar(position = "fill")
+dim(df)
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$") %>%
+drop_na(ANALYTE)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$") %>%
+drop_na(ANALYTE)
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+dim(df)
+unique(df$ANALYTE)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+dim(df)
+unique(df$ANALYTE)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+dim(df)
+unique(df$ANALYTE)
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$")a %>%
+readPivotGLENDA <- function(filepath) {
+read_csv(filepath,
+col_types = cols(YEAR = "i",
+STN_DEPTH_M = "d",
+LATITUDE = "d",
+LONGITUDE = "d",
+SAMPLING_DATE = col_date(format = "%Y/%m/%d %H:%M"),
+SAMPLE_DEPTH_M = "d",
+# Skip useless or redundant columns
+Row = "-",
+.default = "c")) %>%
+pivot_longer(cols = -c(1:18),
+names_to = c(".value", "Number"),
+names_pattern = "(.*)_(\\d*)$") %>%
+drop_na(ANALYTE)
+}
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
+dim(df)
+unique(df$ANALYTE)
+source("Code/dataCleaning/readCleanGLENDA.R")
+df <- readPivotGLENDA("Data/Raw/GLENDA.csv")
