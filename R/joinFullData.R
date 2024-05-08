@@ -23,7 +23,7 @@
 #' parts of the datasets to test it faster
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE) {
+                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
   n_max = ifelse(test, 50, Inf)
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
@@ -58,12 +58,6 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   seaBirdDf <- seaBirdFiles %>%
     purrr::map(\(x)
       oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
-
-  meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
-    # Parse it from the filename
-    #stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]
-    "jklj"
-  )
     dplyr::bind_rows() %>% 
     dplyr::mutate(Study = "SeaBird") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
@@ -105,10 +99,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     QAcode, QAcomment, LAB, LRL, contains("QAconsiderations"), Decision, Action, FLAG
     )
 
-  if (!is.null(out)) {
+  if (!is.null(out) & binaryOut) {
     print("Writing data to")
     print(out)
-    readr::write_csv(allWQ, file = out)
+    saveRDS(allWQ, out)
+  } else {
+    print("Writing data to")
+    print(out)
+    readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }
   return(allWQ)
 }
