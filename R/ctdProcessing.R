@@ -30,16 +30,12 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
     "longitude" = data@metadata$longitude,
     "sampleDate" = data@metadata$date,
     "waterDepth" = data@metadata$waterDepth,
-    "station" = data@metadata$station)
+    "station" = data@metadata$filename
+    )
   units <- data@metadata$units
-  meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
-    # Parse it from the filename
-    #stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]
-    "jklj"
-  )
 
    
-  data <- data %>%
+  df <- data %>%
     {if (downcast) {
       oce::ctdTrim(., method = 'downcast')
     } else . } %>%
@@ -50,14 +46,14 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
     .@data %>%
     as.data.frame()
 
-  if (("par" %in% names(data)) & ("spar" %in% names(data))) {
-    data <- data %>%
+  if (("par" %in% names(df)) & ("spar" %in% names(df))) {
+    df <- df %>%
       dplyr::mutate(
       # Derivatives
       cpar = par / spar
     )} 
 
-  data <- data %>%
+  df <- df %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
     dplyr::select(dplyr::one_of("depth", "temperature", "cpar", "oxygen", "specificConductance")) %>%
@@ -75,14 +71,14 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
 
     # Bin data
     # start at 0.5m so that measures will be at integers matching other 
-    temp <- oce::binAverage(y = data$temperature, x = data$depth, xmin = 0.5, xinc = 1)
-    df <- data.frame("depth" = temp$x, "temperature" = temp$y)
+    temp <- oce::binAverage(y = df$temperature, x = df$depth, xmin = 0.5, xinc = 1)
+    temp <- data.frame("depth" = temp$x, "temperature" = temp$y)
 
     for (analyte in possibleNames) {
       {if (analyte %in% names(data)) {
-        df <- df %>% 
+        df <- temp %>% 
           dplyr::mutate(
-            "{analyte}" := oce::binAverage(y = data[[analyte]], x = data[["depth"]], xmin = 0.5, xinc = 1)$y
+            "{analyte}" := oce::binAverage(y = df[[analyte]], x = df[["depth"]], xmin = 0.5, xinc = 1)$y
           )
       }}}
   }
@@ -103,7 +99,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
       Station = toupper(Station)
     ) %>%
     dplyr::rename(sampleDepth = depth) %>%
-    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(UID, sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::rename(STATION_ID = Station)
   
   unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))

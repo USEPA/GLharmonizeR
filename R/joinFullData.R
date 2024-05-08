@@ -56,7 +56,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 
   
   seaBirdDf <- seaBirdFiles %>%
-    purrr::map(\(x)  oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
+    purrr::map(\(x)
+      oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
+
+  meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
+    # Parse it from the filename
+    #stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]
+    "jklj"
+  )
     dplyr::bind_rows() %>% 
     dplyr::mutate(Study = "SeaBird") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
