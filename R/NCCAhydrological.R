@@ -101,6 +101,7 @@
     dplyr::filter(
       ANALYTE != "Underwater PAR"
     ) %>%
+    # Don't average, instead filter to just downcast
     dplyr::reframe(
       RESULT = mean(RESULT, na.rm = TRUE),
       stationDepth = mean(stationDepth, na.rm = TRUE),

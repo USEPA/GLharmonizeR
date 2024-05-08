@@ -233,6 +233,8 @@
              "RESULT" = "d",
              "RESULT_UNITS" = "c"
            )) %>%
+    # Suggested by HUGH that all flags are pretty notably bad
+    dplyr::filter(is.na(NARS_COMMENT)) %>%
     dplyr::rename(
       sampleDate = DATE_COL,
       QAcode= NARS_FLAG,

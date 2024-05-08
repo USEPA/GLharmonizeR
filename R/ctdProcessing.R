@@ -22,26 +22,28 @@
 
 # Convert conductance with the following (suggested by James Gerads)
 # [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
-seabird2df <- function(filepath) {
+oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
   # load data as oce object 
-  data <- suppressWarnings(oce::read.oce(filepath))
   # get Date, Lat, Lon, stationDepth # Station Name
-  meta <- data.frame("latitude" = NA, "longitude" = NA, "station" = NA, "startTime" = NA, "waterDepth" = NA)
-  meta$latitude   <- data@metadata$latitude
-  meta$longitude  <- data@metadata$longitude
-  meta$startTime  <- data@metadata$startTime
-  meta$waterDepth <- data@metadata$waterDepth
-  units <- data@metadata$unit
+  meta <- data.frame(
+    "latitude" = data@metadata$latitude,
+    "longitude" = data@metadata$longitude,
+    "sampleDate" = data@metadata$date,
+    "waterDepth" = data@metadata$waterDepth,
+    "station" = data@metadata$station)
 
-
+# FIXME aaljkldfjaf
   meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
     # Parse it from the filename
-    stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]
-    ) 
+    #stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]
+    "jklj"
+  )
 
    
   data <- data %>%
-    oce::ctdTrim(method = 'downcast') %>% 
+    {if (downcast) {
+      oce::ctdTrim(., method = 'downcast')
+    } else . } %>%
     # QC: apply despike over all columns then grab dataframe
     oce::despike(reference = "median") %>%
     # handleFlags is not working
@@ -53,35 +55,38 @@ seabird2df <- function(filepath) {
     data <- data %>%
       dplyr::mutate(
       # Derivatives
-      CPAR = par / spar
+      cpar = par / spar
     )} 
+
   data <- data %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
-    dplyr::select(dplyr::one_of("depth", "temperature", "CPAR", "oxygen", "specificConductance")) %>%
+    dplyr::select(dplyr::one_of("depth", "temperature", "cpar", "oxygen", "specificConductance")) %>%
     dplyr::mutate(UID = paste0(
-      "SeaBird-",
-      stringr::str_remove_all(tools::file_path_sans_ext(basename(filepath)), pattern = "[[:blank:]]*"),
+      studyName,
       "-", 
       1:nrow(.))
     )
       
 
   # possible names
-  possibleNames <- c("temperature", "CPAR", "oxygen", "specificConductance")
-  
-  # Bin data
-  # start at 0.5m so that measures will be at integers matching other 
-  temp <- oce::binAverage(y = data$temperature, x = data$depth, xmin = 0.5, xinc = 1)
-  df <- data.frame("sampleDepth" = temp$x, "temperature" = temp$y)
+  possibleNames <- c("temperature", "spar", "oxygen", "specificConductance", "pH")
 
-  for (analyte in possibleNames) {
-    {if (analyte %in% names(data)) {
-      df <- df %>% 
-        dplyr::mutate(
-          "{analyte}" := oce::binAverage(y = data[[analyte]], x = data[["depth"]], xmin = 0.5, xinc = 1)$y
-        )
-    }}}
+  if (bin) {
+
+    # Bin data
+    # start at 0.5m so that measures will be at integers matching other 
+    temp <- oce::binAverage(y = data$temperature, x = data$depth, xmin = 0.5, xinc = 1)
+    df <- data.frame("depth" = temp$x, "temperature" = temp$y)
+
+    for (analyte in possibleNames) {
+      {if (analyte %in% names(data)) {
+        df <- df %>% 
+          dplyr::mutate(
+            "{analyte}" := oce::binAverage(y = data[[analyte]], x = data[["depth"]], xmin = 0.5, xinc = 1)$y
+          )
+      }}}
+  }
 
   df <- df %>% 
     # add meta data
@@ -89,9 +94,8 @@ seabird2df <- function(filepath) {
       Latitude = meta$latitude,
       Longitude = meta$longitude,
       Station = meta$station,
-      Time = meta$startTime,
+      sampleDate = meta$sampleDate,
       stationDepth = meta$waterDepth,
-      sampleDate = lubridate::date(Time),
       # Make station names similar to how they appear in GLENDA
       Station = stringr::str_remove_all(Station, ","),
       Station = stringr::str_remove_all(Station, " "),
@@ -99,7 +103,8 @@ seabird2df <- function(filepath) {
       Station = stringr::str_remove_all(Station, "_"),
       Station = toupper(Station)
     ) %>%
-    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, Time, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::rename(sampleDepth = depth) %>%
+    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::rename(STATION_ID = Station)
   
   unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))

@@ -103,6 +103,7 @@
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
+      RESULTstart = VALUE,
       TIME_ZONE= dplyr::case_when(
         TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
         TIME_ZONE == "CDT" ~ "EST",
@@ -165,7 +166,7 @@
       ),
       RESULT_REMARK= dplyr::case_when(
         grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ paste(RESULT_REMARK, NA, sep=";"),
-        .default = VALUE
+        .default = RESULT_REMARK
       )
     ) %>%
     dplyr::mutate(RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)) %>%
@@ -184,9 +185,14 @@
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
-    dplyr::mutate(RESULT = ifelse(
-      ANALYTE == "Silicon, Elemental", RESULT / 2.13918214, RESULT
-    ))
+    dplyr::mutate(RESULT = dplyr::case_when(
+      # convert from silicon to silica
+      ANALYTE == "Silicon, Elemental" ~ RESULT / 2.13918214,
+      ReportedUnits == TargetUnits ~ RESULT,
+      ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
+      .default = RESULT
+    )) %>%
+    #### parse_numeric for RESULT
 
   return (df)
 }

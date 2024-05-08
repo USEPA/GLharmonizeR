@@ -19,30 +19,20 @@
   ## 
   CTD <- file.path(directoryPath, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29, n_max = n_max),
-    .name_repair = "unique_quiet") %>% 
-    dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
-                  Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]`, 
-                  sampleDepth = `Depth [fresh water, m]` ) %>%
-    # depth to nearest meter
-    dplyr::mutate(
-      dplyr::across(dplyr::contains("Depth"), round),
-      UID= as.character(1:nrow(.))
-    ) %>%
-    dplyr::select(c(Transect:`CPAR/Corrected Irradiance [%]`, pH:Longitude, 26:32, 38:43)) %>%
-    tidyr::pivot_longer(
-      -c(Transect, Site, sampleDate, sampleDepth, Latitude, Longitude),
-      names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::mutate(
-      UNITS = stringr::str_extract(ANALYTE, "\\[.*\\]"),
-      ANALYTE = stringr::str_remove(ANALYTE, "\\s\\[.*\\]"),
-      UNITS = stringr::str_remove(UNITS, "\\["),
-      UNITS = stringr::str_remove(UNITS, "\\]"),
-      Site = stringr::str_remove(Site, "_")
-    )
-
-
-  latlons <- CTD %>% 
-    dplyr::reframe(Latitude = mean(Latitude, na.rm = TRUE), Longitude = mean(Longitude, na.rm = TRUE), .by = Site)
+      .name_repair = "unique_quiet") %>% 
+      dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
+                    Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]`,
+                    depth = `Depth [fresh water, m]`,
+                    temperature = `Temperature [deg C]`, 
+                    oxygen = `Oxygen [mg/l]`,
+                    specc = `Specific Conductance [uS/cm]`,
+                    cpar = `CPAR/Corrected Irradiance [%]`,
+                    ) %>%
+      dplyr::select(Site, sampleDate, depth, Latitude, Longitude, temperature, oxygen, specc, cpar) %>%
+      dplyr::mutate(stationDepth = max(depth), Latitude = mean(Latitude),
+        Longitude = mean(Longitude), .by = c(Site, sampleDate)) %>%
+      # make a nested list for each CTD event to convert each into oce objects
+      dplyr::nest_by(Site, sampleDate, Latitude, Longitude, stationDepth)
 
 # Water chemistry  copied from 
 # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem

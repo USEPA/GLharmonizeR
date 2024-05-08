@@ -53,8 +53,10 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   if (test) {
     seaBirdFiles <- seaBirdFiles[c(1:5, (length(seaBirdFiles) - 5): length(seaBirdFiles))]
   }
+
+  
   seaBirdDf <- seaBirdFiles %>%
-    purrr::map(seabird2df, .progress = TRUE) %>%
+    purrr::map(\(x)  oce2df(suppressWarnings(oce::read.oce(x)), datasource = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
     dplyr::bind_rows() %>% 
     dplyr::mutate(Study = "SeaBird") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%

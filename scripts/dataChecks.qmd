@@ -5,7 +5,6 @@ date: today
 
 ```{r setup}
 library(tidyverse)
-library(kable)
 library(kableExtra)
 df <- read_csv("Data/fulldata.csv")
 ```
@@ -44,3 +43,9 @@ Notes on missingness:
     - Can't find sampleDepth
       - Just report the water layer
 
+```{r}
+GLENDA %>%
+  filter(Study == "GLENDA", is.na(RESULT)) %>%
+  count(CodeName, ConversionFactor, is.na(as.numeric(RESULTstart))) %>%
+  print(n = 64)
+```
