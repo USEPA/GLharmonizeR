@@ -13,6 +13,7 @@ df <- readRDS("Data/fulldata.rds")
 # Missingness
 ```{r}
 df %>%
+  select(1:9, 16:21, 23) %>%
   reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
   kable() %>%
   kableExtra::kable_paper()

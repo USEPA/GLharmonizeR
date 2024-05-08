@@ -27,6 +27,7 @@ Imports:
     oce
 Suggests: 
     knitr,
+    lintr,
     rmarkdown,
     testthat (>= 3.0.0),
     withr

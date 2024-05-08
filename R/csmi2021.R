@@ -35,11 +35,11 @@
       #dplyr::nest_by(Site, sampleDate, Latitude, Longitude, stationDepth) %>%
       dplyr::mutate(
         Study = "CSMI_2021_CTD",
-        UID = paste0(Study, "-", 1:nrow(.)
+        UID = paste0(Study, "-", 1:nrow(.))
         )
   
   # Add station depths
-  latlons <- CTD %>% 
+  latlons <- CTD %>%
     dplyr::distinct(Site, Latitude, Longitude, stationDepth) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(Site = stringr::str_remove_all(Site, "_")) %>%

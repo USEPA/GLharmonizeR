@@ -21,6 +21,7 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   CSMI <- dplyr::bind_rows(
     .LoadCSMI2010(csmi2010, n_max = n_max),
     .LoadCSMI2015(csmi2015),
+    # TODO Why is csmi2021 removing CodeNames and Reuslts for both WQ and CTD
     .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
     dplyr::mutate(FRACTION = dplyr::case_when(
@@ -40,7 +41,7 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "\\+"), ANALYTE),
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "="), ANALYTE),
-      ANALYTE = ifelse(grepl("CSMI_2021", Study, .ignore.case=T) & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
+      ANALYTE = ifelse(grepl("CSMI_2021", Study, ignore.case=T) & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
       sampleDate = lubridate::date(sampleDate),
       # This only contains information about where along the water column 
       # But we already have that with depth
