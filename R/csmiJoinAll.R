@@ -40,7 +40,7 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "\\+"), ANALYTE),
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "="), ANALYTE),
-      ANALYTE = ifelse((Study == "CSMI_2021") & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
+      ANALYTE = ifelse(grepl("CSMI_2021", Study, .ignore.case=T) & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
       sampleDate = lubridate::date(sampleDate),
       # This only contains information about where along the water column 
       # But we already have that with depth

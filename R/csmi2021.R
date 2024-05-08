@@ -32,11 +32,24 @@
       dplyr::mutate(stationDepth = max(depth), Latitude = mean(Latitude),
         Longitude = mean(Longitude), .by = c(Site, sampleDate)) %>%
       # make a nested list for each CTD event to convert each into oce objects
-      dplyr::nest_by(Site, sampleDate, Latitude, Longitude, stationDepth)
+      #dplyr::nest_by(Site, sampleDate, Latitude, Longitude, stationDepth) %>%
+      dplyr::mutate(
+        Study = "CSMI_2021_CTD",
+        UID = paste0(Study, "-", 1:nrow(.)
+        )
+  
+  # Add station depths
+  latlons <- CTD %>% 
+    dplyr::distinct(Site, Latitude, Longitude, stationDepth) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(Site = stringr::str_remove_all(Site, "_")) %>%
+    dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
+    dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
+    dplyr::arrange(Site)
 
-# Water chemistry  copied from 
-# L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
-# Contact is Annie Fosso
+  # Water chemistry  copied from 
+  # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
+  # Contact is Annie Fosso
   DL <- file.path(directoryPath, "Chem2021_detection limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
     readxl::read_xlsx(sheet = "detection limits", .name_repair = "unique_quiet") %>%
@@ -60,22 +73,14 @@
                     `Time (EST)`, Station, Date )) %>%
     tidyr::pivot_longer(-c(1:4, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
-    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) #%>%
-    #dplyr::left_join(latlons, by = "Site")
-
-  # Add station depths
-  #latlons <- latlons %>% 
-  #  dplyr::left_join(WQ, by = c("Site", "Longitude", "Latitude")) %>%
-  #  dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
-  #  dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
-  #  dplyr::arrange(Site)
-
-  #CTD <- CTD %>%
-  #  dplyr::left_join(latlons, by = "Site") %>%
-  #  dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
-  #  dplyr::select(-c(Latitude.y, Longitude.y))
+    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
+    dplyr::left_join(latlons, by = "Site") %>%
+    dplyr::mutate(Study = "CSMI_2021_WQ")
 
   WQ <- dplyr::bind_rows(WQ, CTD) %>%
+    dplyr::left_join(latlons, by = "Site") %>%
+    dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
+    dplyr::select(-c(Latitude.y, Longitude.y)) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
     dplyr::rename(mdl = `method detection limit`, SITE_ID = Site) %>%
     dplyr::select(-contains("detection limit corrected")) %>%
@@ -84,9 +89,7 @@
       RESULT < mdl ~ "nondetect"
     )) %>%
     dplyr::mutate(
-      Study = "CSMI_2021",
       Year = 2021,
-      UID = paste0(Study, "-", 1:nrow(.))
     )
 
 

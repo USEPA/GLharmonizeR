@@ -6,16 +6,12 @@ date: today
 ```{r setup}
 library(tidyverse)
 library(kableExtra)
-df <- read_csv("Data/fulldata.csv")
+df <- readRDS("Data/fulldata.rds")
 ```
 
 
 # Missingness
 ```{r}
-colMeans(is.na(df)) %>%
-  kable() %>%
-  kableExtra::kable_paper()
-
 df %>%
   reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
   kable() %>%
@@ -24,14 +20,10 @@ df %>%
 
 Notes on missingness:
 - GLENDA
-  - Missing 3% of lat/longs/depths
-  - missing values is a function of how inefficient 
+  - Has ~50% missingness
 - SeaBird
   - Can't locate station depth in their files
 - NCCA
-  - WQ 2010 has 15% missingness
-  - WQ 2015 has 30% missingness
-    - Has ANL_CODE not ANALYTE
   - Secchi missing sample depth because it is an integrated sample (over water column)
 
 - CSMI
@@ -47,6 +39,7 @@ Notes on missingness:
     - It actually just has a lot of missing WQ 
       - I'm guessing this is because if CTD was measured and WQ wasn't they still record it as a NA
   - 2021
+    - actually has ~50% missingness
 
 
 ```{r}
