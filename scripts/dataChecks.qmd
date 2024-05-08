@@ -43,6 +43,12 @@ Notes on missingness:
     - Can't find sampleDepth
       - Just report the water layer
 
+  - 2015 
+    - It actually just has a lot of missing WQ 
+      - I'm guessing this is because if CTD was measured and WQ wasn't they still record it as a NA
+  - 2021
+
+
 ```{r}
 GLENDA %>%
   filter(Study == "GLENDA", is.na(RESULT)) %>%

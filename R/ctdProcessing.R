@@ -31,8 +31,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
     "sampleDate" = data@metadata$date,
     "waterDepth" = data@metadata$waterDepth,
     "station" = data@metadata$station)
-
-# FIXME aaljkldfjaf
+  units <- data@metadata$units
   meta$station    <- ifelse(!is.null(data@metadata$station), data@metadata$station, 
     # Parse it from the filename
     #stringr::str_split(tools::file_path_sans_ext(basename(filepath)), pattern = "_", simplify = T)[2]

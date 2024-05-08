@@ -56,7 +56,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 
   
   seaBirdDf <- seaBirdFiles %>%
-    purrr::map(\(x)  oce2df(suppressWarnings(oce::read.oce(x)), datasource = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
+    purrr::map(\(x)  oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
     dplyr::bind_rows() %>% 
     dplyr::mutate(Study = "SeaBird") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%

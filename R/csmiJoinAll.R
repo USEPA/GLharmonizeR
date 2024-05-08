@@ -79,9 +79,6 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   #   filter(is.na(ConversionFactor)) %>%
   #   count(ReportedUnits, TargetUnits, ConversionFactor)
 
-
-
-
 # CSMI fraction labels
 # From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
 # Sheet "flow_charts"

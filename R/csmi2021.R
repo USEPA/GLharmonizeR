@@ -60,20 +60,20 @@
                     `Time (EST)`, Station, Date )) %>%
     tidyr::pivot_longer(-c(1:4, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
-    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
-    dplyr::left_join(latlons, by = "Site")
+    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) #%>%
+    #dplyr::left_join(latlons, by = "Site")
 
   # Add station depths
-  latlons <- latlons %>% 
-    dplyr::left_join(WQ, by = c("Site", "Longitude", "Latitude")) %>%
-    dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
-    dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
-    dplyr::arrange(Site)
+  #latlons <- latlons %>% 
+  #  dplyr::left_join(WQ, by = c("Site", "Longitude", "Latitude")) %>%
+  #  dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
+  #  dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
+  #  dplyr::arrange(Site)
 
-  CTD <- CTD %>%
-    dplyr::left_join(latlons, by = "Site") %>%
-    dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
-    dplyr::select(-c(Latitude.y, Longitude.y))
+  #CTD <- CTD %>%
+  #  dplyr::left_join(latlons, by = "Site") %>%
+  #  dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
+  #  dplyr::select(-c(Latitude.y, Longitude.y))
 
   WQ <- dplyr::bind_rows(WQ, CTD) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
