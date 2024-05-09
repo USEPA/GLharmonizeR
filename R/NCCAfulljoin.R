@@ -46,8 +46,10 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
     
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
+    # Cleaning up a column naming mistake
     dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
     dplyr::select(-QACODE) %>%
+    # Add QA codes
     dplyr::left_join(., QA, by = "QAcode") %>%
     dplyr::mutate(
       stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x, Depth),

@@ -11,13 +11,10 @@
 .readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
   df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max) %>%
       dplyr::filter(
-        !grepl("mean secchi depth estimated", SECCHI_COMMENT, ignore.case = T),
-        !grepl("estimated", SECCHI_COMMENT, ignore.case = T),
+        # Kept estimated and based on trans
+        # We will explicitly test if the measurements are greater than station depth
         !grepl("missing for this site", SECCHI_COMMENT, ignore.case = T),
-        !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T),
-        !grepl("based on trans", SECCHI_COMMENT, ignore.case = T),
-        !grepl("no secchi", SECCHI_COMMENT, ignore.case = T),
-
+        !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T)
       ) %>%
       # Confirmed that the reference date with Hugh and by reformatting in Excel 
       dplyr::mutate(
@@ -26,6 +23,8 @@
         sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
         sampleDate = lubridate::ymd_h(sampleDate),
         ) %>%
+        # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
+        # However, we filter it out in the mean call
       tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
       dplyr::reframe(
         SITE_ID = toString(unique(SITE_ID)),
@@ -33,10 +32,12 @@
         DATE_COL = unique(DATE_COL),
         Depth = mean(STATION_DEPTH, na.rm=T),
 
-        # Mean of everything but the already meaned value
+        # Mean of everything but the estimated value (because we think this is estimated by Kd)
         RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm =T),
         # Compress all comments and note clear to bottom to be combined
-        CLEAR_TO_BOTTOM = sum(CLEAR_TO_BOTTOM == "Y") >= 1,
+        # TODO change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
+        # Check to see if this works
+        CLEAR_TO_BOTTOM = RESULT >= Depth,
         QAcomment = toString(unique(SECCHI_COMMENT)),
         .by = c(UID)
       ) %>%
@@ -55,7 +56,6 @@
       dplyr::mutate(
         Study = "NCCA_secchi_2015"
       ) %>%
-      # 1/3 of values are averages that we are removing here
       tidyr::drop_na(RESULT)
   return(df)
 }

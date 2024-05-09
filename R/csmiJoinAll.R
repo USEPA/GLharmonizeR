@@ -17,7 +17,6 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   # Load file to map analyte names to standard names 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") 
-
   CSMI <- dplyr::bind_rows(
     .LoadCSMI2010(csmi2010, n_max = n_max),
     .LoadCSMI2015(csmi2015),
