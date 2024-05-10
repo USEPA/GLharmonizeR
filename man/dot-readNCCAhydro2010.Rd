@@ -4,7 +4,7 @@
 \alias{.readNCCAhydro2010}
 \title{Load and join secchi data for NCCA 2010 hydrographic data from csv files}
 \usage{
-.readNCCAhydro2010(filepaths)
+.readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max)
 }
 \arguments{
 \item{filepath}{a string specifying the filepath of the data}

@@ -4,7 +4,7 @@
 \alias{.LoadCSMI2021}
 \title{Load and join data for CSMI 2021 from csv excel files}
 \usage{
-.LoadCSMI2021(directoryPath)
+.LoadCSMI2021(directoryPath, n_max = Inf)
 }
 \arguments{
 \item{filepath}{a string specifying the filepath of the access database}

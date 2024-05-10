@@ -4,10 +4,10 @@
 \alias{.LoadCSMI2010}
 \title{Load and join data for CSMI 2010 from csv excel files}
 \usage{
-.LoadCSMI2010(directoryPath)
+.LoadCSMI2010(csmi2010, n_max = Inf)
 }
 \arguments{
-\item{directorypath}{a string specifying the directory path of the access database}
+\item{csmi2010}{a string specifying the directory path of the access database}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI 2010

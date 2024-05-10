@@ -4,7 +4,7 @@
 \alias{.readNCCASecchi2015}
 \title{Load and join secchi data for NCCA 2015 from csv files}
 \usage{
-.readNCCASecchi2015(filepath)
+.readNCCASecchi2015(NCCAsecchifile2015, n_max = Inf)
 }
 \arguments{
 \item{filepath}{a string specifying the filepath of the data}

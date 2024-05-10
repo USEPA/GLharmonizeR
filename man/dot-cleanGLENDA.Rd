@@ -6,20 +6,21 @@
 \usage{
 .cleanGLENDA(
   df,
+  namingFile,
   flagsPath = NULL,
   imputeCoordinates = FALSE,
   siteCoords = NULL,
-  nameMap = NULL
+  limitsPath = NULL
 )
 }
 \arguments{
 \item{df}{GLENDA dataframe in long format}
 
+\item{namingFile}{(optional) filepath to a file containing remappings for analyte names}
+
 \item{flagsPath}{(optional) filepath to the Result remarks descriptions. Default is NULL.}
 
 \item{siteCoords}{(optional) filepath to list of site coordinates to impute missing lats/lons}
-
-\item{nameMap}{(optional) filepath to a file containing remappings for analyte names}
 
 \item{imputeCoordinages}{(optional) Boolean specifying whether to impute missing station coordinates}
 }

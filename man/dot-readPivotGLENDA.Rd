@@ -4,14 +4,14 @@
 \alias{.readPivotGLENDA}
 \title{readPivotGLENDA}
 \usage{
-.readPivotGLENDA(filepath, n_max = Inf, sampleIDs = NULL)
+.readPivotGLENDA(glendaData, n_max = Inf, sampleIDs = NULL)
 }
 \arguments{
-\item{filepath}{a filepath to the GLENDA csv}
-
 \item{n_max}{Number of rows to read in from the raw GLENDA data (this is really just for testing purposes)}
 
 \item{sampleIDs}{a list of sampleIDs to keep in the final dataset}
+
+\item{filepath}{a filepath to the GLENDA csv}
 }
 \value{
 a dataframe
