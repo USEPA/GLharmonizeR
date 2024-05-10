@@ -1,42 +1,3 @@
-#' Read in all NCCA water quality from the early 2000s
-#' 
-#' @description
-#' `.readNCCA2000s` returns water quality data measured during the NCCA study in the early 2000s
-#' 
-#' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
-#' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the directory of the data
-#' @return dataframe
-.readNCCA2000s <- function(filepath, n_max = Inf) {
-  # TODO move this function to an old functions folder
-  readr::read_csv(filepath,
-                  n_max = n_max,
-                  col_types = readr::cols(
-                    # Doesn't contain date nor time
-                    .default = "-",
-                    "SITE_ID" = "c",
-                    "SAMPYEAR" = "d",
-                    "Chla ug/L" = "d",
-                    "DIN mg N/L" = "d",
-                    "DIP mg P/L" = "d",
-                    "DO mg/L" = "d",
-                    "Light transmittance (%) @ 1 m" = "d",
-                    "Chla Cond" = "-",
-                    "DIN Cond" = "-",
-                    "DIP Cond" = "-",
-                    "DO Cond" = "-",
-                    "Trans Cond" = "-",
-                  )) %>%
-    tidyr::pivot_longer(-c(SITE_ID, Year), names_to = "ANALYTE", values_to = "RESULT")  %>%
-    dplyr::mutate(
-      sampleDepth = 0.5,
-      Study = "NCCA_WQ_2000s"
-    )
-    # Make a missing columns for depths to align with other data sources
-    #mutate(DEPTH = NA)
-}
-
 #' Read in all NCCA water quality from 2010 
 #' 
 #' @description
@@ -52,13 +13,16 @@
     purrr::map_dfr(readr::read_csv,
             n_max = n_max,
             col_types = readr::cols(
-              # TODO Load MDL, MRL, PQL
+              # DONE Load MDL, MRL, PQL
               "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
               "LAB_SAMPLE_ID" = "-",
               "SAMPLE_ID" = "-",
               "BATCH_ID" = "-",
               "DATE_ANALYZED" = "-",
               "HOLDING_TIME" = "-",
+              "MDL" = "d",
+              "MRL" = "d",
+              "PQL" = "d",
             )) %>%
     dplyr::rename(
       ANL_CODE = PARAMETER,
@@ -69,12 +33,13 @@
       Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
       `Nitrate/Nitrite` = Nitrate + Nitrite,
-      # TODO does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
-      # TODO maybe easier to do pivot_wider first
-      # TODO make sure Nitrate and Nitrite are already ug/L
+      # DONE does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
+      # NO. We discussed these in our meetings and decide it has the correct behavior when one or more 
+      # values are missing
+      # XXX maybe easier to do pivot_wider first
+      # DONE make sure Nitrate and Nitrite are already mg/L (this is true)
       # DOCTHIS We assume sampling events that don't have certain analytes reported
       # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
-      # TODO remove vlaues if one is missing
       RESULT = dplyr::case_when(
         ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
         .default = RESULT
@@ -88,11 +53,13 @@
         .default = ANALYTE
       ),
       UNITS = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "ugL",
+        ANALYTE == "Nitrate" ~ "mgl",
         .default = UNITS 
       ),
       .by = c(UID, SITE_ID, sampleDate)
     ) %>%
+    # [x] remove vlaues if one is missing
+    dplyr::filter((!is.na(Nitrite)) & (!is.na(Nitrate))) %>%
     dplyr::select(
       # Remove the columns that we created called Nitrate, Nitrite and Nitrate/Nitrite
       -dplyr::contains("Nitr")
@@ -106,7 +73,7 @@
       sampleDepth = 0.5
     ) %>%
     dplyr::mutate(
-      # TODO add this to Analytes3
+      # [x] add this to Analytes3
       Study = "NCCA_WChem_2010"
     ) %>%
     dplyr::mutate(
@@ -149,10 +116,11 @@
     dplyr::mutate(
       sampleDate = lubridate::dmy(sampleDate), 
       # Combine Nitrate adn Nitrite
-      # TODO does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
-      # TODO maybe easier to do pivot_wider first
-      # TODO make sure Nitrate and Nitrite are already ug/L
-      # TODO make 2 separate mutates so the .by goes more obvsiously with the mean (if not pivoted wider)
+      # [x] does this create a problem (check if whenever Nitrate is missing Nitrite is missing).
+      # No. we settled that this behaves well for one or both missing
+      # XXX maybe less confusing to do pivot_wider first
+      # [x] make 2 separate mutates so the .by goes more obvsiously with the mean (if not pivoted wider)
+      # We decided not to do this actually. That it is easy enough to read and understand
       Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
       `Nitrate/Nitrite` = Nitrate + Nitrite,
@@ -214,14 +182,20 @@
   if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
   if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
 
-  # TODO check if bind_rows breaks with one file
+  # DONE check if bind_rows breaks with one file
   dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
     dplyr::mutate(SAMPYEAR = lubridate::year(sampleDate))
 
-  # TODO add a try catch if the filepath isn't included 
-  QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet") 
+  # DONE add a try catch if the filepath isn't included
+  tryCatch(
+    QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet"),
+    error = function(e) {
+      message("The NCCA QA water chemistry filepath was not correctly specified.")
+    }
+    )
+   
 
   dfs %>%
     dplyr::left_join(QA, by = c("SAMPYEAR", "QAcode", "ANALYTE", "ANL_CODE")) %>%
