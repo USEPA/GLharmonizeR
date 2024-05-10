@@ -7,23 +7,28 @@
 #' @details
 #' This is a hidden function that should not generally be used by users. 
 #'
-#' @param hydrofiles2010 a string specifying the directory containing NCCA hydrographic 2010 data
-#' @param hydrofile2015 a string specifying the directory containing NCCA hydrographic 2015 data
-#' @param secchifile2015 a string specifying the directory containing NCCA secchi 2015 data
-#' @param siteFiles a string specifying the directory containing NCCA Site data 
-#' @param preFiles a string specifying the path containing 2010's and earlier WQ data  
-#' @param tenFiles a string specifying the directory containing NCCA WQ 2010 data
-#' @param fifteenFiles a string specifying the directory containing NCCA wQ 2015 data
-#' @param glendaData a string specifying the directory containing GLENDA data
+#' @param NCCAhydrofiles2010 a string specifying the directory containing NCCA hydrographic 2010 data
+#' @param NCCAhydrofile2015 a string specifying the directory containing NCCA hydrographic 2015 data
+#' @param NCCAsecchifile2015 a string specifying the directory containing NCCA secchi 2015 data
+#' @param NCCAsites2010 a string specifying the directory containing NCCA Site data for 2010
+#' @param NCCAsites2015 a string specifying the directory containing NCCA Site data for 2015
+#' @param NCCAwq2010 a string specifying the directory containing NCCA WQ 2010 data
+#' @param NCCAqa2010 a string specifying the file containing qa file 
+#' @param NCCAwq2015 a string specifying the directory containing NCCA wQ 2015 data
+#' @param Glenda a a string specifying the directory containing GLENDA data
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
+#' @param seaBirdFiles a list of strings specifying the seabird file paths
+#' @param namingFile a filepath to the "Analytes3.xlsx" spreadsheet which documents naming, units, and conversions 
 #' @param out (optional) filepath to save the dataset to
 #' @param test (optional) boolean, if testing that data loads and joins, this flag only loads 
 #' parts of the datasets to test it faster
+#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency? 
+#'
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, glendaData,
-                         csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
+ NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
   n_max = ifelse(test, 50, Inf)
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
@@ -37,14 +42,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     .name_repair = "unique_quiet") 
 
   print("Step 2/6: Read and clean NCCA")
-  ncca <- LoadNCCAfull(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
+  ncca <- LoadNCCAfull(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAqa2010, NCCAwq2015, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile,
                          n_max = n_max) %>%
           dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
 
   print("Step 3/6: Read and clean GLENDA")
-  GLENDA <- .readPivotGLENDA(glendaData, n_max = n_max) %>%
+  GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = TRUE,
     siteCoords = "Data/GLENDA/GLENDAsiteInfo.Rds")
   # Silicon, Elemental	Si, 2.13918214
@@ -116,6 +121,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 #' Unify the names and units of the fully joined data 
 #'
 #' @description
+#' NOT USED
 #' `.UnifyUnitsNames` returns a dataframe data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA'
 #'
 #' @details
