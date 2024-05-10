@@ -39,6 +39,13 @@ For scripts/function organization and style see the [Google r style guide](https
 For package layout see the [R-exts](https://cran.r-project.org/doc/manuals/R-exts.pdf)
 For function documentation [roxygen notes](https://roxygen2.r-lib.org/articles/rd.html)
 
+Lint the project files using R linter package (we are using the default linting choices which enforces tidyverse standards)
+```{r}
+lintr::lint(filename = "R/filename.R") 
+lintr::lint_dir(path = "R")
+```
+
+
 ## License
 This is under construction
 

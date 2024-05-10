@@ -75,6 +75,10 @@
 
   NCCAhydrofiles2010 %>% 
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
+    # filter to just downcast
+    dplyr::filter(CAST == "DOWNCAST") %>%
+  # TODO add the QA data and join / filter it here
+  # Keep an eye out for the remove with comment column
     dplyr::rename(
       sampleDepth = SDEPTH,
       ANALYTE = PARAMETER_NAME,
@@ -97,17 +101,19 @@
       ),
       .by = c(UID, sampleDepth, stationDepth)
     ) %>%
+    # TODO filter out where either ambientPAR or underPAR check if this does what we think
+    dplyr::filter((!is.na(ambientPAR)) | (!is.na(underPAR))) %>%
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
       ANALYTE != "Underwater PAR"
     ) %>%
-    # Don't average, instead filter to just downcast
+    # TODO this ouldn't need reframe since I filtered to downcast
     dplyr::reframe(
       RESULT = mean(RESULT, na.rm = TRUE),
       stationDepth = mean(stationDepth, na.rm = TRUE),
       QAcode= toString(unique(QA_CODE)),
       QAcomment = toString(unique(QA_COMMENT)),
-      # Cast flags comments and flags didn't seem to contain anything useful
+      # CAST_FLAG column didn't seem to contain anything useful only conatined (R)
       .by = c(UID, sampleDepth, ANALYTE, DATE_COL, SITE_ID, stationDepth)
     ) %>%
     dplyr::mutate(
@@ -128,23 +134,22 @@
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath, n_max = Inf) {
+  # TODO check filter for light, rename to sampleDepth, and filter to Downcast
   readr::read_csv(filepath, n_max = n_max) %>%
     # the only comments mention no measurment data or typo
     dplyr::filter(is.na(NARS_COMMENT)) %>%
+    dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
       sampleDate = as.Date(DATE_COL, origin = "1900-1-1"),
       Study = "NCCA_hydro_2015"
     ) %>%
+    dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>%
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
-    dplyr::rename(sampleDepth = DEPTH) %>%
-    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
-    # I'm hesitant to use UID instead of DATE and SITE, just because I haven't verified that it is unique 
-    dplyr::reframe(RESULT = mean(RESULT, na.rm = T),
-            Depth = mean(STATION_DEPTH, na.rm = T),
-            .by = c(UID, sampleDate, SITE_ID, sampleDepth, ANALYTE, Study))
+    dplyr::rename(sampleDepth = DEPTH, stationDepth = Depth) %>%
+    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT")
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
@@ -162,4 +167,5 @@
     .readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max), 
     .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max), 
     .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max))
+
 }

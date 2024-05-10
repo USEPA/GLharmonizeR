@@ -1,7 +1,7 @@
 #' Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data
 #' 
 #' @description
-#' `LoadNCCAfull` returns water quality data along with spatial data from the 
+#' `.LoadNCCAfull` returns water quality data along with spatial data from the 
 #'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
 #' 
 #' @details
@@ -13,28 +13,24 @@
 #' @param NCCAhydrofiles2010 filepath to hydrogrpahic 2010 data
 #' @param NCCAhydrofile2015 filepath to hydrogarphic 2015 data
 #' @param NCCAjsecchifile2015  filepaht to secchi 2015 data
+#' @param Lakes List of Lakes to output
 #' @return dataframe
 #' @export
-LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
+.LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
-
+                         Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
+# TODO Did we QC all of the great lakes already???
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA-hydro", "-", as.character(UID)))
 
-  # Read NCCA WQ files 
-  nccaWQ <- .readNCCA(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
+  # Read NCCA Water chemistry files 
+  nccaWQ <- .readNCCAchemistry(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
     dplyr::mutate(UID = as.character(UID)) %>%
-    dplyr::mutate(Year = lubridate::year(sampleDate)) #%>%
+    dplyr::mutate(Year = lubridate::year(sampleDate))
 
-  QA <- readr::read_csv(tenQAfile) %>%
-    dplyr::select(-`...3`) %>%
-    dplyr::rename(QAconsiderations = Considerations,
-                  QAcode = `Unique Qualifier Code`) %>%
-    dplyr::distinct(QAcode, .keep_all = TRUE)
   
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "NCCA_Map", na = c("", "NA"), .name_repair = "unique_quiet") 
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
@@ -47,6 +43,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
     # Cleaning up a column naming mistake
+    # TODO Make sure these still work after the upstream changes
     dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
     dplyr::select(-QACODE) %>%
     # Add QA codes
@@ -61,9 +58,8 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       DATE_COL #QAconsiderations,
     )) %>%
     # Great lakes get's priority over spcifying each lake
-    {if (greatLakes) {
-      dplyr::filter(., NCCRreg == "Great Lakes")
-    } else if (!is.null(Lakes)) {
+    dplyr::filter(NCCRreg == "Great Lakes") %>%
+    {if (!is.null(Lakes)) {
       dplyr::filter(., waterName %in% Lakes)
     } else .} %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
@@ -77,6 +73,7 @@ LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fift
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
       ReportedUnits = dplyr::case_when(
+        # TODO can we make this more year specific Move this to 2015 hydro These were take from hdyro 2015 metadata file
         CodeName == "DO" ~ "mgl",
         CodeName == "Secchi" ~ "m",
         CodeName == "Temp" ~ "c",
