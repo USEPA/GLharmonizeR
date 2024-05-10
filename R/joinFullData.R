@@ -169,14 +169,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
       by = "CodeName") %>%
     dplyr::filter(CodeName != "Remove")
 
-# TODO: Identify all analytes with missing Code Names and add to naming shee
+# [ ]: Identify all analytes with missing Code Names and add to naming shee
 # - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
 # - Then fill all missing ANL_CODE with nonmissing
 # test <- data  %>% 
 #   filter(is.na(CodeName)) %>%
 #   count(Study, ANALYTE, ANL_CODE, FRACTION, METHOD, MEDIUM)
 
-# TODO: ID all conversions with na (that aren't identical) 
+# [ ] : ID all conversions with na (that aren't identical) 
 
   #UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
 

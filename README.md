@@ -45,6 +45,13 @@ lintr::lint(filename = "R/filename.R")
 lintr::lint_dir(path = "R")
 ```
 
+Tags in code are supported to make it easier to search when searching for things to do etc: 
+- BUG - if a bug is known to occur from a certain chunk of code
+- [ ] - For TODO's
+- [x] - to mark that necessary changes are done
+- DOCTHIS - highlight sections of code that are important to write up in the documentation for the package
+
+
 
 ## License
 This is under construction

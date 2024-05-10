@@ -12,7 +12,8 @@
 # all depths are reported in meters
   readr::read_csv(filepath, show_col_types=FALSE) %>%
     # cutdown number of lats and longs
-    # TODO how to choose the best projection here (DD vs DD83) is this constient across sources?
+    # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
+    # This only applies to targetted sites, actual coordinates are unique and settles this problem
     dplyr::rename(
       # No missingness, so no need to coalesce
       Latitude = ALAT_DD,
@@ -43,7 +44,8 @@
   dplyr::select(-WTBDY_NM) %>%
     # cutdown number of lats and longs
     dplyr::rename(
-      # TODO find the best projection here too
+    # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
+    # This only applies to targetted sites, actual coordinates are unique and settles this problem
       # No missingness, so no need to coalesce
       Latitude = LAT_DD,
       Longitude = LON_DD,

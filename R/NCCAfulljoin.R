@@ -19,8 +19,7 @@
 .LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
-# TODO Did we QC all of the great lakes already???
-# TODO 
+  # TODO Did we QC all of the great lakes already???
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
@@ -29,10 +28,7 @@
 
   # Read NCCA Water chemistry files 
   nccaWQ <- .readNCCAchemistry(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
-  # DOCTHIS in the developer notes
-  ################################################################
-  # This might break when NCCA updates their data with new UID's #
-  ################################################################
+  # XXX This might break when NCCA updates their data with new UID's
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDate))
 
@@ -48,13 +44,15 @@
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
     # Cleaning up a column naming mistake
-    # TODO Make sure these still work after the upstream changes
+    # [ ] Make sure these still work after the upstream changes
     dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
     dplyr::select(-QACODE) %>%
     dplyr::mutate(
       stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x),
       sampleDate = dplyr::coalesce(sampleDate, DATE_COL),
-      Year = lubridate::year(sampleDate)
+      Year = lubridate::year(sampleDate),
+      # [x] store the originally reported Units
+      OriginalUnits = UNITS
       ) %>%
     dplyr::select(-c(
       stationDepth.x, stationDepth.y,
@@ -66,6 +64,22 @@
       dplyr::filter(., waterName %in% Lakes)
     } else .} %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
+    # [x] fill missing units as the most common non-missing units within a given study-year
+    # Group by study-year, analytes then 
+    dplyr::mutate(
+      ReportedUnits = ifelse(
+        is.na(ReportedUnits),
+        # impute with hte mode
+        (data.frame(table(ReportedUnits)) %>% 
+          tidyr::drop_na() %>% 
+          dplyr::arrange(dplyr::desc(Freq)))[[1]],
+        ReportedUnits
+      ),
+      QAcode = ifelse(is.na(ReportedUnits),
+        paste(QAcode, ";", "No reported units, so assumed same as most common units for this given analyte on this year"),
+        QAcode),
+      .by = c(Study, Year, ANALYTE)
+    ) %>%
     # rename
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches="na") %>%
     # unit conversions
@@ -76,30 +90,24 @@
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
       ReportedUnits = dplyr::case_when(
-        # TODO can we make this more year specific Move this to 2015 hydro These were take from hdyro 2015 metadata file
-        CodeName == "DO" ~ "mgl",
-        CodeName == "Secchi" ~ "m",
-        CodeName == "Temp" ~ "c",
-        CodeName == "Cond" ~ "uscm",
-        CodeName == "CPAR" ~ "%"
+        # [x] can we make this more year specific
+        # These were take from hdyro 2015 metadata file
+        (Year == 2015) & (CodeName == "DO") ~ "mgl",
+        (Year == 2015) & (CodeName == "Secchi") ~ "m",
+        (Year == 2015) & (CodeName == "Temp") ~ "c",
+        (Year == 2015) & (CodeName == "Cond") ~ "uscm",
+        (Year == 2015) & (CodeName == "CPAR") ~ "%"
       )
     ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = dplyr::case_when(
       ReportedUnits == TargetUnits ~ RESULT,
-      # TODO fill missing units as the most common non-missing units within a given study-year
-      # Group by study-year, analytes then impute with hte mode
-      # Assuming that reported units are what we want. at it as a flag
       is.na(ReportedUnits) ~ RESULT,
       .default = RESULT  * ConversionFactor),
-      # TODO add a flag whenver units weren't reported 
-      QAcode = ifelse(is.na(ReportedUnits), paste(QAcode, ";", "Reported assumed from key tab"),
-       QAcode)
     ) %>%
     dplyr::select(-Units) %>%
     dplyr::rename(Units = TargetUnits) %>%
     dplyr::filter(CodeName != "Remove")
-  # TODO store the originally reported Units
   # Turn into test
   # final %>%
   #   filter(TargetUnits != ReportedUnits) %>%

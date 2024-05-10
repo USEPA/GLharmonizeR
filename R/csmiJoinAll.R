@@ -20,7 +20,7 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   CSMI <- dplyr::bind_rows(
     .LoadCSMI2010(csmi2010, n_max = n_max),
     .LoadCSMI2015(csmi2015),
-    # TODO Why is csmi2021 removing CodeNames and Reuslts for both WQ and CTD
+    # [ ] Why is csmi2021 removing CodeNames and Reuslts for both WQ and CTD
     .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
     dplyr::mutate(FRACTION = dplyr::case_when(

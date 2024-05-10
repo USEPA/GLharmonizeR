@@ -30,14 +30,14 @@
         SITE_ID = toString(unique(SITE_ID)),
         ANALYTE = "Secchi",
         DATE_COL = unique(DATE_COL),
-        Depth = mean(STATION_DEPTH, na.rm=T),
+        stationDepth = mean(STATION_DEPTH, na.rm=T),
 
         # Mean of everything but the estimated value (because we think this is estimated by Kd)
         RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm =T),
         # Compress all comments and note clear to bottom to be combined
-        # TODO change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
+        # [x] change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
         # Check to see if this works
-        CLEAR_TO_BOTTOM = RESULT >= Depth,
+        CLEAR_TO_BOTTOM = RESULT >= stationDepth,
         QAcomment = toString(unique(SECCHI_COMMENT)),
         .by = c(UID)
       ) %>%
@@ -77,7 +77,7 @@
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
-  # TODO add the QA data and join / filter it here
+  # [ ] add the QA data and join / filter it here
   # Keep an eye out for the remove with comment column
     dplyr::rename(
       sampleDepth = SDEPTH,
@@ -101,21 +101,13 @@
       ),
       .by = c(UID, sampleDepth, stationDepth)
     ) %>%
-    # TODO filter out where either ambientPAR or underPAR check if this does what we think
+    # [x] filter out where either ambientPAR or underPAR check if this does what we think
     dplyr::filter((!is.na(ambientPAR)) | (!is.na(underPAR))) %>%
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
       ANALYTE != "Underwater PAR"
-    ) %>%
-    # TODO this ouldn't need reframe since I filtered to downcast
-    dplyr::reframe(
-      RESULT = mean(RESULT, na.rm = TRUE),
-      stationDepth = mean(stationDepth, na.rm = TRUE),
-      QAcode= toString(unique(QA_CODE)),
-      QAcomment = toString(unique(QA_COMMENT)),
-      # CAST_FLAG column didn't seem to contain anything useful only conatined (R)
-      .by = c(UID, sampleDepth, ANALYTE, DATE_COL, SITE_ID, stationDepth)
-    ) %>%
+    )
+    # [x] this don't need reframe since I filtered to downcast
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010"
@@ -134,7 +126,6 @@
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
 .readNCCAhydro2015 <- function(filepath, n_max = Inf) {
-  # TODO check filter for light, rename to sampleDepth, and filter to Downcast
   readr::read_csv(filepath, n_max = n_max) %>%
     # the only comments mention no measurment data or typo
     dplyr::filter(is.na(NARS_COMMENT)) %>%
@@ -148,7 +139,7 @@
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
-    dplyr::rename(sampleDepth = DEPTH, stationDepth = Depth) %>%
+    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT")
 }
 
