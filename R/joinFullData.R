@@ -1,4 +1,3 @@
-
 #' Load and join all WQ data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA
 #'
 #' @description
@@ -28,7 +27,7 @@
 #'
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
- NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBirdFiles, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+ NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
   n_max = ifelse(test, 50, Inf)
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%

@@ -6,11 +6,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data, This is usually a url
+#' @param NCCAsites2010 a string specifying the filepath of the data, This is usually a url
 #' @return dataframe
-.readNCCASite2010 <- function(filepath) {
+.readNCCASite2010 <- function(NCCAsites2010) {
 # all depths are reported in meters
-  readr::read_csv(filepath, show_col_types=FALSE) %>%
+  readr::read_csv(NCCAsites2010, show_col_types=FALSE) %>%
     # cutdown number of lats and longs
     # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
     # This only applies to targetted sites, actual coordinates are unique and settles this problem
@@ -35,11 +35,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the directory of the data
+#' @param NCCAsites2015 a string specifying the directory of the data
 #' @return dataframe
-.readNCCASite2015 <- function(filepath) {
+.readNCCASite2015 <- function(NCCAsites2015) {
 # all depths are reported in meters
-  readr::read_csv(filepath, show_col_types=FALSE) %>%
+  readr::read_csv(NCCAsites2015, show_col_types=FALSE) %>%
   # This column is all NAs
   dplyr::select(-WTBDY_NM) %>%
     # cutdown number of lats and longs
@@ -69,9 +69,9 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the directory of the data
 #' @return dataframe
-.readNCCASites <- function(ncca2010sites, ncca2015sites) {
-  df <- .readNCCASite2010(ncca2010sites)
-  df2 <- .readNCCASite2015(ncca2015sites) 
+.readNCCASites <- function(NCCAsites2010, NCCAsites2015) {
+  df <- .readNCCASite2010(NCCAsites2010)
+  df2 <- .readNCCASite2015(NCCAsites2015) 
 
   return(dplyr::bind_rows(df, df2) %>% dplyr::distinct())
 

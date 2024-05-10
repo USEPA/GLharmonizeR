@@ -13,23 +13,21 @@ NCCAhydrofile2015  <- file.path("Data", "NCCA", "ncca_2015_hydrographic_profile_
 NCCAsecchifile2015 <- file.path("Data", "NCCA", "ncca_2015_secchi_great_lakes-data.csv")
 
 #NCCA WQ files
-ncca2010sites <- file.path("Data", "NCCA", "assessed_ncca2010_siteinfo.revised.06212016.csv")
-ncca2015sites <- file.path("Data", "NCCA", "ncca_2015_site_information_great_lakes-data.csv")
-ncca2015siteFile <- file.path("Data", "NCCA", "ncca_2015_site_information_great_lakes-data.csv")
-tenFiles<- c(file.path("Data", "NCCA", "assessed_ncca2010_waterchem.csv")# , file.path("Data", "NCCA", "nassessedWaterChem2010.csv")
-            )
-tenQAfile <- file.path("Data", "NCCA", "ncca_qa_codes.csv")
-fifteenFiles <- file.path("Data", "NCCA", "ncca_2015_water_chemistry_great_lakes-data.csv")
-
-nccaWQqaFile <- file.path(teamsFolder, "Results", "NCCAQAcounts_withDecision.xlsx")
+NCCAsites2010 <- file.path("Data", "NCCA", "assessed_ncca2010_siteinfo.revised.06212016.csv")
+NCCAsites2015 <- file.path("Data", "NCCA", "ncca_2015_site_information_great_lakes-data.csv")
+NCCAwq2010 <- c(file.path("Data", "NCCA", "assessed_ncca2010_waterchem.csv"))
+# , file.path("Data", "NCCA", "nassessedWaterChem2010.csv")
+NCCAqa2010 <- file.path("Data", "NCCA", "ncca_qa_codes.csv")
+NCCAwq2015 <- file.path("Data", "NCCA", "ncca_2015_water_chemistry_great_lakes-data.csv")
+NCCAwqQA <- file.path(teamsFolder, "Results", "NCCAQAcounts_withDecision.xlsx")
 
 # GLENDA 
-glendaData <- file.path("Data", "GLENDA", "GLENDA.Rds")
+Glenda <- file.path("Data", "GLENDA", "GLENDA.Rds")
 
 # SeaBird data 
-seaBirdFiles <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"), 
+seaBird <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"), 
   pattern = , ".cnv$", full.names=T) 
-seaBirdFiles <- seaBirdFiles[grepl("_MI", seaBirdFiles, ignore.case = t)]
+seaBird <- seaBird[grepl("_MI", seaBird, ignore.case = t)]
 
 
 # L drive data

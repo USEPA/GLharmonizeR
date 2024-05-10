@@ -7,27 +7,30 @@
 #' @details
 #' The spatial information for sites is read in using the .readSites helper functions, this is then
 #' joined to the water quality and hydrographic data and ultimately output as a data table.
-#' @param siteFiles filepath to site files
-#' @param tenFiles filepath to 2010's data
-#' @param fifteenFiles filepaht to 2015 data
+#' @param NCCAsites2010 filepath to site files
+#' @param NCCAsites2015 filepath to site files
+#' @param NCCAwq2010 filepath to 2010's data
+#' @param NCCAwq2015 filepaht to 2015 data
 #' @param NCCAhydrofiles2010 filepath to hydrogrpahic 2010 data
 #' @param NCCAhydrofile2015 filepath to hydrogarphic 2015 data
 #' @param NCCAjsecchifile2015  filepaht to secchi 2015 data
 #' @param Lakes List of Lakes to output
+#' @param namingFile filepath to Analytes3.xlsx which conatains names and conversions
+#' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
 #' @export
-.LoadNCCAfull <- function(ncca2010sites, ncca2015sites, tenFiles, tenQAfile, fifteenFiles, 
+.LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
+                         Lakes=c("Lake Michigan"), namingFile, NCCAwqQA = NCCAwqQA, n_max = Inf) {
   # TODO Did we QC all of the great lakes already???
-  sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
+  sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files 
-  nccaWQ <- .readNCCAchemistry(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
+  nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, nccaWQqaFile = NCCAwqQA, n_max = n_max) %>%
   # XXX This might break when NCCA updates their data with new UID's
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDate))

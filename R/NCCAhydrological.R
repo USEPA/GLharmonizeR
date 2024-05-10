@@ -71,7 +71,10 @@
 #' @param filepath a string specifying the filepath of the data
 #'  
 #' @return dataframe
-.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
+.readNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAwqQA, n_max = n_max) {
+  QA <- readr::read_csv(NCCAwqQA) %>%
+    dplyr::mutate(QAcode = `Unique Qualifier Code`) %>%
+    dplyr::select(-`...3`) 
 
   NCCAhydrofiles2010 %>% 
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
@@ -123,10 +126,10 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAhydrofile2015 a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro2015 <- function(filepath, n_max = Inf) {
-  readr::read_csv(filepath, n_max = n_max) %>%
+.readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
+  readr::read_csv(NCCAhydrofile2015, n_max = n_max) %>%
     # the only comments mention no measurment data or typo
     dplyr::filter(is.na(NARS_COMMENT)) %>%
     dplyr::filter(CAST == "DOWNCAST") %>%
