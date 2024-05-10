@@ -8,11 +8,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the access database
+#' @param csmi2015 a string specifying the filepath of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2015
-.LoadCSMI2015 <- function(filepath) {
+.LoadCSMI2015 <- function(csmi2015) {
   # Establish connection to the database
-  dbi <- RODBC::odbcConnectAccess2007(filepath)
+  dbi <- RODBC::odbcConnectAccess2007(csmi2015)
 
   # read and join tables
   WQ <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
