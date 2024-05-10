@@ -20,15 +20,20 @@
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile, n_max = Inf) {
 # TODO Did we QC all of the great lakes already???
+# TODO 
   sites <- .readNCCASites(ncca2010sites, ncca2015sites) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = n_max) %>%
-    dplyr::mutate(UID = paste0("NCCA-hydro", "-", as.character(UID)))
+    dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files 
   nccaWQ <- .readNCCAchemistry(tenFiles, fifteenFiles, nccaWQqaFile = nccaWQqaFile, n_max = n_max) %>%
-    dplyr::mutate(UID = as.character(UID)) %>%
+  # DOCTHIS in the developer notes
+  ################################################################
+  # This might break when NCCA updates their data with new UID's #
+  ################################################################
+    dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDate))
 
   
@@ -46,15 +51,13 @@
     # TODO Make sure these still work after the upstream changes
     dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
     dplyr::select(-QACODE) %>%
-    # Add QA codes
-    dplyr::left_join(., QA, by = "QAcode") %>%
     dplyr::mutate(
-      stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x, Depth),
+      stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x),
       sampleDate = dplyr::coalesce(sampleDate, DATE_COL),
       Year = lubridate::year(sampleDate)
       ) %>%
     dplyr::select(-c(
-      stationDepth.x, stationDepth.y, Depth,
+      stationDepth.x, stationDepth.y,
       DATE_COL #QAconsiderations,
     )) %>%
     # Great lakes get's priority over spcifying each lake
@@ -84,15 +87,22 @@
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = dplyr::case_when(
       ReportedUnits == TargetUnits ~ RESULT,
+      # TODO fill missing units as the most common non-missing units within a given study-year
+      # Group by study-year, analytes then impute with hte mode
+      # Assuming that reported units are what we want. at it as a flag
       is.na(ReportedUnits) ~ RESULT,
-      .default = RESULT  * ConversionFactor)) %>%
+      .default = RESULT  * ConversionFactor),
+      # TODO add a flag whenver units weren't reported 
+      QAcode = ifelse(is.na(ReportedUnits), paste(QAcode, ";", "Reported assumed from key tab"),
+       QAcode)
+    ) %>%
     dplyr::select(-Units) %>%
     dplyr::rename(Units = TargetUnits) %>%
     dplyr::filter(CodeName != "Remove")
-
+  # TODO store the originally reported Units
   # Turn into test
   # final %>%
-  #   filter(Units != ReportedUnits) %>%
+  #   filter(TargetUnits != ReportedUnits) %>%
   #   filter(is.na(ConversionFactor)) %>%
   #   count(ReportedUnits, Units, ConversionFactor)
   # test %>% 
