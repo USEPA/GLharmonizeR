@@ -72,16 +72,30 @@
 #'  
 #' @return dataframe
 .readNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAwqQA, n_max = n_max) {
-  QA <- readr::read_csv(NCCAwqQA) %>%
-    dplyr::mutate(QAcode = `Unique Qualifier Code`) %>%
-    dplyr::select(-`...3`) 
+  # Read qa decisions
+  QA <- readxl::read_xlsx(NCCAwqQA, sheet = "NCCAQAcounts2")
 
-  NCCAhydrofiles2010 %>% 
+  NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
-  # [ ] add the QA data and join / filter it here
-  # Keep an eye out for the remove with comment column
+    dplyr::left_join(QA, by = c("QA_CODE" = "QAcode")) %>%
+    # [x] filter out based on QA decisions
+    dplyr::filter(Decision != "Remove") %>% 
+    dplyr::filter(!((Decision == "Remove based on comment") & (grepl("suspect", QA_COMMENT)))) %>%
+    dplyr::mutate(
+      RESULT = dplyr::case_when(
+        Decision == "Impute" ~ NA,
+        Decision == "Keep" ~ RESULT,
+        Decision == "CTB" ~ NA,
+        .default = RESULT
+      ),
+      FLAG = dplyr::case_when(
+        Decision == "Impute" ~ paste(QA_COMMENT, ";", "Value is appropriate to impute"),
+        Decision == "CTB" ~ paste(QA_COMMENT, ";", "Clear to Bottom"),
+        .default = QA_COMMENT 
+      ),
+    ) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
       ANALYTE = PARAMETER_NAME,
