@@ -1,0 +1,44 @@
+---
+title: "LM Chla Package"
+author: "Christian Coffman"
+date: 06-18-2024
+format: revealjs
+---
+
+# Problems working with environmental data
+
+:::: {.columns}
+
+::: {.column width="40%"}
+- Scattered
+  - Local
+  - Cloud
+  - Private Databases
+- Different formats
+  - Dates
+  - Coordinates
+  - Feature naming
+- Living
+  - Need to reproducibly assemble and QC
+:::
+
+::: {.column width="60%"}
+```mermaid
+X -> Y
+Y -> Z
+```
+:::
+
+::::
+
+# Overview
+- Uniting environmental data across multiple sources for Lake Michigan
+  - GLENDA, NCCA, and CSMI
+- Reformat
+- 
+- Common names
+- Data QC
+
+# Introduction
+- 
+
