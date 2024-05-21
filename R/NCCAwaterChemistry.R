@@ -158,7 +158,7 @@
     dplyr::mutate(
       QAcode = paste(QAcode, ifelse(LAB == "WSLH", "WSLH", ""), sep = ";"),
       QAcomment = paste(QAcode, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";")
-      )
+    )
 }
 
 # 2020/2021

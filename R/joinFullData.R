@@ -194,3 +194,10 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   #         RESULT2 = RESULT * ConversionFactor)
   return(data)
 }
+
+
+
+
+    # [ ] Make a table of all flags after all is said and done so we can
+    # annotate them for end-users
+    # [ ] Double check each dataset that I didn't drop any flags inadvertently

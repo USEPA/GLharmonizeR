@@ -1,0 +1,56 @@
+NCCA 2010 SITEINFO Metadata for Assessed and Not_Assessed files.		
+		
+Revised 06.21.2016		
+		
+"“’Assessed’ data were used to develop the Good, Fair and Poor ratings in the report. ‘Not_Assessed’ data were not used to develop the ratings.”"		
+		
+"For questions about these data, please contact Hugh Sullivan at sullivan.hugh@epa.gov or use the Contact Us link on the webpage: http://www.epa.gov/national-aquatic-resource-surveys/forms/national-aquatic-resource-surveys-contact-us"		
+"It is the responsibility of the end data user to become familiar with the QA codes used in the NCCA 2010 assessment (NCCA_QA_Codes.csv) and review the ""QA_CODES"" column in each dataset to determine whether the data meet quality objectives for specific uses."		
+		
+Files	Contents	
+Assessed SITEINFO	Contains information about sites used to develop the 2010 National Coastal Condition Assessment (i.e. Index sites) whether they were sampled or not.	
+Not_Assessed SITEINFO	Contains information about sites that were NOT used to develop the 2010 National Coastal Condition Assessment. Sites may have been supplemental study sites or sites that were dropped and replaced with oversample sites.	
+Location information for each site is contained in the SITEINFO Files. Use UID as key column for merging data into the data files.		
+		
+Variable		Definition
+		
+UID		Unique Identifier for site and visit number
+SITE_ID		Unique NCCA site dentifier
+STATE		State in which sample collection site s located
+VISIT_NO		"Sequential visit number in sampling season. ALL ASSESSED visits are Visit 1, so the VISIT_NO column is removed from the ASSESSED file."
+DATE_COL		Date sample was collected at field site
+WTBDY_NM		Waterbody name
+SITESAMP		Identifies sites sampled (Y) vs sites not sampled (N)
+INDEX_VISIT		Identifies visit used for analysis (Y) vs. not used (N) of 2010 Sample data
+EPA_REG		Identifies EPA Region within which the site is located
+NCCR_REG		Reporting region designations used in the National Coastal Condition Assessment Reports 
+NCA_REGION		Alternate reporting region designations used for design purposes only
+COUNTRY		Identifies the country within which the site is located
+PROVINCE		Biogeographic province
+STATION_DEPTH		Depth of water at station
+STATION_DEPTH_UNITS		Units for depth of water
+ALAT_DD		Actual Latitude sampled (decimal degrees)
+ALON_DD		Actual Longitude sampled (decimal degrees)
+MAP_DATUM		"Reference system used in identifying location with GPS. Legal values are ""WGS84"", ""NAD83"" or ""not reported."""
+TLAT_DD		Target Latitude for site (included in NONAssessment SITEINFO file only)
+TLON_DD		Target Longitude for site (included in NONAssessment SITEINFO file only)
+DSNTYPE		Identifies site as part of NCCA draw or Supplemental draw
+MDCATY		Probability survey design categories used to assign unequal probability of selection
+NEP_NM		Name of National Estuary Program study area within which site is located area (if applicable)
+NPSPARK		Name of National Park within which site is located (if applicable)
+PANEL		Probability survey design categories
+STATUS10		"Status of sampling at that site.  Status10 of index visit in """"Assessment SITEINFO"""" tab are either """"Target_sampled"""" (if site was sampled) or """"Target_presumed"""" (if site was not sampled).  In """"NonAssessment SITEINFO"""" tab Other values indicate reason target was not sampled."
+STRATUM		Probability survey design stratum used to identify assessment region
+TNT		Target or not Target
+WGT_CAT		Category used to derive weight
+WGT_NCCA10		Adjusted site weight. USE for population estimates. Units are Square miles.
+RSRC_CLASS		Resource classification
+QA_CODES		Qualifier codes entered during NCCA QA process
+COMMENT		Comment to accompany QA Code if necessary
+		
+		
+** Change LOG **		
+		
+"Date: June 21, 2016: Change to Filename ""assessed_ncca2010_sinteinfo.revised.06212016.csv"": Site weights (Column ""WGT_NCCA10"") corrected."		
+		
+"Date: June 21, 2016: Change to Filename ""not_assessed_ncca2010_siteinfo.revised.06212016.csv"": Site Weights removed from file because sites were not used in the assessment."		
