@@ -88,22 +88,57 @@
 #' @param namingFile (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
-.cleanGLENDA <- function(df, namingFile, flagsPath= NULL, imputeCoordinates = FALSE, siteCoords = NULL, limitsPath = NULL) {
+.cleanGLENDA <- function(df, namingFile, GLENDAflagsPath= NULL, imputeCoordinates = FALSE, GLENDAsitePath = NULL, 
+  GLENDAlimitsPath = NULL, GLENDAlimitsNamePath = NULL) {
 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA"),
-    .name_repair = "unique_quiet") 
+    .name_repair = "unique_quiet") %>% 
+    tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
+    dplyr::mutate(minYear = as.numeric(minYear), maxYear = as.numeric(maxYear))
+
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
+
   conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  # [x] extract self reported mdl's
+  selfMdls <- df %>%
+    dplyr::filter(
+      is.na(as.numeric(VALUE)),
+      grepl("<", VALUE)
+    ) %>%
+    dplyr::distinct(ANALYTE, YEAR, VALUE) %>%
+    dplyr::mutate(VALUE = readr::parse_number(VALUE),YEAR = as.numeric(YEAR)) %>%
+    dplyr::rename(mdl = VALUE) %>%
+    dplyr::left_join(., renamingTable, by = "ANALYTE") %>%
+    dplyr::select(YEAR, CodeName, mdl) %>%
+    dplyr::distinct()
+  
+  # All self reported mdls are identical across all years for a gien analyte
+  limitNames <- readxl::read_xlsx(namingFile, sheet = "GLENDA_mdl_Map")
+
+  # [x] utilize Mdl from glenda sheet
+  outsideMdls <- readRDS(GLENDAlimitsPath) %>%
+    tidyr::pivot_longer(2:5, names_to = "ANALYTE", values_to = "mdl") %>%
+    dplyr::mutate(YEAR = readr::parse_number(`Survey (Units)`), mdl = as.numeric(mdl)) %>%
+    dplyr::reframe(mdl = mean(mdl, na.rm = T), .by = c(YEAR, ANALYTE)) %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_remove(ANALYTE, "\\(.*\\)"),
+      ANALYTE = stringr::str_trim(ANALYTE)) %>%
+    dplyr::left_join(., limitNames, by = c("ANALYTE" = "OldName")) %>%
+    dplyr::select(-ANALYTE) %>%
+    dplyr::rename(CodeName = ANALYTE.y)
+
+  fullDLs <- dplyr::bind_rows(selfMdls, outsideMdls)
+  # Luckily there is no overlap so
+    # count(CodeName, mdl, YEAR) %>% arrange(desc(n))
 
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
-      # [ ] Check if remove RESULTstart
-      # RESULTstart = VALUE,
+      # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE= dplyr::case_when(
         TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
         TIME_ZONE == "CDT" ~ "EST",
@@ -115,8 +150,13 @@
         stringr::str_length(SAMPLING_DATE) < 14,
         paste(SAMPLING_DATE, "12:00:00"),
         SAMPLING_DATE
-      ) 
-      # [ ] ADD A FLAG whereever we assumed it was noon
+      ),
+      # [x] ADD A FLAG whereever we assumed it was noon
+      RESULT_REMARK= ifelse(
+        stringr::str_length(SAMPLING_DATE) < 14,
+        paste(RESULT_REMARK, "; sample Time imputed as noon"),
+        RESULT_REMARK
+      ),
     ) %>%
     tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
     dplyr::mutate(sampleDate = readr::parse_datetime(sampleDate, format = "%Y-%m-%d %H:%M:%S_%Z")) %>%
@@ -126,25 +166,14 @@
     # These columns are redundant with the "Analyte" columns
     dplyr::select(-Number) %>%
     # Adding verbose remark descriptions is purely optional
-    {if (!is.null(flagsPath)) {
-      dplyr::left_join(., readxl::read_xlsx(flagsPath), by = c("RESULT_REMARK" = "NAME"), .name_repair = "unique_quiet")
+    {if (!is.null(GLENDAflagsPath)) {
+      dplyr::left_join(., readxl::read_xlsx(GLENDAflagsPath), by = c("RESULT_REMARK" = "NAME"), .name_repair = "unique_quiet")
       } else .
     } %>%
-    # Haven't pursued because only has limits prior to 2012
-    # So downgraded it's priority
-    # [ ] Add in the limits
-    # [ ] Extract the < values for all datas, join it back to the pdf extracted RL's
-    # [ ] Join them all together then join back to the data
-    # [ ] Give priority to the pdf source
-    # [ ] Code the flags MDL and DL are the same
-    #{if (!is.null(limitsPath)) {
-    #  dplyr::left_join(., readRDS(limitsPath))
-    #} else .
-    #} %>%
-    { if (!is.null(siteCoords)) {
+    { if (!is.null(GLENDAsitePath)) {
       # grab the missing sites from that file
       # [ ] 
-      dplyr::left_join(., readRDS(siteCoords), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
+      dplyr::left_join(., readRDS(GLENDAsitePath), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
         dplyr::mutate(
           LATITUDE = dplyr::coalesce(Latitude, LATITUDE),
           LONGITUDE = dplyr::coalesce(Longitude, LONGITUDE)
@@ -174,7 +203,7 @@
           # If so, then it's a clear to bottom issue, if not, then filter these all out
         # If so, make sure to add to the result_remark
         (grepl("secchi", ANALYTE, ignore.case = TRUE)) & (grepl("estimate", RESULT_REMARK, ignore.case = TRUE)) ~ NA,
-        .default = VALUE
+        .default = VALUE),
       
       RESULT_REMARK= dplyr::case_when(
         grepl("estimate", RESULT_REMARK, ignore.case =TRUE) ~ paste(RESULT_REMARK, NA, sep=";"),
@@ -207,7 +236,14 @@
       ReportedUnits == TargetUnits ~ RESULT,
       ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
       .default = RESULT
-    ))
+    )) %>%
+    # add in the detection limits
+    # [x] Add in the limits
+    # [x] Extract the < values for all datas, join it back to the pdf extracted RL's
+    # [x] Join them all together then join back to the data
+    # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
+    # [x] Code the flags MDL and DL are the same
+    dplyr::left_join(., fullDLs, by = "CodeName")
 
   return (df)
 }

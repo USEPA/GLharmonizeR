@@ -23,6 +23,10 @@ NCCAwqQA <- file.path(teamsFolder, "Results", "NCCAQAcounts_withDecision.xlsx")
 
 # GLENDA 
 Glenda <- file.path("Data", "GLENDA", "GLENDA.Rds")
+GLENDAlimitsPath <- file.path("Data", "GLENDA", "GLENDAlimits.Rds")
+# GLENDAflagsPath <- file.path("Data", "GLENDA", "")
+GLENDAflagsPath <- NULL
+GLENDAsitePath <- file.path("Data", "GLENDA", "GLENDAsiteInfo.Rds")
 
 # SeaBird data 
 seaBird <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"), 
