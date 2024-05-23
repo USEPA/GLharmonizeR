@@ -75,3 +75,6 @@ Results/Code/*/*_files
 desktop.ini
 
 /.quarto/
+docs/presentations/*/*_files
+# To avoid quarto files
+*_files*

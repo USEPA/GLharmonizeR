@@ -9,7 +9,4 @@ execute:
     echo: false
     cache: false
 editor: source
-project:
-  execute-dir: project
-  output-dir: "Results"
 
