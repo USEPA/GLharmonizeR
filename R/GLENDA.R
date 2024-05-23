@@ -89,7 +89,7 @@
 #'
 #' @return a dataframe
 .cleanGLENDA <- function(df, namingFile, GLENDAflagsPath= NULL, imputeCoordinates = FALSE, GLENDAsitePath = NULL, 
-  GLENDAlimitsPath = NULL, GLENDAlimitsNamePath = NULL) {
+  GLENDAlimitsPath = NULL) {
 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") %>% 
@@ -174,6 +174,10 @@
       # grab the missing sites from that file
       dplyr::left_join(., readRDS(GLENDAsitePath), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
         dplyr::mutate(
+          LATITUDE = as.numeric(LATITUDE),
+          Latitude = as.numeric(Latitude),
+          LONGITUDE = as.numeric(LONGITUDE),
+          Longitude = as.numeric(Longitude),
           LATITUDE = dplyr::coalesce(Latitude, LATITUDE),
           LONGITUDE = dplyr::coalesce(Longitude, LONGITUDE)
         ) %>%
