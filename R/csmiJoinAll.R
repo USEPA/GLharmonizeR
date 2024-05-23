@@ -34,7 +34,7 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       FRACTION == "Not applicable" ~ NA,
       .default = FRACTION
     )) %>%
-    # This is cleaning up mistakes I made when processing CSMI names
+    # remove ion charges and units
     dplyr::mutate(
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove(ANALYTE, "_.*"), ANALYTE),
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "\\+"), ANALYTE),

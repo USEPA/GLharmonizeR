@@ -22,7 +22,7 @@
 .LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          Lakes=c("Lake Michigan"), namingFile, NCCAwqQA = NCCAwqQA, n_max = Inf) {
-  # TODO Did we QC all of the great lakes already???
+  # [ ] Did we QC all of the great lakes already???
   sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 

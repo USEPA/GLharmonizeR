@@ -29,6 +29,7 @@
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
  NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
   n_max = ifelse(test, 50, Inf)
+  # [ ] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%

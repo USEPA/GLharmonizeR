@@ -17,9 +17,14 @@
   # read and join tables
   WQ <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     # CTD
+    # [ ] Join WQ with depth, then, simply row bind the CTD to it
+    # [ ] Use station code key for SITE_ID
+    # [ ] Use WQdepth_m from SampleLayerList for WQ depths 
+    # [ ] redo the joins either traversing upwards or downwards the tree, with th, twice for each CTD and WQ
+    # Then row bind them
     dplyr::left_join(RODBC::sqlFetch(dbi, "L3b_CTDLayerData"), by = c("STIS#" = "STISkey")) %>%
     tidyr::pivot_longer(-c(`STIS#`, Chem_site, Chem_layer, SampleEvent, CTDdepth), names_to = "ANALYTE", values_to = "RESULT") %>%
-    # Is it safe to say that CTD depth is also the sample grab depth for a given STIS/SampleEvent
+    # CTD depth is the same as sample grab depth for a given STIS/SampleEvent
     # Units and detection limits
     dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("ANALYTE" = "WQParam")) %>%
     # postition info (Station)
@@ -28,24 +33,25 @@
     dplyr::left_join(RODBC::sqlFetch(dbi, "L3a_SampleLayerList"), by = c("STIS#" = "STISkey")) %>%
     # actual coordinates
     dplyr::left_join(RODBC::sqlFetch(dbi, "L2a_StationSampleEvent"), by = c("SampleEventFK" = "SampleEventKey")) %>%
+    # [ ] Should we grab DD vs DDM?
+    # [ ] Grab eastern time
+    # [ ] Check if measure is below DL, replace with NA and put a flag
+    # [ ] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
+    # [ ] CTD and WQ need site, position data joined spearate use StationCodeFK
     dplyr::rename(Latitude = LatDD_actual, Longitude = LonDD_actual) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
-    dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeUTC)), format = "%Y-%m-%d %H"),
+    dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeETC)), format = "%Y-%m-%d %H"),
            DetectLimit = as.numeric(DetectLimit)) %>%
-    #dplyr::mutate(
-    #  ANALYTE = stringr::str_remove(ANALYTE, "_.*"),
-    #  ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
-    #  ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
-    # ) %>%
 
     # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
-    dplyr::rename(sampleDepth = CTDdepth,
-           SITE_ID = Chem_site,
-           stationDepth = DepthM_actual,
-           UNITS = WQUnits,
-           mdl = DetectLimit,
-           ANL_CODE = WQlabelname,
-           sampleDate = SampleDate) %>%
+    dplyr::rename(
+      sampleDepth = CTDdepth,
+      SITE_ID = Chem_site,
+      stationDepth = DepthM_actual,
+      UNITS = WQUnits,
+      mdl = DetectLimit,
+      sampleDateTime = DateTime
+    ) %>%
     dplyr::select(
       -dplyr::contains(c("DD", "_target", "Cruise", "Time")),
       -c(Chem_layer, SampleEvent, Analyst, AltStationName, 
@@ -60,19 +66,18 @@
     dplyr::rename(STIS = `STIS#`, METHOD = AnalMethod)
 
   RODBC::odbcClose(dbi)
-           
-
-  # Unused tables
-  # metaChange <- RODBC::sqlFetch(dbi, "Metadata_ChangeLog") # editors, edited dates
-  # metaChem<- RODBC::sqlFetch(dbi, "Metadata_ChemLayerDef") # written description of sampling depth
-  # metaTherm <- RODBC::sqlFetch(dbi, "Metadata_ThermLayerDef") # comments on stratification
-  # transect <- RODBC::sqlFetch(dbi, "Qry_TransectData") # This might contain all of the data in the whole database
-  # therm <- RODBC::sqlFetch(dbi, "L2b_ThermStructure") # Numbers describing sampling w/r/t thermocline structures
-
-
-  # looking up, this seems like standard driver protocol if wanting to use more precise connection
-  # For DBI and dbplyr
-  # Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=C:\mydatabase.accdb;Uid=Admin;Pwd=;
 
   return(WQ)
 }
+
+# Unused tables
+# metaChange <- RODBC::sqlFetch(dbi, "Metadata_ChangeLog") # editors, edited dates
+# metaChem<- RODBC::sqlFetch(dbi, "Metadata_ChemLayerDef") # written description of sampling depth
+# metaTherm <- RODBC::sqlFetch(dbi, "Metadata_ThermLayerDef") # comments on stratification
+# transect <- RODBC::sqlFetch(dbi, "Qry_TransectData") # This might contain all of the data in the whole database
+# therm <- RODBC::sqlFetch(dbi, "L2b_ThermStructure") # Numbers describing sampling w/r/t thermocline structures
+
+
+# looking up, this seems like standard driver protocol if wanting to use more precise connection
+# For DBI and dbplyr
+# Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=C:\mydatabase.accdb;Uid=Admin;Pwd=;
