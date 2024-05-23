@@ -13,57 +13,97 @@
 .LoadCSMI2015 <- function(csmi2015) {
   # Establish connection to the database
   dbi <- RODBC::odbcConnectAccess2007(csmi2015)
-
-  # read and join tables
-  WQ <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
-    # CTD
-    # [ ] Join WQ with depth, then, simply row bind the CTD to it
-    # [ ] Use station code key for SITE_ID
-    # [ ] Use WQdepth_m from SampleLayerList for WQ depths 
-    # [ ] redo the joins either traversing upwards or downwards the tree, with th, twice for each CTD and WQ
-    # Then row bind them
-    dplyr::left_join(RODBC::sqlFetch(dbi, "L3b_CTDLayerData"), by = c("STIS#" = "STISkey")) %>%
-    tidyr::pivot_longer(-c(`STIS#`, Chem_site, Chem_layer, SampleEvent, CTDdepth), names_to = "ANALYTE", values_to = "RESULT") %>%
-    # CTD depth is the same as sample grab depth for a given STIS/SampleEvent
-    # Units and detection limits
-    dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("ANALYTE" = "WQParam")) %>%
-    # postition info (Station)
-    dplyr::left_join(RODBC::sqlFetch(dbi, "L1_Stationmaster"), by = c("Chem_site" = "StationCodeKey")) %>%
-    # Sample event names, WQdepth_m
-    dplyr::left_join(RODBC::sqlFetch(dbi, "L3a_SampleLayerList"), by = c("STIS#" = "STISkey")) %>%
-    # actual coordinates
-    dplyr::left_join(RODBC::sqlFetch(dbi, "L2a_StationSampleEvent"), by = c("SampleEventFK" = "SampleEventKey")) %>%
-    # [ ] Should we grab DD vs DDM?
-    # [ ] Grab eastern time
-    # [ ] Check if measure is below DL, replace with NA and put a flag
-    # [ ] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
-    # [ ] CTD and WQ need site, position data joined spearate use StationCodeFK
-    dplyr::rename(Latitude = LatDD_actual, Longitude = LonDD_actual) %>%
-    dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
-    dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(SampleDate), lubridate::hour(TimeETC)), format = "%Y-%m-%d %H"),
-           DetectLimit = as.numeric(DetectLimit)) %>%
-
-    # 90% of CTDdepth == WQdepth_m, on average they differ by -0.009 meters. So we'll call them equal
+  # Spatial information
+  stationInfo <- RODBC::sqlFetch(dbi, "L1_Stationmaster") %>%
     dplyr::rename(
-      sampleDepth = CTDdepth,
-      SITE_ID = Chem_site,
-      stationDepth = DepthM_actual,
-      UNITS = WQUnits,
-      mdl = DetectLimit,
-      sampleDateTime = DateTime
+      SITE_ID = StationCodeKey,
+      targetDepth = `DepthM _target`,
+      targetLat = LatDD_target, 
+      targetLon = LonDD_target) %>%
+    dplyr::select(SITE_ID, targetDepth, targetLat, targetLon) %>%
+  # sample information (time, depth)
+    dplyr::full_join(., RODBC::sqlFetch(dbi, "L2a_StationSampleEvent") %>%
+
+    # [x] Grab eastern time
+    dplyr::rename(SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual) %>%
+    dplyr::select(SITE_ID, Latitude, Longitude, sampleDate, sampleTime, stationDepth, SampleEventKey))
+
+  # Water chem sample depth
+  chemInfo2 <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>% 
+    dplyr::rename(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m) %>%
+    dplyr::full_join(., stationInfo)
+  # impute missing coordinates from target coordinates if possible
+  chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
+    # [x] Join WQ with depth, then, simply row bind the CTD to it
+    tidyr::pivot_longer(NH4_ugNL:CtoN_atom) %>%
+    dplyr::rename(STIS = `STIS#`, SITE_ID = Chem_site) %>%
+    dplyr::select(STIS, SITE_ID, name, value) %>%
+    dplyr::full_join(chemInfo2) %>%
+    # fill missing positions with targetted positions
+    dplyr::mutate(
+      Latitude = dplyr::coalesce(Latitude, targetLat),
+      Longitude = dplyr::coalesce(Longitude, targetLon),
+      stationDepth = dplyr::coalesce(stationDepth, targetDepth)
     ) %>%
-    dplyr::select(
-      -dplyr::contains(c("DD", "_target", "Cruise", "Time")),
-      -c(Chem_layer, SampleEvent, Analyst, AltStationName, 
-        PlaceName, ProjectName, SiteType, DepthStrata, PositNS, `PositNS#`,
-        PositEW, BDLcorrection, SampleEventFK, ASTlayername, StationCodeFK,
-        SurveyVessel, WQdepth_m,
-        )) %>%
+    dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
+
+
+
+  ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>% 
+    tidyr::pivot_longer(Temptr_C:pH) %>%
+    dplyr::rename(STIS = STISkey, sampleDepth = CTDdepth) %>%
+    dplyr::select(STIS, sampleDepth, name, value) %>%
+    dplyr::left_join(chemInfo2) %>%
+    dplyr::mutate(
+      Latitude = dplyr::coalesce(Latitude, targetLat),
+      Longitude = dplyr::coalesce(Longitude, targetLon),
+      stationDepth = dplyr::coalesce(stationDepth, targetDepth)
+    ) %>%
+    dplyr::select(-c("WQlabelname"), -contains("target"))
+
+
+  WQ <- dplyr::bind_rows(chem, ctd) %>%
+    dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("name" = "WQParam")) %>%
+    # Sample event names, WQdepth_m
+    # actual coordinates
+    # [x] Check if measure is below DL, replace with NA and put a flag
+    dplyr::mutate(
+      mdl = as.numeric(DetectLimit),
+      QAcomment = ifelse(value <= mdl, "Below mdl", NA),
+      value = ifelse(value <= mdl, NA, value)
+    ) %>%
+    dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
+    dplyr::select(-ASTlayername) %>%
+
+    # [x] combine date and time
+    dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(sampleDate), lubridate::hour(sampleTime)), format = "%Y-%m-%d %H", tz = "EST")) %>%
+
+    dplyr::rename(
+      UNITS = WQUnits,
+      sampleDateTime = DateTime, 
+      METHOD = AnalMethod
+    ) %>%
     dplyr::mutate(
       Study = "CSMI_2015",
       Year = 2015
-      )  %>%
-    dplyr::rename(STIS = `STIS#`, METHOD = AnalMethod)
+    ) %>%
+    dplyr::select(-c(DetectLimit, BDLcorrection, Analyst)) %>%
+    # simplify unit names
+
+    # [x] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
+    dplyr::mutate(
+      UNITS = dplyr::case_when(
+        UNITS == "ug N/L" ~ "ugl",
+        UNITS == "ug P/L" ~ "ugl",
+        UNITS == "ug/L" ~ "ugl",
+        UNITS == "mg/L" ~ "mgl",
+        UNITS == "oC" ~ "C",
+        UNITS == "--" ~ NA,
+        UNITS == "uS/cm" ~ "uscm",
+        UNITS == "percent" ~ "%",
+      )
+    )
+  # Note that conversions are done for all CSMI files together
 
   RODBC::odbcClose(dbi)
 
