@@ -82,9 +82,9 @@
 #' 
 #' @param df GLENDA dataframe in long format
 #' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
-#' @param imputeCoordinates (optional) Boolean specifying whether to impute missing station coordinates, 
+#' @param imputeCoordinates deprecated, (optional) Boolean specifying whether to impute missing station coordinates, 
 #' This shouldn't need to be used, since after joining sites missingness is removed
-#' @param siteCoords (optional) , deprecated, filepath to list of site coordinates to impute missing lats/lons
+#' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons
 #' @param namingFile (optional) filepath to a file containing remappings for analyte names 
 #'
 #' @return a dataframe
@@ -159,7 +159,7 @@
       ),
     ) %>%
     tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
-    dplyr::mutate(sampleDate = readr::parse_datetime(sampleDate, format = "%Y-%m-%d %H:%M:%S_%Z")) %>%
+    dplyr::mutate(sampleDateTime = readr::parse_datetime(sampleDate, format = "%Y-%m-%d %H:%M:%S_%Z")) %>%
 
 
     # Drop analyte number since it doesn't mean anything now
@@ -172,7 +172,6 @@
     } %>%
     { if (!is.null(GLENDAsitePath)) {
       # grab the missing sites from that file
-      # [ ] 
       dplyr::left_join(., readRDS(GLENDAsitePath), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
         dplyr::mutate(
           LATITUDE = dplyr::coalesce(Latitude, LATITUDE),
@@ -199,7 +198,9 @@
       VALUE = dplyr::case_when(
         # Secchi estimates are treated differently (removed) than WChem estimates (not removed)
         # [ ] Could we impute with station depth here?
-        # [ ] Is the secchi estimamte ever greater than station depth?
+        # [x] Is the secchi estimamte ever greater than station depth?
+        # all secchi's are generally estimated
+        # df %>% filter(grepl("Secchi", ANALYTE, ignore.case= T)) %>% distinct(RESULT) 
           # If so, then it's a clear to bottom issue, if not, then filter these all out
         # If so, make sure to add to the result_remark
         (grepl("secchi", ANALYTE, ignore.case = TRUE)) & (grepl("estimate", RESULT_REMARK, ignore.case = TRUE)) ~ NA,
@@ -224,7 +225,8 @@
       ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
     ) %>%
     dplyr::left_join(key, by = "CodeName") %>% 
-    # [ ] Check if we need to impute units
+    # [x] Check if we need to impute units- nope all taken care of 
+    # sum(is.na(df$Units)) == 0
     # If so, we will assume on a given year analytes have same units
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
