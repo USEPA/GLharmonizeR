@@ -64,12 +64,12 @@
     dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
                     `Time (EST)`, Station, Date )) %>%
-    tidyr::pivot_longer(-c(1:4, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
+    tidyr::pivot_longer(-c(1:4, sampleDate, Study, UID), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
   #  dplyr::left_join(latlons, by = "Site") %>%
-    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
-    dplyr::rename(SITE_ID = Site) %>%
+    dplyr::rename(SITE_ID = Site)  %>%
 
 
     dplyr::bind_rows(., CTD) %>% 
@@ -100,10 +100,14 @@
     ) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(SITE_ID, "_")
-    )
+    ) %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_remove_all(ANALYTE, "[^[:alpha:]]")
+    )  %>%
+    # remove unusable measures
     dplyr::filter(
-      ! ANALYTE %in% c("Fluorescence", "Conductivity", "Beam Attenuation", "Beam Transmission", "SPAR,", "PAR/Irradiance," "Density", "Time, Elapsed", "Pressure, Digiquartz", "Bottles", 
-      "Altimeter", "Descent Rate")
+      !ANALYTE %in% c("Fluorescence", "Conductivity", "BeamAttenuation", "BeamTransmission", "SPAR", "PARIrradiance", "Density", "TimeElapsed", "PressureDigiquartz", "Bottles", 
+        "Altimeter", "DescentRate")
     )
   # return the joined data
   return(WQ)
@@ -112,13 +116,14 @@
 
     # [x] What % of chem have ctd and vice versa 
     # NOT a great number. Check out code bleow
-    WQ %>% 
-     reframe(
-      CTD = sum(Study == "CSMI_2021_CTD") > 1,
-      WQ = sum(Study == "CSMI_2021_WQ") > 1,
-      .by = c(SITE_ID, sampleDate)
-      )  %>%
-      count(CTD, WQ)
+    # WQ %>% 
+    #  reframe(
+    #   CTD = sum(Study == "CSMI_2021_CTD"),
+    #   WQ = sum(Study == "CSMI_2021_WQ"),
+    #   .by = c(SITE_ID)
+    #   ) %>%
+    #   mutate(CTD = CTD > 1, WQ = WQ > 1) %>%
+    #   count(CTD, WQ)
 
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.
