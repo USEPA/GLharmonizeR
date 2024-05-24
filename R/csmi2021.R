@@ -17,35 +17,28 @@
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
+  # [x] Don't rename, instead think about a regex pivot to also grab the units
+  # If I do the pivot make sure to add the UID first 
+  # [x] Need to include pH
   CTD <- file.path(csmi2021, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29, n_max = n_max),
       .name_repair = "unique_quiet") %>% 
-      dplyr::rename(Transect = ...1, Site = ...2, sampleDate = ...3,
-                    Latitude = `Latitude [deg]`,Longitude = `Longitude [deg]`,
-                    depth = `Depth [fresh water, m]`,
-                    temperature = `Temperature [deg C]`, 
-                    oxygen = `Oxygen [mg/l]`,
-                    specc = `Specific Conductance [uS/cm]`,
-                    cpar = `CPAR/Corrected Irradiance [%]`,
-                    ) %>%
-      dplyr::select(Site, sampleDate, depth, Latitude, Longitude, temperature, oxygen, specc, cpar) %>%
-      dplyr::mutate(stationDepth = max(depth), Latitude = mean(Latitude),
-        Longitude = mean(Longitude), .by = c(Site, sampleDate)) %>%
-      # make a nested list for each CTD event to convert each into oce objects
-      #dplyr::nest_by(Site, sampleDate, Latitude, Longitude, stationDepth) %>%
-      dplyr::mutate(
-        Study = "CSMI_2021_CTD",
-        UID = paste0(Study, "-", 1:nrow(.))
-        )
-  
-  # Add station depths
-  latlons <- CTD %>%
-    dplyr::distinct(Site, Latitude, Longitude, stationDepth) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(Site = stringr::str_remove_all(Site, "_")) %>%
-    dplyr::select(Site, Latitude, Longitude, stationDepth) %>%
-    dplyr::mutate(stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth), .by = Site) %>%
-    dplyr::arrange(Site)
+    dplyr::rename(Site = ...2, sampleDate = ...3) %>%
+    # don't select bio samples, scans
+    dplyr::select(2:23) %>%
+    dplyr::mutate(
+      Study = "CSMI_2021_CTD",
+      UID = paste0(Study, "-", 1:nrow(.))
+    ) %>%
+    tidyr::pivot_longer(cols = c(4:20),
+                 names_to = "ANALYTE",
+                 values_to = "VALUE") %>%
+    dplyr::rename(sampleDepth = `Depth [fresh water, m]`, Latitude = `Latitude [deg]`,
+      Longitude = `Longitude [deg]`, SITE_ID = Site) %>%
+    tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", " ", "UNITS" = "\\[.*\\]"), too_few = "align_start")  %>%
+    dplyr::mutate(
+      UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
+    )
 
   # Water chemistry  copied from 
   # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
@@ -58,7 +51,7 @@
     dplyr::select(-c(...23, ...24)) %>%
     tidyr::pivot_longer(-Limit, values_to = "RESULT", names_to = "ANALYTE") %>%
     tidyr::pivot_wider(id_cols = ANALYTE, names_from = Limit, values_from = RESULT, values_fn = mean) %>%
-    dplyr::select(-`NA`) 
+    dplyr::select(-`NA`)
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
     readxl::read_xlsx(sheet = "DetLimitCorr", .name_repair = "unique_quiet") %>%
@@ -74,15 +67,17 @@
     tidyr::pivot_longer(-c(1:4, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
-    dplyr::left_join(latlons, by = "Site") %>%
-    dplyr::mutate(Study = "CSMI_2021_WQ")
+  #  dplyr::left_join(latlons, by = "Site") %>%
+    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
+    dplyr::rename(SITE_ID = Site) %>%
 
-  WQ <- dplyr::bind_rows(WQ, CTD) %>%
-    dplyr::left_join(latlons, by = "Site") %>%
-    dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
-    dplyr::select(-c(Latitude.y, Longitude.y)) %>%
+
+    dplyr::bind_rows(., CTD) %>% 
+  #  dplyr::left_join(latlons, by = "Site") %>%
+  #  dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
+  #  dplyr::select(-c(Latitude.y, Longitude.y)) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
-    dplyr::rename(mdl = `method detection limit`, SITE_ID = Site) %>%
+    dplyr::rename(mdl = `method detection limit`) %>%
     dplyr::select(-contains("detection limit corrected")) %>%
     dplyr::mutate(QA_CODE = dplyr::case_when(
       # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
@@ -90,12 +85,40 @@
     )) %>%
     dplyr::mutate(
       Year = 2021,
+    ) %>%
+    # water chem contains station depth, ctd contains lat lon, so for those sites that 
+    # have both types of measurement taking the group mean of those values will simply
+    # replace the na values
+    dplyr::mutate(
+      # [x] repalce CTD station depth with Wchem station depth by taking gruoped mean
+      # [x] Then do max depth if there are still missing - flag it if this needs to be done
+      Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm= T), Latitude),
+      Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm= T), Longitude),
+      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm= T), stationDepth),
+      stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm= T), stationDepth),
+      .by = SITE_ID
+    ) %>%
+    dplyr::mutate(
+      SITE_ID = stringr::str_remove_all(SITE_ID, "_")
     )
-
-
+    dplyr::filter(
+      ! ANALYTE %in% c("Fluorescence", "Conductivity", "Beam Attenuation", "Beam Transmission", "SPAR,", "PAR/Irradiance," "Density", "Time, Elapsed", "Pressure, Digiquartz", "Bottles", 
+      "Altimeter", "Descent Rate")
+    )
   # return the joined data
   return(WQ)
 }
+
+
+    # [x] What % of chem have ctd and vice versa 
+    # NOT a great number. Check out code bleow
+    WQ %>% 
+     reframe(
+      CTD = sum(Study == "CSMI_2021_CTD") > 1,
+      WQ = sum(Study == "CSMI_2021_WQ") > 1,
+      .by = c(SITE_ID, sampleDate)
+      )  %>%
+      count(CTD, WQ)
 
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.

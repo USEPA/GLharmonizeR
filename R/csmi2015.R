@@ -48,7 +48,8 @@
     dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
 
 
-
+  # XXX these are depth matched, so there is more data out there
+  # i.e. we could find the raw data and get measures at every 1m 
   ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>% 
     tidyr::pivot_longer(Temptr_C:pH) %>%
     dplyr::rename(STIS = STISkey, sampleDepth = CTDdepth) %>%
@@ -102,6 +103,8 @@
         UNITS == "uS/cm" ~ "uscm",
         UNITS == "percent" ~ "%",
       )
+      # [ ] what happend to ph log scale?
+      # [ ] Did pH get removed?
     )
   # Note that conversions are done for all CSMI files together
 

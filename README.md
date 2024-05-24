@@ -10,6 +10,9 @@ This repository contains code to merge Lake Michigan chlorophyll a and predictor
 
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document.
 
+## Making changes to namings
+Make sure you change all occurences in the Analytes3.xlsx
+
 
 ## [General process](docs/useNdesign.md)
 In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
