@@ -21,7 +21,7 @@
         SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
         DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
         sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
-        sampleDate = lubridate::ymd_h(sampleDate),
+        sampleDateTime = lubridate::ymd_h(sampleDate),
         ) %>%
         # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
         # However, we filter it out in the mean call
@@ -149,7 +149,7 @@
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      sampleDate = as.Date(DATE_COL, origin = "1900-1-1"),
+      sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
       Study = "NCCA_hydro_2015"
     ) %>%
     dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>%

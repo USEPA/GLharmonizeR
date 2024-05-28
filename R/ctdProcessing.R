@@ -28,7 +28,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
   meta <- data.frame(
     "latitude" = data@metadata$latitude,
     "longitude" = data@metadata$longitude,
-    "sampleDate" = data@metadata$date,
+    "sampleDateTime" = data@metadata$date,
     "waterDepth" = data@metadata$waterDepth,
     "station" = data@metadata$filename
     )
@@ -89,7 +89,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
       Latitude = meta$latitude,
       Longitude = meta$longitude,
       Station = meta$station,
-      sampleDate = meta$sampleDate,
+      sampleDateTime = meta$sampleDateTime,
       stationDepth = meta$waterDepth,
       # Make station names similar to how they appear in GLENDA
       Station = stringr::str_remove_all(Station, ","),
@@ -99,7 +99,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
       Station = toupper(Station)
     ) %>%
     dplyr::rename(sampleDepth = depth) %>%
-    tidyr::pivot_longer(-c(UID, sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDate), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(UID, sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDateTime), names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::rename(STATION_ID = Station)
   
   unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))

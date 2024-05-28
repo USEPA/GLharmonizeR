@@ -27,7 +27,7 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      sampleDate = DATE_COL) %>%
+      sampleDateTime = DATE_COL) %>%
     dplyr::mutate(
       # Combine Nitrate  Nitrite
       Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
@@ -56,7 +56,7 @@
         ANALYTE == "Nitrate" ~ "mgl",
         .default = UNITS 
       ),
-      .by = c(UID, SITE_ID, sampleDate)
+      .by = c(UID, SITE_ID, sampleDateTime)
     ) %>%
     # [x] remove vlaues if one is missing
     dplyr::filter((!is.na(Nitrite)) & (!is.na(Nitrate))) %>%
@@ -107,14 +107,14 @@
              "RESULT_UNITS" = "c"
            )) %>%
     dplyr::rename(
-      sampleDate = DATE_COL,
+      sampleDateTime = DATE_COL,
       QAcode= NARS_FLAG,
       QAcomment = NARS_COMMENT,
       UNITS = RESULT_UNITS,
       ANL_CODE = ANALYTE
     ) %>%
     dplyr::mutate(
-      sampleDate = lubridate::dmy(sampleDate), 
+      sampleDateTime = lubridate::dmy(sampleDateTime), 
       # Combine Nitrate adn Nitrite
       # [x] does this create a problem (check if whenever Nitrate is missing Nitrite is missing).
       # No. we settled that this behaves well for one or both missing
@@ -135,13 +135,13 @@
       ),
       UNITS = dplyr::case_when(
         # Replacing units that had NA's added to their end to make things simpler
-        (ANL_CODE == "AMMONIA_N") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
-        (ANL_CODE == "Diss_NOx") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
-        (ANL_CODE == "SRP") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
-        (ANL_CODE == "PTL") & (lubridate::year(sampleDate) == 2015) ~ "mgL",
+        (ANL_CODE == "AMMONIA_N") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
+        (ANL_CODE == "Diss_NOx") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
+        (ANL_CODE == "SRP") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
+        (ANL_CODE == "PTL") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
         .default = UNITS
       ),
-      .by = c(UID, SITE_ID, sampleDate)
+      .by = c(UID, SITE_ID, sampleDateTime)
     ) %>%
     dplyr::select(
       -dplyr::contains("NITR")
@@ -186,7 +186,7 @@
   dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     #filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L")) 
-    dplyr::mutate(SAMPYEAR = lubridate::year(sampleDate))
+    dplyr::mutate(SAMPYEAR = lubridate::year(sampleDateTime))
 
   # DONE add a try catch if the filepath isn't included
   tryCatch(
