@@ -13,6 +13,7 @@
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
 
+
   ## bin averaged over 1 meter depth intervals
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
@@ -109,6 +110,23 @@
       !ANALYTE %in% c("Fluorescence", "Conductivity", "BeamAttenuation", "BeamTransmission", "SPAR", "PARIrradiance", "Density", "TimeElapsed", "PressureDigiquartz", "Bottles", 
         "Altimeter", "DescentRate")
     )
+
+  # grab additional site data from zooplankton files    
+  zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
+    readr::read_csv() %>%
+    dplyr::rename(SITE_ID = TRANSECT) %>%
+    dplyr::reframe(Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T), 
+      .by = SITE_ID)
+
+  # After adding site info from zooplank, missing lat/lons is 2%
+  WQ <- WQ %>% 
+    dplyr::left_join(zooPlank, by = "SITE_ID") %>%
+    dplyr::mutate(
+      Longitude = dplyr::coalesce(Longitude, Longitude2),
+      Latitude = dplyr::coalesce(Latitude, Latitude2)
+    ) %>%
+    dplyr::select(-c(Latitude2, Longitude2))
+
   # return the joined data
   return(WQ)
 }
