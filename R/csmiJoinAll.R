@@ -13,7 +13,7 @@
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data 
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021 
 #' @export
-LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
+.LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   # Load file to map analyte names to standard names 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") 
@@ -29,6 +29,8 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       RESULT = dplyr::coalesce(RESULT, value)
     ) %>%
     dplyr::select(-value) %>%
+    dplyr::bind_rows(dplyr::tibble(FRACTION=character())) %>%
+    # XXX this is for csmi 2010, since it's not included, leaving it commented out
     dplyr::mutate(FRACTION = dplyr::case_when(
       FRACTION == "F" ~ "Filtrate",
       FRACTION == "U" ~ "Total/Bulk",
@@ -51,10 +53,10 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       # This only contains information about where along the water column 
       # But we already have that with depth
       ANL_CODE = NA
-      ) %>%
+    ) %>%
 
     # Join CSMI to new names
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION"), na_matches="na") %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE"), na_matches="na") %>%
     dplyr::rename(ReportedUnits = Units)
 
   conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
@@ -77,7 +79,9 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
       UID = paste0("CSMI-", UID, 1:nrow(.))
-      )
+    )
+
+}
 
   # Turn into test
   # test %>%
@@ -88,4 +92,3 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
 # CSMI fraction labels
 # From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
 # Sheet "flow_charts"
-}

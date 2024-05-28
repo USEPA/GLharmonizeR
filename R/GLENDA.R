@@ -249,8 +249,9 @@
     # [x] Join them all together then join back to the data
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
-    dplyr::left_join(., fullDLs, by = "CodeName")
+    dplyr::left_join(., fullDLs, by = "CodeName") %>%
+    dplyr::select(-sampleDate)
 
-  return (df)
+  return(df)
 }
 

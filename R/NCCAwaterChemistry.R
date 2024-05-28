@@ -32,6 +32,7 @@
       # Combine Nitrate  Nitrite
       Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
+      METHOD = as.character(METHOD),
       `Nitrate/Nitrite` = Nitrate + Nitrite,
       # DONE does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
       # NO. We discussed these in our meetings and decide it has the correct behavior when one or more 

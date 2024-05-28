@@ -56,9 +56,6 @@
     ) %>%
     dplyr::select(-c(sampleTime, sampleDate))
 
-    lubridate::hour(chem$sampleTime)
-
-
   # XXX these are depth matched, so there is more data out there
   # i.e. we could find the raw data and get measures at every 1m 
   ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>% 
@@ -92,7 +89,6 @@
 
     dplyr::rename(
       UNITS = WQUnits,
-      sampleDateTime = DateTime, 
       METHOD = AnalMethod
     ) %>%
     dplyr::mutate(

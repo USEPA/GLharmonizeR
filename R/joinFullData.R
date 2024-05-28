@@ -18,7 +18,7 @@
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data
 #' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
-#' @param seaBirdFiles a list of strings specifying the seabird file paths
+#' @param  a list of strings specifying the seabird file paths
 #' @param namingFile a filepath to the "Analytes3.xlsx" spreadsheet which documents naming, units, and conversions 
 #' @param out (optional) filepath to save the dataset to
 #' @param test (optional) boolean, if testing that data loads and joins, this flag only loads 
@@ -29,7 +29,7 @@
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
  NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
   n_max = ifelse(test, 50, Inf)
-  # [ ] report sample DateTime not just date
+  # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -42,25 +42,27 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     .name_repair = "unique_quiet") 
 
   print("Step 2/6: Read and clean NCCA")
-  ncca <- LoadNCCAfull(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAqa2010, NCCAwq2015, 
-                         NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         greatLakes=TRUE, Lakes=c("Lake Michigan"), namingFile, nccaWQqaFile = nccaWQqaFile,
-                         n_max = n_max) %>%
-          dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
+  ncca <- .LoadNCCAfull(
+    NCCAsites2010, NCCAsites2015, NCCAwq2010,
+    NCCAwq2015, NCCAhydrofiles2010,
+    NCCAhydrofile2015, NCCAsecchifile2015,
+    Lakes=c("Lake Michigan"), namingFile,
+    NCCAwqQA = NCCAwqQA, n_max = n_max) %>%
+      dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
+      dplyr::select(-Years)
 
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
-    .cleanGLENDA(., namingFile = namingFile, flagsPath = NULL, imputeCoordinates = TRUE,
-    siteCoords = "Data/GLENDA/GLENDAsiteInfo.Rds")
-  # Silicon, Elemental	Si, 2.13918214
+    .cleanGLENDA(., namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
+    GLENDAsitePath= "Data/GLENDA/GLENDAsiteInfo.Rds", GLENDAlimitsPath= "Data/GLENDA/GLENDAlimits.Rds")
   
   print("Step 4/6: Read and clean SeaBird files associated with GLENDA")
   if (test) {
-    seaBirdFiles <- seaBirdFiles[c(1:5, (length(seaBirdFiles) - 5): length(seaBirdFiles))]
+     seaBird <- seaBird[c(1:5, (length(seaBird) - 5): length(seaBird))]
   }
 
   
-  seaBirdDf <- seaBirdFiles %>%
+  seaBirdDf <- seaBird %>%
     purrr::map(\(x)
       oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
     dplyr::bind_rows() %>% 
@@ -76,12 +78,10 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
-  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
-    dplyr::mutate(Year = as.numeric(YEAR)) %>%
-    dplyr::select(-c(YEAR, Years))
+  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf)
 
   print("Step 5/6: Read and clean CSMI data")
-  CSMI <- LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
+  CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
     dplyr::select(-Years)
 
   print("Step 6/6: Combine and return full data")
@@ -89,7 +89,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     ncca, GLENDA, CSMI
   ) %>% 
   dplyr::mutate(
-    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID, SITE)
+    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
   ) %>%
   dplyr::select(
     # time and space
@@ -201,4 +201,3 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 
     # [ ] Make a table of all flags after all is said and done so we can
     # annotate them for end-users
-    # [ ] Double check each dataset that I didn't drop any flags inadvertently

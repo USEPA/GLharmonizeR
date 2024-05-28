@@ -75,13 +75,13 @@
   # Read qa decisions
   QA <- readxl::read_xlsx(NCCAwqQA, sheet = "NCCAQAcounts2")
 
-  NCCAhydrofiles2010 %>%
+  df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::left_join(QA, by = c("QA_CODE" = "QAcode")) %>%
     # [x] filter out based on QA decisions
-    dplyr::filter(Decision != "Remove") %>% 
+    dplyr::filter(!grepl("remove", Decision, ignore.case = T)) %>%
     dplyr::filter(!((Decision == "Remove based on comment") & (grepl("suspect", QA_COMMENT)))) %>%
     dplyr::mutate(
       RESULT = dplyr::case_when(
@@ -95,11 +95,12 @@
         Decision == "CTB" ~ paste(QA_COMMENT, ";", "Clear to Bottom"),
         .default = QA_COMMENT 
       ),
+      ANALYTE = dplyr::coalesce(PARAMETER_NAME, ANALYTE)
     ) %>%
     dplyr::rename(
       sampleDepth = SDEPTH,
-      ANALYTE = PARAMETER_NAME,
-      stationDepth = `STATION_DEPTH(m)`) %>%
+      stationDepth = `STATION_DEPTH(m)`
+    ) %>%
     dplyr::mutate(
       # This is unaffected by being grouped
       DATE_COL = lubridate::mdy(DATE_COL),
@@ -123,12 +124,13 @@
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
       ANALYTE != "Underwater PAR"
-    )
+    ) %>%
     # [x] this don't need reframe since I filtered to downcast
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010"
-    )
+    ) %>%
+    dplyr::select(DATE_COL)
 }
 
 
@@ -157,7 +159,8 @@
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
     dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
-    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT")
+    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::select(-DATE_COL)
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
@@ -170,10 +173,11 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, n_max = Inf) {
+.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+  NCCAwqQA, n_max = Inf) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max), 
-    .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max), 
+    .readNCCAhydro2010(NCCAhydrofiles2010, NCCAwqQA = NCCAwqQA, n_max = n_max),
+    .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max),
     .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max))
 
 }
