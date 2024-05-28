@@ -45,7 +45,18 @@
       Longitude = dplyr::coalesce(Longitude, targetLon),
       stationDepth = dplyr::coalesce(stationDepth, targetDepth)
     ) %>%
-    dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
+    dplyr::select(-dplyr::contains("target"), -c(WQlabelname)) %>%
+    dplyr::mutate(
+      sampleDateTime = lubridate::ymd_hm(
+        paste0(lubridate::date(sampleDate),
+        "-",
+        lubridate::hour(sampleTime),
+        lubridate::minute(sampleTime)
+      ))
+    ) %>%
+    dplyr::select(-c(sampleTime, sampleDate))
+
+    lubridate::hour(chem$sampleTime)
 
 
   # XXX these are depth matched, so there is more data out there

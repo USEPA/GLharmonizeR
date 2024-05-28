@@ -21,6 +21,7 @@
   sampleCols <- which(grepl("Sample Type", names(df), ignore.case = T))
   tallFormatted <- df %>% 
     dplyr::select(`Stn Depth (m)`:STIS) %>%
+    # XXX DATE is filled with mixed forms of reporting date
     tidyr::fill(DATE, .direction = "down") %>%
     dplyr::mutate(sampleDate = lubridate::dmy(DATE),
             Latitude = as.numeric(`Acutal Lat (N)`),

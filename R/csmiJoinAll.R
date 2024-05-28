@@ -18,11 +18,17 @@ LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
     .name_repair = "unique_quiet") 
   CSMI <- dplyr::bind_rows(
-    .LoadCSMI2010(csmi2010, n_max = n_max),
+    # We aren't including 2010 at this point
+    # .LoadCSMI2010(csmi2010, n_max = n_max),
+    # [x] 2015 has a lot of missing in VALUE column
+    # This is just becuase the way the original data is stored
     .LoadCSMI2015(csmi2015),
-    # [ ] Why is csmi2021 removing CodeNames and Reuslts for both WQ and CTD
     .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
+    dplyr::mutate(
+      RESULT = dplyr::coalesce(RESULT, value)
+    ) %>%
+    dplyr::select(-value) %>%
     dplyr::mutate(FRACTION = dplyr::case_when(
       FRACTION == "F" ~ "Filtrate",
       FRACTION == "U" ~ "Total/Bulk",

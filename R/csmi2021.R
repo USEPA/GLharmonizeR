@@ -125,7 +125,8 @@
       Longitude = dplyr::coalesce(Longitude, Longitude2),
       Latitude = dplyr::coalesce(Latitude, Latitude2)
     ) %>%
-    dplyr::select(-c(Latitude2, Longitude2))
+    dplyr::select(-c(Latitude2, Longitude2)) %>%
+    dplyr::rename(sampleDateTime = sampleDate)
 
   # return the joined data
   return(WQ)
