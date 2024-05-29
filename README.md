@@ -8,13 +8,23 @@
 
 This repository contains code to merge Lake Michigan chlorophyll a and predictor data from diverse sources. This repo also contains code to fit models to predict chla.
 
-The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document.
+The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 
-## Making changes to namings
-Make sure you change all occurences in the Analytes3.xlsx
+# User documentation
 
+## Installation 
+This is under construction
 
-## [General process](docs/useNdesign.md)
+## Intended use
+This data source is intended for ....
+
+## Reccomendations for users
+- Use the documentation
+- Utilize measurent remarks
+- Careful of censored
+- Report any issues via Github either as a discussion or open an issue
+
+## [General functionality](docs/useNdesign.md)
 In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
 
 - Download data from remote sources (under construction)
@@ -31,9 +41,29 @@ The data were taken from the following sources
 - [WQP](https://www.waterqualitydata.us/)
 - FVCOM (hosted locally)
 
-## Installation 
-This is under construction
 
+
+## Accessing and using
+<database> version 1.0 is made up of multiple utility functions which aid in constructing all or part of the data outlined in this document. Once users install the R package....
+
+
+## Reccomendations 
+- Censored data
+- zeros/negatives
+
+## Database design
+The database was designed using multiple principals that were derived from the design of the LAGOS-US research platform. Firstly, the fundamental sampling unit is defined by a unique spatial position defined by latitude, longitude, and depth. However, since multiple analytes can be measured at each position, but scarcely any position has all analytes measured, the data is arranged in a "long" format where each row represents partial observations indexed by position, time, and analyte. This dramatically reduces the size of the stored data given the data's sparse nature by not introducing large amounts of NA values.
+
+Second, the design is exhaustive given the sourced data. This means that for the chosen data sources, data from all positions, analytes, and periods in time were kept unless they didn't pass a rudimentary quality check (outlined later). This is intended to allow this data source to be a comprehensive resource for researchers who may have specific data needs with respect to time, space, or analytes.
+
+Thirdly, it is designed to be amenable to extensibility and open source development. To this end, rigourous documentation including this user document, principaled database design, open source access on Github, and in depth code commenting and formatting are all with the objective of inviting researchers to extend this work.
+
+Next, we describe the design more in-depth by describing the entities, data model, variables, and schema which together comprise the database.
+
+
+
+# Developer documentation
+This section provides additional details that are unnecessary for the general user. That being said, it will not contain all of the high level details that are outlined in the [User Documentation](#user-documentation).
 
 ## Contributing
 The development environment is managed via "renv". To set up the development environment after cloning the repository run "renv::restore()". This will then ask to install and update packages necesssary for the development environment. If you make changes that alter the environment (i.e. add a new package dependency) please update the renv by running "renv::snapshot()"
@@ -54,27 +84,18 @@ Tags in code are supported to make it easier to search when searching for things
 - [x] - to mark that necessary changes are done
 - DOCTHIS - highlight sections of code that are important to write up in the documentation for the package
 
+## Testing
+In order to cut down time tests take to run, tests for a given data source should all be run together. To accomplish this, the data should be stored as a fixture and then tested. Tests are ran through ['testthat' R package](https://testthat.r-lib.org/). Code coverage is provided by [covr](https://covr.r-lib.org/).
+
+# Process/technical documentation 
+- Clear to Bottom as NA's
+- Assumed if measuring same analyte and method code they were similar
+  - assumption was checked by looking at marginal distributions
+- Converted silicon to silica
+- Assembled positional data from all associated documentation to fill in missing values
 
 
-## License
-This is under construction
 
-# Intended use
-This data source is intended for ....
-
-## Reccomendations for users
-- Use the documentation
-- Utilize measurent remarks
-- Careful of censored
-
-## Database design
-The database was designed using multiple principals that were derived from the design of the LAGOS-US research platform. Firstly, the fundamental sampling unit is defined by a unique spatial position defined by latitude, longitude, and depth. However, since multiple analytes can be measured at each position, but scarcely any position has all analytes measured, the data is arranged in a "long" format where each row represents partial observations indexed by position, time, and analyte. This dramatically reduces the size of the stored data given the data's sparse nature by not introducing large amounts of NA values.
-
-Second, the design is exhaustive given the sourced data. This means that for the chosen data sources, data from all positions, analytes, and periods in time were kept unless they didn't pass a rudimentary quality check (outlined later). This is intended to allow this data source to be a comprehensive resource for researchers who may have specific data needs with respect to time, space, or analytes.
-
-Thirdly, it is designed to be amenable to extensibility and open source development. To this end, rigourous documentation including this user document, principaled database design, open source access on Github, and in depth code commenting and formatting are all with the objective of inviting researchers to extend this work.
-
-Next, we describe the design more in-depth by describing the entities, data model, variables, and schema which together comprise the database.
 
 ### Entities
 The database includes four entities for which observations occur: lake, site, site/depth, and sample event. Lakes are the set of North American great lakes. A site is defined as a specific location on a lake with a unique Latitude/Longitude defining its position on the surface of the Earth. Site/depth is the depth at which a measurement was taken and together with the site define a unique 3D position for a given measurement. A sample event defines a unique site depth and the point in time which is was measured.
@@ -89,16 +110,8 @@ The <database> is comprised of analyte measurements which are also commonly refe
 The database contains metadata (analyte descriptions and data column descriptions) along with a datatable. The datatable can be filtered by entities after downloading such as filtering by lake name, lat/lon ranges, site id, or even analyte.. Should we define it as a relational database... keeping the files separate??? 
 
 
+## Making changes to namings
+Make sure you change all occurences in the Analytes3.xlsx
 
-# Information for <DataBase> Users
-
-## Accessing and using
-<database> version 1.0 is made up of multiple utility functions which aid in constructing all or part of the data outlined in this document. Once users install the R package....
-
-
-## Reccomendations 
-- Censored data
-- zeros/negatives
-
-## Citation
+# Citation
 .....
