@@ -59,7 +59,9 @@
     dplyr::select(-dplyr::contains("...")) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::mutate(      # Haven't figured out how to parse these times, can come back to it if it's important 
+    # [ ] parse the time column along with date
+    # [ ] flag it if we need to assume it's noon
+    dplyr::mutate(      
       sampleDate= lubridate::date(Date)
     ) %>%
     dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
@@ -69,20 +71,21 @@
     tidyr::pivot_longer(-c(1:4, sampleDate, Study, UID), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
-  #  dplyr::left_join(latlons, by = "Site") %>%
     dplyr::rename(SITE_ID = Site)  %>%
 
 
     dplyr::bind_rows(., CTD) %>% 
-  #  dplyr::left_join(latlons, by = "Site") %>%
-  #  dplyr::rename(Latitude = Latitude.x, Longitude = Longitude.x) %>%
-  #  dplyr::select(-c(Latitude.y, Longitude.y)) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
     dplyr::rename(mdl = `method detection limit`) %>%
     dplyr::select(-contains("detection limit corrected")) %>%
-    dplyr::mutate(QA_CODE = dplyr::case_when(
-      # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-      RESULT < mdl ~ "nondetect"
+    dplyr::mutate(
+      # [x] Flag if below detection limit
+      QA_CODE = dplyr::case_when(
+        # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
+        RESULT < mdl ~ "Below detection limit",
+      RESULT = dplyr::case_when(
+        # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
+        RESULT < mdl ~ NA 
     )) %>%
     dplyr::mutate(
       Year = 2021,
@@ -146,5 +149,3 @@
 
 
 # Appears there are no chl-a measurements for the Gaurdian data, but USGS collected chl-a data at some of the same sites within a week or so. Need to confirm with Ryan/Aabir.
-# A few Lat-longs are missing but probably can be found in profile data below TRUE
-# But also, the lat/lons are incredibly low precision

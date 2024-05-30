@@ -31,17 +31,17 @@
     dplyr::select(-value) %>%
     dplyr::bind_rows(dplyr::tibble(FRACTION=character())) %>%
     # XXX this is for csmi 2010, since it's not included, leaving it commented out
-    dplyr::mutate(FRACTION = dplyr::case_when(
-      FRACTION == "F" ~ "Filtrate",
-      FRACTION == "U" ~ "Total/Bulk",
-      FRACTION == "A" ~ "Filtrate",
-      FRACTION == "M" ~ "Filtrate",
-      FRACTION == "D" ~ "Filtrate",
-      FRACTION == "V" ~ "Total/Bulk",
-      FRACTION == "PCN" ~ "Residue",
-      FRACTION == "Not applicable" ~ NA,
-      .default = FRACTION
-    )) %>%
+    # dplyr::mutate(FRACTION = dplyr::case_when(
+    #   FRACTION == "F" ~ "Filtrate",
+    #   FRACTION == "U" ~ "Total/Bulk",
+    #   FRACTION == "A" ~ "Filtrate",
+    #   FRACTION == "M" ~ "Filtrate",
+    #   FRACTION == "D" ~ "Filtrate",
+    #   FRACTION == "V" ~ "Total/Bulk",
+    #   FRACTION == "PCN" ~ "Residue",
+    #   FRACTION == "Not applicable" ~ NA,
+    #   .default = FRACTION
+    # )) %>%
     # remove ion charges and units
     dplyr::mutate(
       ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove(ANALYTE, "_.*"), ANALYTE),
@@ -66,7 +66,7 @@
     dplyr::rename(TargetUnits = Units)
 
   CSMI %>% 
-    dplyr::left_join(key, by = "CodeName") %>% 
+    dplyr::left_join(key, by = "CodeName") %>%
     # Simplify unit strings
     dplyr::mutate(ReportedUnits = tolower(stringr::str_remove(ReportedUnits, "/"))) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
@@ -78,9 +78,8 @@
       STIS = as.character(STIS),
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
-      UID = paste0("CSMI-", UID, 1:nrow(.))
+      UID = paste0("CSMI-", UID)
     )
-
 }
 
   # Turn into test
@@ -89,6 +88,6 @@
   #   filter(is.na(ConversionFactor)) %>%
   #   count(ReportedUnits, TargetUnits, ConversionFactor)
 
-# CSMI fraction labels
+# CSMI 2010 fraction labels
 # From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
 # Sheet "flow_charts"
