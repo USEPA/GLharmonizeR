@@ -97,31 +97,19 @@
       tz = ifelse(is.na(tz), "EST", tz),
       tz = sub("\\(", "", tz),
       tz = sub("\\)", "", tz),
-      Date = date(Date)
+      Date = lubridate::date(Date)
       ) %>%
       tidyr::unite("sampleDateTime", Date, time, sep= " ") %>%
       # XXX Gave up on tz's for now being within 1 hour is close enough
       dplyr::mutate(
         sampleDateTime = lubridate::ymd_hm(sampleDateTime)
-      )
+      ) %>%
 
-
-
-      datetime1 = lubridate::ymd_hm(paste0(Date, " ", time1)),
-      datetime2 = lubridate::ymd_hm(paste0(Date, " ", time2)),
-      sampleDateTime = mean(datetime1, datetime2, na.rm =T)
-    )
-
-
-
-    dplyr::mutate(
-      sampleDate = lubridate::date(Date),
-    ) %>%
     dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
-                    `Time (EST)`, Station, Date )) %>%
+                    Station, tz, time1, time2)) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
-    tidyr::pivot_longer(-c(1:4, sampleDate, Study, UID), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
     dplyr::rename(SITE_ID = Site)  %>%
@@ -181,8 +169,7 @@
       Longitude = dplyr::coalesce(Longitude, Longitude2),
       Latitude = dplyr::coalesce(Latitude, Latitude2)
     ) %>%
-    dplyr::select(-c(Latitude2, Longitude2)) %>%
-    dplyr::rename(sampleDateTime = sampleDate)
+    dplyr::select(-c(Latitude2, Longitude2))
 
   # return the joined data
   return(WQ)
