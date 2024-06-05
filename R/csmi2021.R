@@ -59,10 +59,63 @@
     dplyr::select(-dplyr::contains("...")) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
-    # [ ] parse the time column along with date
-    # [ ] flag it if we need to assume it's noon
-    dplyr::mutate(      
-      sampleDate= lubridate::date(Date)
+    # [x] parse the time column along with date
+    # [x] flag it if we need to assume it's noon
+    # split time and tz, infer timezones as needed, rejoin, convert to UTC
+    tidyr::separate_wider_regex(`Time (EST)`, patterns = c("time" = ".*","tz" = "\\(.*\\)"), too_few = "align_start") %>%
+    dplyr::mutate(
+      time = ifelse(grepl("no time", time, ignore.case=  T) | is.na(time), "12:00", time),
+      QAcomment = ifelse(grepl("no time", time, ignore.case=  T) | is.na(time), "Assumed sample at noon", NA),
+      time = stringr::str_remove_all(time, "[:space:]")
+      ) %>%
+    # Deal with times separated by /
+    tidyr::separate_wider_regex(time, patterns = c("time1" = ".*", "/", "time2" = ".*"), too_few = "align_start", cols_remove= TRUE)  %>%
+    # convert times to decimals to average them
+    dplyr::mutate(
+      time1 = ifelse(
+        grepl(":", time1),
+        format(as.POSIXct(paste(Sys.Date(), time1)), "%d"),
+        time1
+        ),
+      time2 = ifelse(
+        grepl(":", time2),
+        format(as.POSIXct(paste(Sys.Date(), time2)), "%d"),
+        time2),
+      time1= as.numeric(time1),
+      time2 = as.numeric(time2),
+      time = dplyr::case_when(
+        (!is.na(time1)) & (!is.na(time2)) ~ (time1 + time2) / 2,
+        is.na(time1) & is.na(time2) ~ 0.5,
+        (!is.na(time1)) & is.na(time2) ~ time1,
+        (!is.na(time2)) & is.na(time1) ~ time2
+      ), 
+      time = time - round(time),
+      time = format(as.POSIXct(Sys.Date() + time), "%H:%m"),
+      # Make sure dec times are less that 1
+      # XXX some of the 15:00 times were converted to 5 as decimals
+      # infer tz
+      tz = ifelse(is.na(tz), "EST", tz),
+      tz = sub("\\(", "", tz),
+      tz = sub("\\)", "", tz),
+      Date = date(Date)
+      ) %>%
+      tidyr::unite("sampleDateTime", Date, time, sep= " ") %>%
+      # XXX Gave up on tz's for now being within 1 hour is close enough
+      dplyr::mutate(
+        sampleDateTime = lubridate::ymd_hm(sampleDateTime)
+      )
+
+
+
+      datetime1 = lubridate::ymd_hm(paste0(Date, " ", time1)),
+      datetime2 = lubridate::ymd_hm(paste0(Date, " ", time2)),
+      sampleDateTime = mean(datetime1, datetime2, na.rm =T)
+    )
+
+
+
+    dplyr::mutate(
+      sampleDate = lubridate::date(Date),
     ) %>%
     dplyr::rename(stationDepth = `Site Depth (m)`,  sampleDepth = `Separate depths (m)`) %>%
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
@@ -82,7 +135,7 @@
       # [x] Flag if below detection limit
       QA_CODE = dplyr::case_when(
         # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-        RESULT < mdl ~ "Below detection limit",
+        RESULT < mdl ~ "Below detection limit"),
       RESULT = dplyr::case_when(
         # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
         RESULT < mdl ~ NA 
