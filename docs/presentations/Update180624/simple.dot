@@ -1,0 +1,10 @@
+digraph G {
+  /* Entities */
+  shortName [label="shortName", shape="square"]
+  
+  /* Relationships */
+  F1 -> shortName[label=".63"]
+
+  /* Ranks */
+  { rank=|same,min,max,# max is bottom|; shortName; };
+}
