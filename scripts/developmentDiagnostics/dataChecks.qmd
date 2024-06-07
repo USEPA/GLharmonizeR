@@ -1,0 +1,51 @@
+---
+title: "Data Checks"
+date: today
+---
+
+```{r setup}
+library(tidyverse)
+library(kableExtra)
+df <- readRDS("Data/fulldata.rds")
+```
+
+
+# Missingness
+```{r}
+df %>%
+  select(1:9, 16:21, 23) %>%
+  reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
+  kable() %>%
+  kableExtra::kable_paper()
+```
+
+Notes on missingness:
+- GLENDA
+  - Has ~50% missingness
+- SeaBird
+  - Can't locate station depth in their files
+- NCCA
+  - Secchi missing sample depth because it is an integrated sample (over water column)
+
+- CSMI
+  - 2010
+    - Lat/Lon reported only to nearest whole number 
+      - there are real Lat/ real Lon in smpstts10.xls, but not sure what they mean
+    - Lat/Lon/depth/sampleDate partially missing because odd reporting in file
+      - Can we use forward filling to fill in the missing values?
+    - Can't find sampleDepth
+      - Just report the water layer
+
+  - 2015 
+    - It actually just has a lot of missing WQ 
+      - I'm guessing this is because if CTD was measured and WQ wasn't they still record it as a NA
+  - 2021
+    - actually has ~50% missingness
+
+
+```{r}
+GLENDA %>%
+  filter(Study == "GLENDA", is.na(RESULT)) %>%
+  count(CodeName, ConversionFactor, is.na(as.numeric(RESULTstart))) %>%
+  print(n = 64)
+```
