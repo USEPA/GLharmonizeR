@@ -78,3 +78,7 @@ desktop.ini
 docs/presentations/*/*_files
 # To avoid quarto files
 *_files*
+.Rproj.user
+.Rdata
+.DS_Store
+.quarto
