@@ -25,10 +25,6 @@
     .LoadCSMI2015(csmi2015),
     .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
-    dplyr::mutate(
-      RESULT = dplyr::coalesce(RESULT, value)
-    ) %>%
-    dplyr::select(-value) %>%
     dplyr::bind_rows(dplyr::tibble(FRACTION=character())) %>%
     # XXX this is for csmi 2010, since it's not included, leaving it commented out
     # dplyr::mutate(FRACTION = dplyr::case_when(
@@ -81,7 +77,6 @@
       UID = paste0("CSMI-", UID)
     )
 }
-
   # Turn into test
   # test %>%
   #   filter(! TargetUnits == ReportedUnits) %>%

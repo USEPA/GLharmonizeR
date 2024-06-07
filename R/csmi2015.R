@@ -35,33 +35,24 @@
   # impute missing coordinates from target coordinates if possible
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     # [x] Join WQ with depth, then, simply row bind the CTD to it
-    tidyr::pivot_longer(NH4_ugNL:CtoN_atom) %>%
+    tidyr::pivot_longer(NH4_ugNL:CtoN_atom, names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::rename(STIS = `STIS#`, SITE_ID = Chem_site) %>%
-    dplyr::select(STIS, SITE_ID, name, value) %>%
-    dplyr::full_join(chemInfo2) %>%
+    dplyr::select(STIS, SITE_ID, ANALYTE, RESULT) %>%
+    dplyr::left_join(chemInfo2) %>%
     # fill missing positions with targetted positions
     dplyr::mutate(
       Latitude = dplyr::coalesce(Latitude, targetLat),
       Longitude = dplyr::coalesce(Longitude, targetLon),
       stationDepth = dplyr::coalesce(stationDepth, targetDepth)
     ) %>%
-    dplyr::select(-dplyr::contains("target"), -c(WQlabelname)) %>%
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(
-        paste0(lubridate::date(sampleDate),
-        "-",
-        lubridate::hour(sampleTime),
-        lubridate::minute(sampleTime)
-      ))
-    ) %>%
-    dplyr::select(-c(sampleTime, sampleDate))
+    dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
 
   # XXX these are depth matched, so there is more data out there
   # i.e. we could find the raw data and get measures at every 1m 
   ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>% 
-    tidyr::pivot_longer(Temptr_C:pH) %>%
+    tidyr::pivot_longer(Temptr_C:pH, values_to = "RESULT", names_to = "ANALYTE") %>%
     dplyr::rename(STIS = STISkey, sampleDepth = CTDdepth) %>%
-    dplyr::select(STIS, sampleDepth, name, value) %>%
+    dplyr::select(STIS, sampleDepth, ANALYTE, RESULT) %>%
     dplyr::left_join(chemInfo2) %>%
     dplyr::mutate(
       Latitude = dplyr::coalesce(Latitude, targetLat),
@@ -72,20 +63,26 @@
 
 
   WQ <- dplyr::bind_rows(chem, ctd) %>%
-    dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("name" = "WQParam")) %>%
+    dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("ANALYTE" = "WQParam")) %>%
     # Sample event names, WQdepth_m
     # actual coordinates
     # [x] Check if measure is below DL, replace with NA and put a flag
     dplyr::mutate(
       mdl = as.numeric(DetectLimit),
-      QAcomment = ifelse(value <= mdl, "Below mdl", NA),
-      value = ifelse(value <= mdl, NA, value)
+      QAcomment = ifelse(RESULT <= mdl, "Below mdl", NA),
+      RESULT = ifelse(RESULT <= mdl, NA, RESULT)
     ) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::select(-ASTlayername) %>%
 
     # [x] combine date and time
-    dplyr::mutate(DateTime = as.POSIXct(paste(lubridate::date(sampleDate), lubridate::hour(sampleTime)), format = "%Y-%m-%d %H", tz = "EST")) %>%
+    dplyr::mutate(
+      sampleDateTime = lubridate::ymd_h(
+        paste0(lubridate::date(sampleDate),
+        "-",
+        lubridate::hour(sampleTime)
+      ))
+    ) %>%
 
     dplyr::rename(
       UNITS = WQUnits,
@@ -99,20 +96,20 @@
     # simplify unit names
 
     # [x] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
-    dplyr::mutate(
-      UNITS = dplyr::case_when(
-        UNITS == "ug N/L" ~ "ugl",
-        UNITS == "ug P/L" ~ "ugl",
-        UNITS == "ug/L" ~ "ugl",
-        UNITS == "mg/L" ~ "mgl",
-        UNITS == "oC" ~ "C",
-        UNITS == "--" ~ NA,
-        UNITS == "uS/cm" ~ "uscm",
-        UNITS == "percent" ~ "%",
+      dplyr::mutate(
+        UNITS = dplyr::case_when(
+          UNITS == "ug N/L" ~ "ugl",
+          UNITS == "ug P/L" ~ "ugl",
+          UNITS == "ug/L" ~ "ugl",
+          UNITS == "mg/L" ~ "mgl",
+          UNITS == "oC" ~ "C",
+          UNITS == "--" ~ NA,
+          UNITS == "uS/cm" ~ "uscm",
+          UNITS == "percent" ~ "%",
+        )
+        # [ ] what happend to ph log scale?
+        # [ ] Did pH get removed?
       )
-      # [ ] what happend to ph log scale?
-      # [ ] Did pH get removed?
-    )
   # Note that conversions are done for all CSMI files together
 
   RODBC::odbcClose(dbi)

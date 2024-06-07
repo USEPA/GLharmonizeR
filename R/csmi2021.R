@@ -18,24 +18,25 @@
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
-  # [x] Don't rename, instead think about a regex pivot to also grab the units
-  # If I do the pivot make sure to add the UID first 
-  # [x] Need to include pH
   CTD <- file.path(csmi2021, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
     readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", -9.99e-29, n_max = n_max),
       .name_repair = "unique_quiet") %>% 
-    dplyr::rename(Site = ...2, sampleDate = ...3) %>%
+    dplyr::rename(Site = ...2, sampleDateTime = ...3) %>%
+    dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
     # don't select bio samples, scans
     dplyr::select(2:23) %>%
     dplyr::mutate(
       Study = "CSMI_2021_CTD",
+      # add UID before pivoting
       UID = paste0(Study, "-", 1:nrow(.))
     ) %>%
     tidyr::pivot_longer(cols = c(4:20),
                  names_to = "ANALYTE",
-                 values_to = "VALUE") %>%
+                 values_to = "RESULT") %>%
     dplyr::rename(sampleDepth = `Depth [fresh water, m]`, Latitude = `Latitude [deg]`,
       Longitude = `Longitude [deg]`, SITE_ID = Site) %>%
+  # [x] Need to include pH
+  # [x] Don't rename, instead think about a regex pivot to also grab the units
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", " ", "UNITS" = "\\[.*\\]"), too_few = "align_start")  %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
@@ -109,7 +110,7 @@
       dplyr::select( -c(Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
                     Station, tz, time1, time2)) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
-    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS= ".*$")) %>%
     dplyr::rename(SITE_ID = Site)  %>%
@@ -122,11 +123,16 @@
     dplyr::mutate(
       # [x] Flag if below detection limit
       QA_CODE = dplyr::case_when(
+        # Remember these cases are evaluated in order
+        is.na(mdl) ~ NA,
         # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
         RESULT < mdl ~ "Below detection limit"),
+        .default = NA,
       RESULT = dplyr::case_when(
+        is.na(mdl) ~ RESULT,
         # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-        RESULT < mdl ~ NA 
+        RESULT < mdl ~ NA,
+        .default = NA
     )) %>%
     dplyr::mutate(
       Year = 2021,
@@ -144,9 +150,7 @@
       .by = SITE_ID
     ) %>%
     dplyr::mutate(
-      SITE_ID = stringr::str_remove_all(SITE_ID, "_")
-    ) %>%
-    dplyr::mutate(
+      SITE_ID = stringr::str_remove_all(SITE_ID, "_"),
       ANALYTE = stringr::str_remove_all(ANALYTE, "[^[:alpha:]]")
     )  %>%
     # remove unusable measures

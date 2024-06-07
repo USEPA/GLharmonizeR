@@ -6,16 +6,21 @@ date: today
 ```{r setup}
 library(tidyverse)
 library(kableExtra)
-df <- readRDS("Data/fulldata.rds")
+df <- readRDS("data/fullData.Rds")
 ```
 
+Check missingness
+- [ ] Results
+  - [ ] CSMI 2015 - just has a ton of missingness
+  - [x] CSMI 2021 WQ
+  - [x] CSMI 2021 CTD
 
 # Missingness
 ```{r}
 df %>%
-  select(1:9, 16:21, 23) %>%
+  select(1:9, 16:21, 23:24,27) %>%
   reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
-  kable() %>%
+  kable(digits=2) %>%
   kableExtra::kable_paper()
 ```
 
@@ -49,3 +54,21 @@ GLENDA %>%
   count(CodeName, ConversionFactor, is.na(as.numeric(RESULTstart))) %>%
   print(n = 64)
 ```
+
+# Check CodeName Missingness
+
+# Check CodeName / Analyte combos
+
+
+# Check Units missingness
+
+
+# Check target/rpoerted units and conversion factor
+
+
+# Position missingness
+
+
+# Full table of missingness
+
+# Missingness by data source

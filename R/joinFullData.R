@@ -93,13 +93,13 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   ) %>%
   dplyr::select(
     # time and space
-    UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDate,
+    UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime,
     # analyte name
     CodeName, ANALYTE, Category,
     # unit conversion
     ConversionFactor, TargetUnits, Conversion, ReportedUnits,
     # measurement and limits 
-    RESULT,    MDL, MRL, PQL, 
+    RESULT, MDL, MRL, PQL, 
     # QA
     QAcode, QAcomment, LAB, LRL, contains("QAconsiderations"), Decision, Action, FLAG
     )
