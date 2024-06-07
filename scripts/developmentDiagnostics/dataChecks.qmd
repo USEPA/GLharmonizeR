@@ -9,12 +9,6 @@ library(kableExtra)
 df <- readRDS("data/fullData.Rds")
 ```
 
-Check missingness
-- [ ] Results
-  - [ ] CSMI 2015 - just has a ton of missingness
-  - [x] CSMI 2021 WQ
-  - [x] CSMI 2021 CTD
-
 # Missingness
 ```{r}
 df %>%
