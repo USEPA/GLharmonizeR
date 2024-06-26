@@ -77,6 +77,6 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     return(noaaWQdata)
 }
 
-file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2022 CTD files", "6659", "Pothoven", "278-22", "raw", "SBE19plus_01906659_2022_10_12_0011.hex")
-file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2007 ctd data", "2007", "079-07", "Laurent raw", "Omega0792007.CNV")
-test <- oce::read.oce(file)
+# file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2022 CTD files", "6659", "Pothoven", "278-22", "raw", "SBE19plus_01906659_2022_10_12_0011.hex")
+# file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2007 ctd data", "2007", "079-07", "Laurent raw", "Omega0792007.CNV")
+# test <- oce::read.oce(file)
