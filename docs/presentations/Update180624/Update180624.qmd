@@ -1,11 +1,141 @@
 ---
-title: "LM Chla Package"
+title: "GLharmonizeR - bringing together multiple sources of water quality data"
 author: "Christian Coffman"
-date: 06-18-2024
-format: revealjs
+date: 07-09-2024
+format:
+  revealjs:
+    smaller: true
+    scrollable: true
+    theme: moon 
+    logo: ../../figsTables/logo.png
+    footer: "GLHarmonizeR"
 ---
 
-# Problems working with environmental data
+# Introduction to me
+
+:::: {.columns}
+::: {.column width="40%"}
+```{r, myTravelMap}
+#| echo: false
+#| eval: true
+#| file: images/travelMap.R
+```
+
+:::
+
+::: {.column width="60%"}
+- From / now working in Duluth
+- Study physics/chemistry
+- Started as EPA contractor last fall
+- Working on:
+  - hydrodynamic simulation model in Lake Ontario
+  - Harmonizing water quality data across great lakes
+:::
+::::
+
+```{mermaid myTimeline}
+%%| file: images/myTimeline.mmd
+```
+
+# Project context
+## Harmful algal blooms are detrimental
+- [Algal blooms are a catch-all name that includes any disproportionate growth of algae](https://www.iwla.org/publications/outdoor-america/articles/outdoor-america-2020-issue-2/algal-blooms-the-causes-dangers-and-some-solutions)
+- Harmful algal blooms are a subset that are toxic to humans and animals
+  - microcystins damage liver, brain
+  - more potent than cyanide
+- Public burden
+  - Beach closures
+  - Make animals severely sick (deadly)
+  - Poisoning lake harvested foods
+
+## HABs are increasing in frequency
+- [HAB frequency increased recent years](https://pubs.acs.org/doi/10.1021/acs.est.9b03726#:~:text=Widespread%20coastal%20eutrophication%20is%20known%20to%20increase%20the,to%20increased%20prevalence%20and%20earlier%20timing%20of%20HABs.)
+  - By as much as 40% / decade as in the Chinese coast
+- Eutrophication - overly enriched with nutrients
+  - Runoff from agriculture
+  - Increased rain burden in certain areas
+
+## HABs are difficult to predict
+- Predictions using strictly nutrient loads less accurate in extreme bloom years
+- Observed nutrient loadings have lead to better prediction
+- https://www.nature.com/articles/s43247-022-00510-w
+- Data are hosted in many different locations making it hard for researchers
+- Other efforts have 
+  - Focused on smaller inland lakes (LAGOS)
+  - Cleaned/formatted the water quality portal (TADA)
+- None have 
+  - Harmonized all water quality measures from their source
+
+# Project design
+- Harmonize water quality measures across
+  - GLENDA
+  - CSMI
+  - NCCA
+  - NOAA
+- Make it accessible to researchers
+
+```{mermaid simpleSketch}
+flowchart LR
+  Data --> Normalize --> Standardize --> Join
+```
+https://www.nature.com/articles/s41597-024-02956-3
+
+
+# Implementation
+:::: {.columns}
+::: {.column width="59%"}
+- Developed an R package (GLHarmonizeR)
+- Amenable to future changes
+  - updating naming doesn't require programming expertise
+  - Maintainer won't need to be a chemist necessarily
+  - [tidyverse  style guide](https://style.tidyverse.org/) for consistency
+- [Google software engineering](https://abseil.io/resources/swe-book/html/toc.html) for design
+- Shiny app to make GUI for easy user interface
+- Did renaming, conversions etc using excel datasheets
+
+- Could show a chunk of high level function mapping
+:::
+
+::: {.column width="39%"}
+![something](images/sweGoogle.png){width="50%"}
+![somehitng](images/niceComment.png){width="50%"}
+:::
+:::
+
+## Back and forth with subject experts
+- Iteractive/cyclic process
+- collaboration with GLTED, NCCA, CSMI, and GLENPO 
+- Ryan is a research Lymnoligist/Chemist
+- Rigorous definition of chemistry names that are consistent 
+- Working with Dan Kelley to fix issues in oce R package for CTD 
+
+```{mermaid devCycle}
+%%| file: ../../figsTables/design/developmentCycle.mmd
+```
+
+
+## Development Timeline
+
+{{< include ../../figsTables/design/initialDevelopmentMatrix.md >}}
+
+## Testing
+- testthat package
+  - report by covr
+- Beta  dataset to GLTED folks
+  - We used statistics lens
+  - They will use their specific expertise
+- Janet Lee - steered us in right direction
+- Josh Powell - advisded on Github actions
+
+## Documentation
+- Product
+- Developer
+- Vignettes on how to reformat the data for common modeling purposes
+- Academic paper associated with release
+- Serves as an effort to help modeling effort in Lake Michigan
+
+
+# Technical details
 
 :::: {.columns}
 
@@ -23,22 +153,24 @@ format: revealjs
 :::
 
 ::: {.column width="60%"}
-```mermaid
-X -> Y
-Y -> Z
+```{mermaid}
+%%| file: ../../figsTables/dataProcessing.md
 ```
 :::
 
 ::::
 
-# Overview
-- Uniting environmental data across multiple sources for Lake Michigan
-  - GLENDA, NCCA, and CSMI
-- Reformat
-- 
-- Common names
-- Data QC
 
-# Introduction
-- 
 
+# Current issues
+- Working with an outdated GLENDA SOAP API
+- Also the SeaBird API
+
+
+# Lessons learned
+- Tips to incorporate
+  - Couldn't explain or remember how code work so add a comment
+  - Also if someone asks about a section in code review, comment on it
+  - diagram and document early
+  - If problem is intractable, don't know where to start. Just start somewhere it'll generally then give a clearer perspective on how  (documentation)
+  - good is better than perfect (Not always adhering to design aims can be good... in moderation)

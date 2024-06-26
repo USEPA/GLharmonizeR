@@ -16,6 +16,7 @@
 #'
 #' @return a dataframe
 .readPivotGLENDA <- function(glendaData, n_max = Inf, sampleIDs = NULL) {
+  # [ ] Make glendaData the argument for load anssemble data function
   df <- glendaData %>%
     { if (grepl(tools::file_ext(glendaData), ".csv", ignore.case = TRUE)) {
       readr::read_csv(.,
@@ -50,6 +51,9 @@
         SAMPLE_ID %in% sampleIDs
       )}
       else . } %>%
+    # pivot each set of columns (analyte, units, flag, etc.) into a long 
+    # format while compressing redundant columns into a single column
+    # (i.e. f: ANALYTE_1, ANALYTE_2, ..., ANALYTE_k -> ANALYTE)
     tidyr::pivot_longer(cols = -c(1:18),
                  names_to = c(".value", "Number"),
                  names_pattern = "(.*)_(\\d*)$") %>%

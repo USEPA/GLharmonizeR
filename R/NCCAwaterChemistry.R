@@ -179,7 +179,9 @@
 #' 
 #' @return dataframe
 .readNCCAchemistry <- function(tenFiles=NULL, fifteenFiles=NULL, nccaWQqaFile = NULL, n_max = n_max){
+  # [ ] Replace these argument names to match the overall function
   dfs <- list()
+  # [ ] Incorporate QA into both 2010 and 2015, and make the argument consistently nccaWQqaFile
   if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
   if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
 

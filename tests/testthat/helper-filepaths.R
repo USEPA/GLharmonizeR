@@ -46,3 +46,6 @@ csmi2015 <- file.path("data", "CSMI", "CSMI2015_newQuery.accdb")
 csmi2021 <- file.path("data", "CSMI", "2021")
 
 namingFile <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "Analytes3.xlsx")
+
+# NOAA
+noaaWQ <- file.path(teamsFolder, "Raw_data", "NOAA", "NOAA_WQ_2024_04_26.xlsx")

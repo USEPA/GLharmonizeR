@@ -28,6 +28,10 @@
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
  NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+  # [ ] make the file paths default in the code, then leave glenda seaBird as optional arguments
+  # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
+  # [ ] Minyear maxyear arguments
+  # [ ] water body name arguement
   n_max = ifelse(test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
@@ -55,13 +59,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(., namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
     GLENDAsitePath= "Data/GLENDA/GLENDAsiteInfo.Rds", GLENDAlimitsPath= "Data/GLENDA/GLENDAlimits.Rds")
+  # [ ] filter "remove" analytes
   
   print("Step 4/6: Read and clean SeaBird files associated with GLENDA")
   if (test) {
      seaBird <- seaBird[c(1:5, (length(seaBird) - 5): length(seaBird))]
   }
 
-  
+  # [ ] Move this out of the main function 
   seaBirdDf <- seaBird %>%
     purrr::map(\(x)
       oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
@@ -82,27 +87,35 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 
   print("Step 5/6: Read and clean CSMI data")
   CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
-    dplyr::select(-Years)
+    dplyr::select(-Years) %>%
+    dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
+  # [x] filter "remove" analytes
+
+  print("Step 5.5/6: Read and clean NOAA data")
+  NOAA <- noaaReadClean(noaaWQ, namingFile)
 
   print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
-    ncca, GLENDA, CSMI
+    ncca, GLENDA, CSMI, NOAA
   ) %>% 
   dplyr::mutate(
     SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
   ) %>%
-  dplyr::select(
+  # [x] convert to any_of/one_of selection 
+  
+  dplyr::select(dplyr::any_of(
     # time and space
     UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime,
     # analyte name
-    CodeName, ANALYTE, Category,
+    CodeName, ANALYTE, Category, LongName, # [ ] Add LongName from key tab for the "long name"
     # unit conversion
     ConversionFactor, TargetUnits, Conversion, ReportedUnits,
     # measurement and limits 
     RESULT, MDL, MRL, PQL, 
     # QA
     QAcode, QAcomment, LAB, LRL, contains("QAconsiderations"), Decision, Action, FLAG
-    )
+    ))
+
 
   if (!is.null(out) & binaryOut) {
     print("Writing data to")
