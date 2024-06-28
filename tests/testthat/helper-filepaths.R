@@ -12,9 +12,12 @@ NCCAhydrofiles2010 <- c(file.path("data", "NCCA", "assessed_ncca2010_hydrolab.cs
 NCCAhydrofile2015  <- file.path("data", "NCCA", "ncca_2015_hydrographic_profile_great_lakes-data.csv")
 NCCAsecchifile2015 <- file.path("data", "NCCA", "ncca_2015_secchi_great_lakes-data.csv")
 
-#NCCA WQ files
+# NCCA Site files
 NCCAsites2010 <- file.path("data", "NCCA", "assessed_ncca2010_siteinfo.revised.06212016.csv")
 NCCAsites2015 <- file.path("data", "NCCA", "ncca_2015_site_information_great_lakes-data.csv")
+NCCAsites2022 <- "https://www.epa.gov/system/files/other-files/2024-04/nla22_siteinfo.csv"
+
+#NCCA WQ files
 NCCAwq2010 <- c(file.path("data", "NCCA", "assessed_ncca2010_waterchem.csv"))
 # , file.path("data", "NCCA", "nassessedWaterChem2010.csv")
 NCCAqa2010 <- file.path("data", "NCCA", "ncca_qa_codes.csv")

@@ -1,7 +1,28 @@
 ---
 title: "GLharmonizeR - bringing together multiple sources of water quality data"
-author: "Christian Coffman"
-date: 07-09-2024
+title-slide-attributes:
+  data-background-image: ../../figsTables/logoNoWords.png
+  data-background-size: contain
+  data-background-opacity: "0.2"
+
+author: 
+  - name: Christian Coffman
+    email: coffman.christian@epa.gov
+    roles: 
+      - Implementation
+      - Design 
+    affiliations: 
+      - name: ORAU - ORD-CCTE-SCDCD-DMMB
+
+  - name: Dr. Kelsey Vitense 
+    roles: 
+      - Mentor
+      - Conceptualization
+      - Design 
+    affiliations: 
+      - name: ORAU - ORD-CCTE-SCDCD-DMMB
+      
+
 format:
   revealjs:
     smaller: true
@@ -9,6 +30,8 @@ format:
     theme: moon 
     logo: ../../figsTables/logo.png
     footer: "GLHarmonizeR"
+    mermaid:
+      theme: dark
 ---
 
 # Introduction to me
@@ -67,40 +90,128 @@ format:
   - Harmonized all water quality measures from their source
 
 # Project design
-- Harmonize water quality measures across
-  - GLENDA
-  - CSMI
-  - NCCA
-  - NOAA
-- Make it accessible to researchers
+
+:::: {.columns}
+::: {.column width="40%"}
+```{mermaid packageUse}
+flowchart TB
+  install[Install R package] --> query[Select data] --> download[Save locally]
+```
+:::
+
+::: {.column width="40%"}
 
 ```{mermaid simpleSketch}
 flowchart LR
-  Data --> Normalize --> Standardize --> Join
+  NOAA --> NormNOAA[Normalize] --> StanNOAA[Standardize] --> Join
+  GLENDA --> NormGLENDA[Normalize] --> StanGLENDA[Standardize] --> Join
+  NCCA --> NormNCCA[Normalize] --> StanNCCA[Standardize] --> Join
+  CSMI --> NormCSMI[Normalize] --> StanCSMI[Standardize] --> Join
+  
 ```
-https://www.nature.com/articles/s41597-024-02956-3
+:::
+:::
+- [Harmonize](https://www.nature.com/articles/s41597-024-02956-3) water quality measures across
+- R package/Shiny app to make it accessible to researchers
+
+- Lesson learned - spend time to design / diagram code structure
+  - Helps create bite-sized chunks
+  - Can design tests for test-based development
+  - Helps with consistent code
+  - Helps anticipate problems in meetings
 
 
-# Implementation
+
+# Project Implementation
+
+## Version control / collaboration
+- Version controlled using Git
+- Collaboration via Github
+- Major tasks documented through Github Issues
+- Code review via Github PR viewer
+- Documentation on Github Wiki
+- Technical / meeting notes in Microsoft One Note
+- Data set storage on Github
+- Developer environment controlled through Renv
+
+PICTURE OF GIT HISTORY
+
+- Lesson - It is ok to use multiple tools for documentation note taking, especialy if it eases collaboration
+
+## Styling
 :::: {.columns}
 ::: {.column width="59%"}
-- Developed an R package (GLHarmonizeR)
-- Amenable to future changes
-  - updating naming doesn't require programming expertise
-  - Maintainer won't need to be a chemist necessarily
+- Strict code styling
   - [tidyverse  style guide](https://style.tidyverse.org/) for consistency
-- [Google software engineering](https://abseil.io/resources/swe-book/html/toc.html) for design
-- Shiny app to make GUI for easy user interface
-- Did renaming, conversions etc using excel datasheets
-
-- Could show a chunk of high level function mapping
+  - [Google software engineering](https://abseil.io/resources/swe-book/html/toc.html) for design
+  - Design diagrams 
+  - Maintainer won't need to be a chemist necessarily
+- Standard R package structure
 :::
 
 ::: {.column width="39%"}
-![something](images/sweGoogle.png){width="50%"}
-![somehitng](images/niceComment.png){width="50%"}
+![](images/sweGoogle.png){width="50%"}
+![](images/niceComment.png){width="50%"}
 :::
 :::
+
+- Lesson learned - adhering to code styles will make code reviews better/more enjoyable
+
+## Standardization
+:::: {.columns}
+::: {.column width="59%"}
+- Standardization (renaming/unit conversions) updated through excel 
+  - Amenable to future changes
+  - Updating naming doesn't require programming expertise
+:::
+
+::: {.column width="39%"}
+ANALYTES3 screenshot!!!!
+:::
+:::
+
+
+## UI 
+:::: {.columns}
+::: {.column width="59%"}
+- Shiny app 
+  - GUI for easy user interface
+:::
+
+::: {.column width="39%"}
+SHINY PICTURE!!!
+- Lesson learned - implementing Good LSP saves a lot of time (I knew nothing about Shiny, but yet had a functioning front end in few hours)
+:::
+:::
+
+
+
+## Quality Assurance
+- Code Review
+  - Mentor (Kelsey) and I
+  - Lessons learned
+    - Couldn't explain or remember how code work so add a comment
+    - If someone asks about code comment on it
+- testthat package
+  - report by covr
+- Beta  dataset to GLTED folks
+  - We used statistics lens
+  - They will use their specific expertise
+- Janet Lee - steered us in right direction
+- Josh Powell - advisded on Github actions
+
+
+## Documentation
+- Product
+- Developer
+- Vignettes on how to reformat the data for common modeling purposes
+- Academic paper associated with release
+- Serves as an effort to help modeling effort in Lake Michigan
+- Function documentation translated automatically through ROxygen2
+
+## Development Timeline
+
+{{< include ../../figsTables/design/initialDevelopmentMatrix.md >}}
 
 ## Back and forth with subject experts
 - Iteractive/cyclic process
@@ -113,27 +224,7 @@ https://www.nature.com/articles/s41597-024-02956-3
 %%| file: ../../figsTables/design/developmentCycle.mmd
 ```
 
-
-## Development Timeline
-
-{{< include ../../figsTables/design/initialDevelopmentMatrix.md >}}
-
-## Testing
-- testthat package
-  - report by covr
-- Beta  dataset to GLTED folks
-  - We used statistics lens
-  - They will use their specific expertise
-- Janet Lee - steered us in right direction
-- Josh Powell - advisded on Github actions
-
-## Documentation
-- Product
-- Developer
-- Vignettes on how to reformat the data for common modeling purposes
-- Academic paper associated with release
-- Serves as an effort to help modeling effort in Lake Michigan
-
+- Lesson learned - Being overly communicative is better than underly communactive
 
 # Technical details
 
@@ -167,10 +258,12 @@ https://www.nature.com/articles/s41597-024-02956-3
 - Also the SeaBird API
 
 
-# Lessons learned
+# Other Lessons learned
 - Tips to incorporate
-  - Couldn't explain or remember how code work so add a comment
-  - Also if someone asks about a section in code review, comment on it
-  - diagram and document early
   - If problem is intractable, don't know where to start. Just start somewhere it'll generally then give a clearer perspective on how  (documentation)
   - good is better than perfect (Not always adhering to design aims can be good... in moderation)
+  - Workflow
+    - Script
+    - Write any checks I do as tests
+    - Make it a function
+  - Creating one-off non-reproducible intermediates is OK to communicate to collaborators

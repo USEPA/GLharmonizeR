@@ -1,5 +1,5 @@
 library(tidyverse)
-lakes <- sf::read_sf("Data/Other/ne_10m_lakes.shp")
+lakes <- sf::read_sf("data/other/ne_50m_lakes.shp")
 
 statline <- data.frame(x = seq(from =0, to =2.2, length.out = 50)) %>%
   mutate(y =  cos(x) +  rnorm(n = 50, mean=0, sd = 0.1)) %>%
@@ -18,7 +18,7 @@ g <- ggplot(lakes) +
 
 hexSticker::sticker(
   g,
-  package = "LM Chla",
+  package = "GLHarmonizeR",
   p_size = 20,
   s_width = 1,
   s_height = 1,
@@ -26,4 +26,13 @@ hexSticker::sticker(
   dpi = 320, filename = "docs/figsTables/logo.png"
 )
 
+hexSticker::sticker(
+  g,
+  package = "",
+  p_size = 20,
+  s_width = 1,
+  s_height = 1,
+  s_x = 1,
+  dpi = 320, filename = "docs/figsTables/logoNoWords.png"
+)
 usethis::use_logo("docs/figsTables/logo.png")
