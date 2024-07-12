@@ -1,13 +1,13 @@
 noaaReadClean <- function(noaaWQ, namingFile) {
-  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  renamingTable <- readxl::read_xlsx(namingFile, sheet = "NOAA_Map", .name_repair = "unique_quiet")
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map")
 
-  noaaWQunits <- readxl::read_xlsx(noaaWQ, sheet=  "WQ 2007-2022", skip =1, n_max= 2) %>%
+  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet=  "WQ 2007-2022", rows= 2:3) %>%
     dplyr::select(-c(1:5)) %>%
     t() %>%
     as.data.frame() %>%
@@ -28,10 +28,10 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       )
 
 
-  noaaWQsites <- readxl::read_xlsx(noaaWQ, sheet=  "sites") %>%
+  noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet=  "sites") %>%
     dplyr::rename(SITE_ID = `Station:`, Latitude= Lat, Longitude = Long, stationDepth = `Depth (m)`)
 
-  noaaWQdata <- readxl::read_xlsx(noaaWQ, sheet=  "WQ 2007-2022", skip =2) %>%
+  noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet=  "WQ 2007-2022", startRows = 3) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
     dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
     dplyr::mutate(

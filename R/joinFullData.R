@@ -28,6 +28,12 @@
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
  NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+  # [ ] Download the xlsx files into a temp folder if they don't already exist there
+  # Make a folder to store the output data
+  tempdir()
+  df <- openxlsx::read.xlsx(namingFile)
+
+
   # [ ] make the file paths default in the code, then leave glenda seaBird as optional arguments
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
@@ -35,15 +41,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   n_max = ifelse(test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
-  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  seaBirdrenamingTable <- readxl::read_xlsx(namingFile, sheet= "SeaBird_Map", na = c("", "NA"), 
-    .name_repair = "unique_quiet") 
+  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet= "SeaBird_Map", na.strings = c("", "NA")) 
 
   print("Step 2/6: Read and clean NCCA")
   ncca <- .LoadNCCAfull(
@@ -58,20 +63,13 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(., namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
-    GLENDAsitePath= "Data/GLENDA/GLENDAsiteInfo.Rds", GLENDAlimitsPath= "Data/GLENDA/GLENDAlimits.Rds")
+    GLENDAsitePath=GLENDAsitePath , GLENDAlimitsPath= GLENDAlimitsPath)
   # [ ] filter "remove" analytes
   
-  print("Step 4/6: Read and clean SeaBird files associated with GLENDA")
-  if (test) {
-     seaBird <- seaBird[c(1:5, (length(seaBird) - 5): length(seaBird))]
-  }
+  print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
 
   # [ ] Move this out of the main function 
-  seaBirdDf <- seaBird %>%
-    purrr::map(\(x)
-      oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
-    dplyr::bind_rows() %>% 
-    dplyr::mutate(Study = "SeaBird") %>%
+  seaBirdDf <- readRDS(gzcon(url(seaBird)))  %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::mutate(
@@ -103,18 +101,17 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   ) %>%
   # [x] convert to any_of/one_of selection 
   
-  dplyr::select(dplyr::any_of(
+  dplyr::select(dplyr::any_of(c(
     # time and space
-    UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime,
+    "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
     # analyte name
-    CodeName, ANALYTE, Category, LongName, # [ ] Add LongName from key tab for the "long name"
+    "CodeName", "ANALYTE", "Category", "LongName", # [ ] Add LongName from key tab for the "long name"
     # unit conversion
-    ConversionFactor, TargetUnits, Conversion, ReportedUnits,
-    # measurement and limits 
-    RESULT, MDL, MRL, PQL, 
+    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
+    # measurement and limits
+    "RESULT", "MDL", "MRL", "PQL",
     # QA
-    QAcode, QAcomment, LAB, LRL, contains("QAconsiderations"), Decision, Action, FLAG
-    ))
+    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG")))
 
 
   if (!is.null(out) & binaryOut) {

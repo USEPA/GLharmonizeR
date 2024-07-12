@@ -27,7 +27,6 @@ format:
   revealjs:
     embed-resources: true
     smaller: true
-    scrollable: true
     theme: moon 
     logo: ../../figsTables/logo.png
     footer: "GLHarmonizeR"
@@ -35,30 +34,16 @@ format:
       theme: dark
 execute: 
   cache: true
-
 ---
 
 # My introduction
 
-:::: {.columns}
-::: {.column width="40%"}
-```{r, myTravelMap}
-#| echo: false
-#| eval: true
-#| file: images/travelMap.R
-```
-
-:::
-
-::: {.column width="60%"}
 - From / now working in Duluth
-- Study physics/chemistry
-- Started as EPA contractor last fall
-- Projects:
-  - hydrodynamic simulation model in Lake Ontario
-  - Harmonizing water quality data across great lakes
-:::
-::::
+- Studied Physics/chemistry
+- Finishing Biostatistics PhD UMN
+- ORAU Projects:
+  - Mathematical modeling (hydrodynamics) in Lake Ontario
+  - Harmonizing water quality data from multiple sources
 
 ```{mermaid myTimeline}
 %%| file: images/myTimeline.mmd
@@ -66,11 +51,15 @@ execute:
 
 ## Acknowledgements
 
-This work was supported by many folks across a couple of agencies
+This work was supported by many folks across EPA offices/regions, USGS, and NOAA
 
+::: {style="font-size: 60%;"}
 :::: {.columns}
 ::: {.column width="50%"}
-This work was supported by many folks across EPA offices/regions, USGS, and NOAA
+![[source: The Horizon Foundation](https://www.thehorizonfoundation.org/pregunta-sobre-ciudadania-en-el-censo-del-2020-perjudica-iniciativas-de-equidad/business-group-with-hands-together-teamwork-concepts/)](images/together.jpg)
+:::
+
+::: {.column width="25%"}
 - ORD data/modeling team
   - James Pauer (GLTED)
   - Thomas Hollenhorst (GLTED)
@@ -82,9 +71,7 @@ This work was supported by many folks across EPA offices/regions, USGS, and NOAA
   - Jonathon Launspach (GDIT)
 :::
 
-::: {.column width="50%"}
-
-- **Data owners**
+::: {.column width="25%"}
 - CSMI
   - Joel Hoffman (GLTED)
   - Anett Trebitz (GLTED)
@@ -100,15 +87,15 @@ This work was supported by many folks across EPA offices/regions, USGS, and NOAA
   - Steve Pothoven (NOAA/GLERL)
 :::
 ::::
-WHAT USE FOR PICTURE HERE?
+:::
 
 # Project context
 ## Algal blooms can be harmful
 :::: {.columns}
 ::: {.column width="50%"}
 - [Harmful algal blooms (HABs) - toxic outgrowths of algae]((https://www.iwla.org/publications/outdoor-america/articles/outdoor-america-2020-issue-2/algal-blooms-the-causes-dangers-and-some-solutions))
-  - microcystins damage liver, brain
-  - more potent than cyanide
+  - Microcystins - more potent than cyanide
+  - Damage liver, brain
 - [HAB frequency increased recent years](https://pubs.acs.org/doi/10.1021/acs.est.9b03726#:~:text=Widespread%20coastal%20eutrophication%20is%20known%20to%20increase%20the,to%20increased%20prevalence%20and%20earlier%20timing%20of%20HABs.)
 :::
 
@@ -116,9 +103,18 @@ WHAT USE FOR PICTURE HERE?
 - Public burden
   - Beach closures
   - Make animals dangerously sick
+  - Harm food supply
+  - [>$1bn over 10 years](https://www.ewg.org/research/high-cost-of-algae-blooms)
 :::
 :::
-![source: iwla.org](images\algalBloom.jpg)
+
+::: {#fig-bloom}
+![](images\algalBloom.jpg)
+
+Algal bloom in Lake Erie. credit: Ohio Sea Grant & Stone Lab 
+:::
+
+
 
 ## Modeled in Lake Erie using ML 
 - ML models successfully predict HABs, or Chlorophyll-a (Chla), in Lake Erie
@@ -128,32 +124,39 @@ WHAT USE FOR PICTURE HERE?
 
 ![](images/lakeErieR2.png)
 
-
 Predictions in Lake Erie from [Gupta et al. 2023](https://www.sciencedirect.com/science/article/pii/S0048969723044042)
 :::
 
 
 ## Main goals/questions 
-- Use ML to predict Chl-a as proxy for HABS in Lake Michigan
-- How accurately can we predict chl-a at specific location, time, and depth in the lake?
-- What is the relative imporatance of chl-a predictors and a minimum covariate set for prediction?
-- Apply similar ML approaches on Lake Michigan
-- Use machine learning to predict chlorophyll-a as a proxy measure
+- Use ML to predict Chl-a as proxy for HABS in Lake Michigan (similar to Lake Michigan)
+- How accurately can we predict Chl-a at specific location, time, and depth in the lake?
+- What is the relative imporatance of Chl-a predictors and a minimum covariate set for prediction?
 
 ::: {.callout-warning collapse="true"}
 # No unified data source
-
-
-ML models require lots of data for successful prediction
+Need a unified data source to train "data-hungry" ML models
 :::
 
-## Sub-Goal: Make our data assemblage accessible to others 
-- Assembling and harmonizing takes a lot of effort
-- Other scientists want these data (Trend analyses, Correlation analyses, Broader applications)
-- Inspired by similar R packages to harmonize limnological data
-  - LAGOSUS: harmonize water quality data from WQP, NLA, and NEON- Focused on inland lakes
-  - finsyncR: harmonize federal macroinvertebrate and fish data 
 
+
+## Sub-Goal: Assemble WQ data and make it accessible
+- Assemble WQ data from multiple sources
+  - GLENDA
+  - NOAA
+  - CSMI
+  - NCCA
+
+::: {.callout}
+# Sub-Sub goal: Make data assemblage available to others
+- Other scientists could use this data for Trends, associations, etc.
+- Assembling and harmonizing takes a lot of effort
+- Reproducible data assembly pipeline
+  - Made into R package
+- Inspired by similar R packages
+  - LAGOSUS: harmonize WQ from WQP, NLA, and NEON- inland lakes
+  - finsyncR: harmonize federal macroinvertebrate and fish data 
+:::
 
 ## Data Overview
 
@@ -167,16 +170,21 @@ ML models require lots of data for successful prediction
 
 # Project design
 
-:::: {.columns}
-::: {.column width="40%"}
-```{mermaid packageUse}
-flowchart TB
-  install[Install R package] --> query[Select data] --> download[Save locally]
-```
-:::
+## Sketch and Benefits
+- Federal GL WQ data in one place, [harmonized](https://www.nature.com/articles/s41597-024-02956-3)
+  - Normalize the format 
+  - Standardize naming and units
+- Incorporates institutional knowledge
+  - Consistent treatment of censored values
+- Includes common water quality parameters across survey (aims for simplicity)
+- R package/Shiny app to make it accessible to researchers
 
-::: {.column width="40%"}
-```{mermaid simpleSketch}
+:::: {.columns}
+::: {.column width="50%"}
+```{mermaid}
+%%| label: fig-simpleSketch
+%%| fig-cap: "What package does"
+
 flowchart LR
   NOAA --> NormNOAA[Normalize] --> cleanNOAA[Clean] --> StanNOAA[Standardize] --> Join
   GLENDA --> NormGLENDA[Normalize] --> cleanGLENDA[Clean] --> StanGLENDA[Standardize] --> Join
@@ -184,103 +192,35 @@ flowchart LR
   CSMI --> NormCSMI[Normalize] --> cleanCSMI[Clean] --> StanCSMI[Standardize] --> Join
 ```
 :::
+::: {.column width="50%"}
+```{mermaid}
+%%| label: fig-packageUse
+%%| fig-cap: "What user does"
+
+flowchart TB
+  install["Install R package"] --> query["Select data"]
+```
 :::
-- [Harmonize](https://www.nature.com/articles/s41597-024-02956-3) across data sources:
-  - Normalize the format 
-  - Standardize naming and units
-  - Cleaning between normalize and standarize
 
-## Benefits of our GLharmonizeR package
-- Federal GL WQ data in one place, harmonized
-- Incorporates institutional knowledge from conversations with data owners/managers
-  - worked with GLNPO to add MDLs, additional lat/longs, identify additional QC issues, harmonization of methods over time
-- Includes common water quality parameters across survey (aims for simplicity)
-- R package/Shiny app to make it accessible to researchers
+:::
 
 
-## WorkFlow diagram
+## Function diagram {.scrollable}
 ```{mermaid idealDesign}
 %%| file: ../../figsTables/design/functionDesign.mmd
 ```
 
 
-
-## Workflow diagram {.scrollable}
-
-
-- Update this figure
-- Make the map how what makes sense 
-  - If code doesn't match, then we should change the code
-```{mermaid functionDiagram}
-flowchart TB
-
-  %%%%%%%%% Full graph
-  nas --> columns 
-  convertingUnits --> joinData 
-
-
-  subgraph Repeated for each dataset
-
-
-    %%%%%%%%% Data cleaning
-    subgraph  Data Cleaning 
-     data[(New Data)]
-     format[\Reformat data\]
-     Types[\ Enforce data types \n Format datetimes\]
-     filtering[\ Preliminary filtering \n Sample types \n Medium \n QC flags \]
-     nas[\Dealing with NA's \n Reporting imputed values  \]
-
-     data --> format --> Types --> filtering --> nas  
-    end
-
-    %%%%%%%%% Harmonizing data
-    subgraph Data Harmonizing
-
-    %% source nodes
-     analyteNamesUnits[("Unify analyte names \n and units \n Analytes3.xlsx \n 'Key'")]
-     unitConversions[("Convert units\n Analytes3.xlsx \n 'UnitConversions'")]
-
-    %% action nodes
-     columns[\Standardize \n column names\]
-     Naming[\"Harmonize \n Analyte names \n '<Data Source>_Map"\]
-     targettingUnits[\"Setting target \n units \n 'Key' "\]
-     convertingUnits[\"Convert to \n target units"\]
-
-
-    %% edges
-     analyteNamesUnits --variableid_lagos \n CharacteristicName \n source_parameter--> Naming 
-     analyteNamesUnits --variableid_lagos \n variablename \n limit_low \n limit_high \n unitsabbreviation--> targettingUnits
-     columns --ANALYTE--> Naming
-     Naming --CharactersticName--> targettingUnits
-     targettingUnits --units \n unitsabbreviation--> convertingUnits
-     unitConversions --Code \n Target Unit \n Conversion Factor--> convertingUnits
-
-     end
-
-   end
-   %%%%%%%%% Compiling data
-   subgraph Compiling Data
-    joinData[\Union of data\] 
-    storeData[\ Store Data \n locally \]
-
-    joinData -->storeData
-
-  end
-```
-
-
 ::: {.callout-tip}
-## Lesson Learned
-
-Spend time to design / diagram code structure
+## Design / diagram code structure
 - Helps create bite-sized chunks
 - Can design tests for test-based development
 - Helps with consistent code
 - Helps anticipate problems in meetings
 :::
 
-# Project Implementation
 
+# Project Implementation
 
 ## Version control / collaboration
 
@@ -300,16 +240,16 @@ Spend time to design / diagram code structure
 :::
 
 ::: {.callout-tip}
-## Lesson Learned
+## Faster alone further together
 
-Multiple tools OK for documentation note taking, especialy if it eases collaboration
+Using already established tools helps with collaboration
 :::
 
 
 ## Styling
 :::: {.columns}
 ::: {.column width="59%"}
-- Strict code styling
+- Code styling
   - [tidyverse  style guide](https://style.tidyverse.org/) for consistency
   - [Google software engineering](https://abseil.io/resources/swe-book/html/toc.html) for design
 - Standard R package structure
@@ -317,10 +257,8 @@ Multiple tools OK for documentation note taking, especialy if it eases collabora
 ![](images/niceComment.png)
 
 ::: {.callout-tip}
-## Lesson Learned
-
-adhering to code styles will make code reviews better/more enjoyable
-- and reading through your old code less frustrating
+## SWE vs programming
+$$ SWE = \int \text{Programming } dt $$
 :::
 
 :::
@@ -332,8 +270,9 @@ adhering to code styles will make code reviews better/more enjoyable
 
 
 
-## Standardization
-- Standardization (renaming/unit conversions) updated through excel 
+## Normalization / Standardization
+- Normalization: Case-by-case
+- Standardization (renaming/unit conversions) updated through excel
   - Amenable to future changes
   - Updating naming doesn't require programming expertise
 
@@ -343,36 +282,31 @@ adhering to code styles will make code reviews better/more enjoyable
 ## User Interface
 ![](images/shinyApp.png)
 
-::: {.callout-tip}
-## Lesson Learned
 
-Good LSP saves time (Don't know Shiny, but had functioning front end prototype in few hours)
+::: {.callout-tip}
+## Good LSP saves time
+Didn't know Shiny, but had functioning front end prototype extremely quickly
 :::
 
-- After the backend is finished
-- shiny app drafted as a placeholder
 
 ## Quality Assurance (People power)
 - Code Review
-  - Mentor (Kelsey) and I
-
-::: {.callout-tip}
-## Lesson Learned
-
-- Couldn't explain or remember how code work...  add a comment
-- Someone asks about code... add a comment 
-:::
-
 - Beta  dataset to GLTED ecologists and modelers
 - Beta package to ORD data scientists
 
+::: {.callout-tip}
+## Comment generously
+- Can't explain or remember how code work...  add a comment
+- Someone asks about code... add a comment 
+:::
+
 ## Quality Assurance (Automated)
 - Unit testing
-  - testthat package
-  - Report by covr package
+  - [testthat](https://testthat.r-lib.org/) - unit tests
+  - [covr](https://covr.r-lib.org/) - Test coverage
   - Janet Lee advised developing and organizing unit tests
 
-- Github actions (under construction) - advised by Josh Powell 
+- [Github R actions](https://github.com/r-lib/actions) (under construction) - advised by Josh Powell 
   - Protect the main branch
   - Automate all Unit tests
   - Enforce code styling
@@ -409,7 +343,7 @@ Good LSP saves time (Don't know Shiny, but had functioning front end prototype i
 ```
 
 ::: {.callout-tip}
-## Lesson Learned
+## Communication is key
 Being overly communicative is better than underly communicative
 :::
 
@@ -420,21 +354,13 @@ Being overly communicative is better than underly communicative
 
 
 # Future directions
-- More user options (filtering)
-- Add a "reccommended" cleaning function
-- External tests (beta testing)
-  - for data quality
-  - Ease of package use
-- Automated testing reports
-  - Github actions
-  - Unit test reporting
 - Expand data sourcing
   - Incorporate state agency data from the water water quality portal
   - Incorporate tributary data
   - Expand to all the great lakes
   - Integrated statistical models "sharing" information across lakes
-- Checking physical models
-
+- More user options (filtering)
+  - Add a reccommended cleaning function
 
 
 
@@ -444,55 +370,16 @@ Being overly communicative is better than underly communicative
 ::: {.callout-tip}
 ## Lesson Learned
 
-- If problem is intractable, don't know where to start. Just start somewhere it'll generally then give a clearer perspective on how  (documentation)
-- good is better than perfect (Not always adhering to design aims can be good... in moderation)
 - Workflow
   - Script
   - Write any checks I do as tests
   - Make it a function
-- Creating one-off non-reproducible intermediates is OK to communicate to collaborators
 - Good Coding / SWE practices
   - Almost always helps
   - Doesn't add much mental / time demand becomes part of your flow
+- good is better than perfect (Not always adhering to design aims can be good... in moderation)
+- Intermediate products don't need to be reproducible
 :::
 
 
 # Thank you 
-
-
-
-# Technical details
-
-:::: {.columns}
-
-::: {.column width="40%"}
-- Scattered
-  - Local
-  - Cloud
-  - Private Databases
-- Different formats
-  - Dates
-  - Coordinates
-  - Feature naming
-  - Information spread across variable numbers of columns
-  - Long/wide
-  - Headers, subtables
-  - Metadata or not
-  - Multifile / single file
-:::
-
-::: {.column width="60%"}
-- Different file types
-  - CSV
-  - Excel
-  - Microsoft Acess 2007
-  - Hex
-  - CNV
-  - pdf
-  - txt
-  - rds
-- Living
-  - Need to reproducibly assemble and QC
-:::
-
-::::

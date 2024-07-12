@@ -15,12 +15,11 @@
     list("GLENDA_Map", "NCCA_Map", "CSMI_Map"),
     list(13, 11, 12),
     .f = \(x,y)
-    readxl::read_xlsx(
+    openxlsx::read.xlsx(
       namingFile, 
       sheet = x,
-      col_types = rep("text", y)),
-      .name_repair = "unique_quiet"
       ) %>%
+  dplyr::mutate(dplyr::mutate_all(as.character)) %>%
   dplyr::bind_rows() %>%
   dplyr::select(-Units) %>%
   # remove empty rows from excel cells
@@ -44,13 +43,13 @@
       by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION", "METHOD", "MEDIUM")) %>%
     # match desired units
     dplyr::left_join(
-      readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
+      openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
         dplyr::rename(TargetUnits = Units),
       by = "CodeName") %>%
     dplyr::filter(CodeName != "Remove")
 
 
-  #UnitConversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions")
+  #UnitConversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions")
 
   # Relabel analytes and remove unwanted ones
 

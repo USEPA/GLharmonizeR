@@ -24,7 +24,9 @@ Imports:
     tidyr,
     stringr,
     tools,
-    oce
+    oce,
+    httr,
+    openxlsx
 Suggests: 
     knitr,
     lintr,

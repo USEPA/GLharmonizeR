@@ -193,7 +193,7 @@
 
   # DONE add a try catch if the filepath isn't included
   tryCatch(
-    QA <- readxl::read_xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet"),
+    QA <- openxlsx::read.xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2"),
     error = function(e) {
       message("The NCCA QA water chemistry filepath was not correctly specified.")
     }

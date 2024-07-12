@@ -76,7 +76,7 @@
   test %>%
     dplyr::filter(MAJ_BAS_NM == "Great Lakes Region") %>%glimpse()
   test %>% select(US_L3NAME, US_L4NAME) %>% distinct() %>% filter(grepl("lake", ., ignore.case=T)) %>% filter(grepl("michigan", ., ignore.case=T))
-  test %>% distinct(HUC8_NM)US_L4NAME, US_L3NAME
+  test %>% distinct(HUC8_NM, US_L4NAME, US_L3NAME)
   readr::read_csv(NCCAsites2020, show_col_types=FALSE) %>%
   # This column is all NAs
   dplyr::select(-WTBDY_NM) %>%
