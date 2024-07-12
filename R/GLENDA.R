@@ -33,7 +33,7 @@
             n_max = n_max) 
       } else . } %>%
     { if (grepl(tools::file_ext(Glenda), ".Rds", ignore.case = TRUE)) {
-      readRDS(gzcon(url(.))) %>%
+      readRDS(.) %>%
         # This is so that everything can be pivoted, we change 
         # to final datatypes later once it's in long format
         dplyr::mutate(across(everything(), as.character)) %>%
@@ -95,16 +95,16 @@
 .cleanGLENDA <- function(df, namingFile, GLENDAflagsPath= NULL, imputeCoordinates = FALSE, GLENDAsitePath = NULL, 
   GLENDAlimitsPath = NULL) {
 
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet= "GLENDA_Map", na.strings = c("", "NA")) %>% 
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "GLENDA_Map", na = c("", "NA"), .name_repair = "unique_quiet") %>% 
     tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
     dplyr::mutate(minYear = as.numeric(minYear), maxYear = as.numeric(maxYear))
 
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
 
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions",.name_repair = "unique_quiet" ) %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   # [x] extract self reported mdl's
   selfMdls <- df %>%
@@ -120,11 +120,10 @@
     dplyr::distinct()
   
   # All self reported mdls are identical across all years for a gien analyte
-  limitNames <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_mdl_Map")
+  limitNames <- readxl::read_xlsx(namingFile, sheet = "GLENDA_mdl_Map", .name_repair = "unique_quiet")
 
   # [x] utilize Mdl from glenda sheet
-  outsideMdls <- readRDS(gzcon(url(GLENDAlimitsPath))) %>%
-    tidyr::pivot_longer(2:5, names_to = "ANALYTE", values_to = "mdl") %>%
+  outsideMdls <- readRDS(GLENDAlimitsPath) %>% tidyr::pivot_longer(2:5, names_to = "ANALYTE", values_to = "mdl") %>%
     dplyr::mutate(YEAR = readr::parse_number(`Survey (Units)`), mdl = as.numeric(mdl)) %>%
     dplyr::reframe(mdl = mean(mdl, na.rm = T), .by = c(YEAR, ANALYTE)) %>%
     dplyr::mutate(
@@ -170,12 +169,12 @@
     dplyr::select(-Number) %>%
     # Adding verbose remark descriptions is purely optional
     {if (!is.null(GLENDAflagsPath)) {
-      dplyr::left_join(., openxlsx::read.xlsx(GLENDAflagsPath), by = c("RESULT_REMARK" = "NAME"))
+      dplyr::left_join(., readxl::read_xlsx(GLENDAflagsPath, .name_repair = "unique_quiet"), by = c("RESULT_REMARK" = "NAME"))
       } else .
     } %>%
     { if (!is.null(GLENDAsitePath)) {
       # grab the missing sites from that file
-      dplyr::left_join(., readRDS(gzcon(url(GLENDAsitePath))), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
+      dplyr::left_join(., readRDS(GLENDAsitePath), by = c("STATION_ID" = "Station"), suffix = c("", ".x")) %>%
         dplyr::mutate(
           LATITUDE = as.numeric(LATITUDE),
           Latitude = as.numeric(Latitude),

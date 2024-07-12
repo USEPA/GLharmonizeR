@@ -1,3 +1,7 @@
+GL_Data*
+GL_Data-main/*
+*.zip
+
 # History files
 .Rhistory
 .Rapp.history

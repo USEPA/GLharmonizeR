@@ -16,7 +16,6 @@
 #' @param NCCAwq2015 a string specifying the directory containing NCCA wQ 2015 data
 #' @param Glenda a a string specifying the directory containing GLENDA data
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data
-#' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021  a string specifying the directory containing CSMI 2021 data
 #' @param  a list of strings specifying the seabird file paths
 #' @param namingFile a filepath to the "Analytes3.xlsx" spreadsheet which documents naming, units, and conversions 
@@ -27,12 +26,9 @@
 #'
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
- NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2015, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
-  # [ ] Download the xlsx files into a temp folder if they don't already exist there
-  # Make a folder to store the output data
-  tempdir()
-  df <- openxlsx::read.xlsx(namingFile)
-
+ NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+  print("Step 0/6: Download data folder")
+  .downloadData()
 
   # [ ] make the file paths default in the code, then leave glenda seaBird as optional arguments
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
@@ -41,14 +37,14 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   n_max = ifelse(test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet= "SeaBird_Map", na.strings = c("", "NA")) 
+  seaBirdrenamingTable <- readxl::read_xlsx(namingFile, sheet= "SeaBird_Map", na = c("", "NA"), .name_repair = "unique_quiet") 
 
   print("Step 2/6: Read and clean NCCA")
   ncca <- .LoadNCCAfull(
@@ -69,7 +65,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
 
   # [ ] Move this out of the main function 
-  seaBirdDf <- readRDS(gzcon(url(seaBird)))  %>%
+  seaBirdDf <- readRDS(seaBird)  %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::mutate(
@@ -84,7 +80,7 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
   GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf)
 
   print("Step 5/6: Read and clean CSMI data")
-  CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
+  CSMI <- .LoadCSMI(csmi2010, csmi2021, namingFile = namingFile, n_max = n_max) %>%
     dplyr::select(-Years) %>%
     dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
   # [x] filter "remove" analytes
@@ -124,6 +120,9 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
     print(out)
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }
+
+  print("Clean up: Delete temporary data folder")
+  unlink("GL_Data-main", recursive=TRUE)
   return(allWQ)
 }
 

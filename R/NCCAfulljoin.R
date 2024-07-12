@@ -38,12 +38,12 @@
     dplyr::mutate(Year = lubridate::year(sampleDateTime))
 
 
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet= "NCCA_Map", na.strings = c("", "NA")) 
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+  renamingTable <- readxl::read_xlsx(namingFile, sheet= "NCCA_Map", na = c("", "NA"), .name_repair = "unique_quiet") 
+  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
     
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
