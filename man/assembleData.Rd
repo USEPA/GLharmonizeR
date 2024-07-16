@@ -9,13 +9,12 @@ assembleData(out = NULL, .test = FALSE, binaryOut = FALSE)
 \arguments{
 \item{out}{(optional) filepath to save the dataset to}
 
-\item{.test}{(optional) boolean, if testing that data loads and joins, this flag only loads
-parts of the datasets to test it faster}
+\item{.test}{(optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster}
 
 \item{binaryOut}{(optional) boolean, should saved data be RDS format for efficiency?}
 }
 \value{
-dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021
+full, harmonized dataset
 }
 \description{
 \code{.LoadJoinAll} returns a dataframe data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA'

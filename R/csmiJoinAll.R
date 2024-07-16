@@ -11,7 +11,6 @@
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data 
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data 
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021 
-#' @export
 .LoadCSMI <- function(csmi2010, csmi2021, namingFile, n_max= Inf) {
   # Load file to map analyte names to standard names 
   renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"), .name_repair = "unique_quiet") 

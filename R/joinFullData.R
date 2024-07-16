@@ -4,15 +4,13 @@
 #' `.LoadJoinAll` returns a dataframe data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA'
 #'
 #' @details
-#' This is a hidden function that should not generally be used by users. 
+#' This is a hidden function that should not generally be used by users.
 #'
 #' @param out (optional) filepath to save the dataset to
-#' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads 
-#' parts of the datasets to test it faster
+#' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency? 
 #' @export
-#'
-#' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
+#' @return full, harmonized dataset
 assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   print("Step 0/6: Download data folder")
   .downloadData()

@@ -18,7 +18,6 @@
 #' @param namingFile filepath to Analytes3.xlsx which conatains names and conversions
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
-#' @export
 .LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                          Lakes=c("Lake Michigan"), namingFile, NCCAwqQA, n_max = Inf) {
