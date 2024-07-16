@@ -10,6 +10,7 @@
 #' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads 
 #' parts of the datasets to test it faster
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency? 
+#' @export
 #'
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
 assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
