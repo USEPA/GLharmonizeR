@@ -25,12 +25,12 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NCCAwq2010 <- filepaths["NCCAwq2010"]
   NCCAqa2010 <- filepaths["NCCAqa2010"]
   NCCAwq2015 <- filepaths["NCCAwq2015"]
+  NCCAwqQA  <- filepaths["NCCAwqQA"]
   Glenda <- filepaths["Glenda"]
   csmi2010 <- filepaths["csmi2010"]
   csmi2021 <- filepaths["csmi2021"]
   seaBird <- filepaths["seaBird"]
   namingFile <- filepaths["namingFile"]
-
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
   # [ ] water body name arguement

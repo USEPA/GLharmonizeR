@@ -11,8 +11,8 @@ You may need to install the package (Note that while this is private, it may req
 devtools::install_github("kvitense/LM_Chla@initialCodeReview")
 ```
 
-Download the data
+Download the data. Then, you have the option to specify the output filepath "out" where the data will be saved as well as the file format with binaryOut. TRUE- will store the data as a .Rds file whereas FALSE will store it as a .csv file. We reccomend setting binaryOut to TRUE for performance as long as you are comfortable loading .Rds files. 
 ```{r downloadData}
-df <- LMChla::assembleData(test = T, out = "fullData", binaryOut = TRUE)
+df <- LMChla::assembleData(out = "fullData", binaryOut = TRUE)
 
 ```
