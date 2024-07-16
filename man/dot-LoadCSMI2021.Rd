@@ -4,10 +4,10 @@
 \alias{.LoadCSMI2021}
 \title{Load and join data for CSMI 2021 from csv excel files}
 \usage{
-.LoadCSMI2021(directoryPath, n_max = Inf)
+.LoadCSMI2021(csmi2021, n_max = Inf)
 }
 \arguments{
-\item{filepath}{a string specifying the filepath of the access database}
+\item{csmi2021}{a string specifying the directory to CSMI 2021 data}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI 2021

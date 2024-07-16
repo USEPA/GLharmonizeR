@@ -4,10 +4,10 @@
 \alias{.readNCCASite2015}
 \title{Read in NCCA site data}
 \usage{
-.readNCCASite2015(filepath)
+.readNCCASite2015(NCCAsites2015)
 }
 \arguments{
-\item{filepath}{a string specifying the directory of the data}
+\item{NCCAsites2015}{a string specifying the directory of the data}
 }
 \value{
 dataframe

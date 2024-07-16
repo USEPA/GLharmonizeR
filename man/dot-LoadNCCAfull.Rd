@@ -5,24 +5,27 @@
 \title{Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data}
 \usage{
 .LoadNCCAfull(
-  ncca2010sites,
-  ncca2015sites,
-  tenFiles,
-  tenQAfile,
-  fifteenFiles,
+  NCCAsites2010,
+  NCCAsites2015,
+  NCCAwq2010,
+  NCCAwq2015,
   NCCAhydrofiles2010,
   NCCAhydrofile2015,
   NCCAsecchifile2015,
   Lakes = c("Lake Michigan"),
   namingFile,
-  nccaWQqaFile = nccaWQqaFile,
+  NCCAwqQA,
   n_max = Inf
 )
 }
 \arguments{
-\item{tenFiles}{filepath to 2010's data}
+\item{NCCAsites2010}{filepath to site files}
 
-\item{fifteenFiles}{filepaht to 2015 data}
+\item{NCCAsites2015}{filepath to site files}
+
+\item{NCCAwq2010}{filepath to 2010's data}
+
+\item{NCCAwq2015}{filepaht to 2015 data}
 
 \item{NCCAhydrofiles2010}{filepath to hydrogrpahic 2010 data}
 
@@ -30,7 +33,9 @@
 
 \item{Lakes}{List of Lakes to output}
 
-\item{siteFiles}{filepath to site files}
+\item{namingFile}{filepath to Analytes3.xlsx which conatains names and conversions}
+
+\item{n_max}{integer specifying how many lines to read of each file to save time for testing}
 
 \item{NCCAjsecchifile2015}{filepaht to secchi 2015 data}
 }
