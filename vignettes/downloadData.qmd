@@ -8,18 +8,11 @@ vignette: >
 # Setup
 You may need to install the package (Note that while this is private, it may require your GitHub PAT to install)
 ```{r install}
-devtools::install_github("kvitense/LM_Chla", )
+devtools::install_github("kvitense/LM_Chla@initialCodeReview")
 ```
 
-
-```{r setup}
-library(LMChla)
-```
-
+Download the data
 ```{r downloadData}
-  df <- assembleData(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, 
-    NCCAwq2010, NCCAqa2010, NCCAwq2015, Glenda,
-    csmi2010, csmi2021, seaBird, namingFile, 
-                     test = T, out = "fullData", binaryOut = TRUE)
+df <- LMChla::assembleData(test = T, out = "fullData", binaryOut = TRUE)
 
 ```
