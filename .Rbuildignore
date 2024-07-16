@@ -28,3 +28,4 @@ renv.lock
 .qmd$
 ^\.github$
 ^codecov\.yml$
+^vignettes/*_files$

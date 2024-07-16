@@ -6,35 +6,36 @@
 #' @details
 #' This is a hidden function that should not generally be used by users. 
 #'
-#' @param NCCAhydrofiles2010 a string specifying the directory containing NCCA hydrographic 2010 data
-#' @param NCCAhydrofile2015 a string specifying the directory containing NCCA hydrographic 2015 data
-#' @param NCCAsecchifile2015 a string specifying the directory containing NCCA secchi 2015 data
-#' @param NCCAsites2010 a string specifying the directory containing NCCA Site data for 2010
-#' @param NCCAsites2015 a string specifying the directory containing NCCA Site data for 2015
-#' @param NCCAwq2010 a string specifying the directory containing NCCA WQ 2010 data
-#' @param NCCAqa2010 a string specifying the file containing qa file 
-#' @param NCCAwq2015 a string specifying the directory containing NCCA wQ 2015 data
-#' @param Glenda a a string specifying the directory containing GLENDA data
-#' @param csmi2010 a string specifying the directory containing CSMI 2010 data
-#' @param csmi2021  a string specifying the directory containing CSMI 2021 data
-#' @param  a list of strings specifying the seabird file paths
-#' @param namingFile a filepath to the "Analytes3.xlsx" spreadsheet which documents naming, units, and conversions 
 #' @param out (optional) filepath to save the dataset to
-#' @param test (optional) boolean, if testing that data loads and joins, this flag only loads 
+#' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads 
 #' parts of the datasets to test it faster
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency? 
 #'
 #' @return dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021 
-assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, NCCAwq2010,
- NCCAqa2010, NCCAwq2015, Glenda, csmi2010, csmi2021, seaBird, namingFile, out = NULL, test = FALSE, binaryOut = FALSE) {
+assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   print("Step 0/6: Download data folder")
   .downloadData()
 
-  # [ ] make the file paths default in the code, then leave glenda seaBird as optional arguments
+  # Load up the filepaths
+  filepaths <- .getFilePaths()
+  NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
+  NCCAhydrofile2015 <- filepaths["NCCAhydrofile2015"]
+  NCCAsecchifile2015 <- filepaths["NCCAsecchifile2015"]
+  NCCAsites2010 <- filepaths["NCCAsites2010"]
+  NCCAsites2015 <- filepaths["NCCAsites2015"]
+  NCCAwq2010 <- filepaths["NCCAwq2010"]
+  NCCAqa2010 <- filepaths["NCCAqa2010"]
+  NCCAwq2015 <- filepaths["NCCAwq2015"]
+  Glenda <- filepaths["Glenda"]
+  csmi2010 <- filepaths["csmi2010"]
+  csmi2021 <- filepaths["csmi2021"]
+  seaBird <- filepaths["seaBird"]
+  namingFile <- filepaths["namingFile"]
+
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
   # [ ] water body name arguement
-  n_max = ifelse(test, 50, Inf)
+  n_max = ifelse(.test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
   key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%

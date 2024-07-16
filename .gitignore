@@ -86,3 +86,4 @@ docs/presentations/*/*_files
 .Rdata
 .DS_Store
 .quarto
+inst/doc
