@@ -112,8 +112,8 @@ assembleData <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile20
 
   if (!is.null(out) & binaryOut) {
     print("Writing data to")
-    print(paste0(out, "rds"))
-    saveRDS(allWQ, out)
+    print(paste0(out, ".Rds"))
+    saveRDS(allWQ, paste0(out, ".Rds"))
   } else {
     out <- paste0(out, ".csv")
     print("Writing data to")

@@ -19,7 +19,7 @@
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
   CTD <- file.path(csmi2021, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", startRows= 2, na = c("", "-9.99e-29"), n_max=  n_max, .name_repair = "unique_quiet") %>% 
+    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", "-9.99e-29"), n_max=  n_max, .name_repair = "unique_quiet") %>% 
     dplyr::rename(Site = ...2, sampleDateTime = ...3) %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
     # don't select bio samples, scans

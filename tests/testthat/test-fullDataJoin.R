@@ -14,7 +14,7 @@ test_that("all data files can be found, read, cleaned, and joined. Expected colu
   df <- assembleData(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, NCCAsites2010, NCCAsites2015, 
     NCCAwq2010, NCCAqa2010, NCCAwq2015, Glenda,
     csmi2010, csmi2021, seaBird, namingFile, 
-                     test = T, out = "data/fullData.Rds", binaryOut = TRUE)
+                     test = T, out = "fullData", binaryOut = TRUE)
 
   #df <- .UnifyUnitsNames(df, namingFile = namingFile)
 
