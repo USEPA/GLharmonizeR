@@ -6,7 +6,9 @@ date: today
 ```{r setup}
 library(tidyverse)
 library(kableExtra)
-df <- readRDS("data/fullData.Rds")
+devtools::load_all()
+df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+#df <- readRDS("data/fullData.Rds")
 ```
 
 # Missingness
@@ -66,3 +68,25 @@ GLENDA %>%
 # Full table of missingness
 
 # Missingness by data source
+
+# Flags
+```{r flags}
+flags <- df %>%
+  distinct(Study, QAcode, QAcomment) %>%
+  separate_longer_delim(QAcode, delim = ";") %>%
+  separate_longer_delim(QAcomment, delim = ";") %>%
+  mutate(
+    QAcode = str_remove_all(QAcode, "NA,"),
+    QAcode = str_remove_all(QAcode, " NA,"),
+    QAcomment = str_remove_all(QAcomment, "NA,"),
+    QAcomment = str_remove_all(QAcomment, ", NA"),
+    QAcomment = str_remove_all(QAcomment, " NA"),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    QAcode = ifelse(grepl("^NA", QAcode, ignore.case =T), NA, QAcode),
+    QAcomment = ifelse(grepl("^NA", QAcomment, ignore.case =T), NA, QAcomment),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    ) %>%
+  filter((!is.na(QAcode))  | (!is.na(QAcomment)))
+```
