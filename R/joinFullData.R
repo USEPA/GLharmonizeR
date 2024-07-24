@@ -26,7 +26,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NCCAwqQA <- filepaths["NCCAwqQA"]
   Glenda <- filepaths["Glenda"]
   GlendalimitsPath <- filepaths["GlendalimitsPath"]
-  GLENDAsitePath <- filepaths["GL_Data-main/GLENDA/GLENDAsiteInfo.Rds"]
+  GLENDAsitePath <- filepaths["GLENDAsiteInfo.Rds"]
   # csmi2010 <- filepaths["csmi2010"]
   csmi2015 <- filepaths["csmi2015"]
   csmi2021 <- filepaths["csmi2021"]
@@ -39,7 +39,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   n_max <- ifelse(.test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
-  key <- openxslx::read.xlsx(namingFile, sheet = "Key") %>%
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 

@@ -112,7 +112,7 @@
 
   # Didn't find anything immediately usable in here, maybe it will come up when we do more intense QC
   # meta1 <- openxlsx::read.xlsx(file.path(directoryPath, "LMich10forms.xls"))
-  # meta2 <- openxslx::read.xlsx(file.path(directoryPath, "smpstts10.xls"))
+  # meta2 <- openxlsx::read.xlsx(file.path(directoryPath, "smpstts10.xls"))
 
   # CTD data, look like raw CTD measures, where the sheet names might correspond to the site?
   #   ctd <- openxlsx::read.xlsx(file.path(
