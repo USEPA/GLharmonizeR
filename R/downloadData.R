@@ -35,7 +35,7 @@
     #   "CSMI data & database", "CSMI_LkMich2015_Database_working_minsRivMouths.accdb")
     # csmi2021 <- file.path(teamsFolder, "Raw_data", "CSMI", "2021")
     "csmi2015" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
-    "csmi2021" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2020_2021/"
+    "csmi2021" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2020_2021/",
     #%% NOAA
     "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26.xlsx")
 

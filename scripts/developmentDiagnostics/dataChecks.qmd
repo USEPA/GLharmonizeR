@@ -6,7 +6,7 @@ date: today
 ```{r setup}
 library(tidyverse)
 devtools::load_all()
-#df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+df <- assembleData(.test = T, out = "fullData", binaryOut = TRUE)
 df <- readRDS("fullData.Rds")
 ```
 
