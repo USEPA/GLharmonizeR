@@ -12,9 +12,6 @@
 #' @export
 #' @return full, harmonized dataset
 assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
-  print("Step 0/6: Download data folder")
-  .downloadData()
-
   # Load up the filepaths
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
