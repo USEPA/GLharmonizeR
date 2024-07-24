@@ -1,8 +1,8 @@
-#' Load and join secchi data for NCCA 2015 from csv files 
+#' Load and join secchi data for NCCA 2015 from csv files
 #'
 #' @description
-#' `.readNCCASecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015 
-#' 
+#' `.readNCCASecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015
+#'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
@@ -10,66 +10,66 @@
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
   df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max) %>%
-      dplyr::filter(
-        # Kept estimated and based on trans
-        # We will explicitly test if the measurements are greater than station depth
-        !grepl("missing for this site", SECCHI_COMMENT, ignore.case = T),
-        !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T)
-      ) %>%
-      # Confirmed that the reference date with Hugh and by reformatting in Excel 
-      dplyr::mutate(
-        SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
-        DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
-        sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
-        sampleDateTime = lubridate::ymd_h(sampleDate),
-        ) %>%
-        # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
-        # However, we filter it out in the mean call
-      tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
-      dplyr::reframe(
-        SITE_ID = toString(unique(SITE_ID)),
-        ANALYTE = "Secchi",
-        DATE_COL = unique(DATE_COL),
-        stationDepth = mean(STATION_DEPTH, na.rm=T),
+    dplyr::filter(
+      # Kept estimated and based on trans
+      # We will explicitly test if the measurements are greater than station depth
+      !grepl("missing for this site", SECCHI_COMMENT, ignore.case = T),
+      !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T)
+    ) %>%
+    # Confirmed that the reference date with Hugh and by reformatting in Excel
+    dplyr::mutate(
+      SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
+      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
+      sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
+      sampleDateTime = lubridate::ymd_h(sampleDate),
+    ) %>%
+    # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
+    # However, we filter it out in the mean call
+    tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
+    dplyr::reframe(
+      SITE_ID = toString(unique(SITE_ID)),
+      ANALYTE = "Secchi",
+      DATE_COL = unique(DATE_COL),
+      stationDepth = mean(STATION_DEPTH, na.rm = T),
 
-        # Mean of everything but the estimated value (because we think this is estimated by Kd)
-        RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm =T),
-        # Compress all comments and note clear to bottom to be combined
-        # [x] change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
-        # Check to see if this works
-        CLEAR_TO_BOTTOM = RESULT >= stationDepth,
-        QAcomment = toString(unique(SECCHI_COMMENT)),
-        .by = c(UID)
-      ) %>%
-      dplyr::mutate(
-        RESULT = dplyr::case_when(
-          CLEAR_TO_BOTTOM == TRUE ~ NA,
-          CLEAR_TO_BOTTOM == FALSE ~ RESULT,
-          is.na(CLEAR_TO_BOTTOM) ~ RESULT
-        ),
-        QAcomment= dplyr::case_when(
-          CLEAR_TO_BOTTOM == TRUE ~ paste("Clear to bottom", QAcomment, sep = ";"),
-          CLEAR_TO_BOTTOM == FALSE ~ QAcomment,
-          is.na(CLEAR_TO_BOTTOM) ~ QAcomment
-        ) 
-      ) %>%
-      dplyr::mutate(
-        Study = "NCCA_secchi_2015"
-      ) %>%
-      tidyr::drop_na(RESULT)
+      # Mean of everything but the estimated value (because we think this is estimated by Kd)
+      RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm = T),
+      # Compress all comments and note clear to bottom to be combined
+      # [x] change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
+      # Check to see if this works
+      CLEAR_TO_BOTTOM = RESULT >= stationDepth,
+      QAcomment = toString(unique(SECCHI_COMMENT)),
+      .by = c(UID)
+    ) %>%
+    dplyr::mutate(
+      RESULT = dplyr::case_when(
+        CLEAR_TO_BOTTOM == TRUE ~ NA,
+        CLEAR_TO_BOTTOM == FALSE ~ RESULT,
+        is.na(CLEAR_TO_BOTTOM) ~ RESULT
+      ),
+      QAcomment = dplyr::case_when(
+        CLEAR_TO_BOTTOM == TRUE ~ paste("Clear to bottom", QAcomment, sep = ";"),
+        CLEAR_TO_BOTTOM == FALSE ~ QAcomment,
+        is.na(CLEAR_TO_BOTTOM) ~ QAcomment
+      )
+    ) %>%
+    dplyr::mutate(
+      Study = "NCCA_secchi_2015"
+    ) %>%
+    tidyr::drop_na(RESULT)
   return(df)
 }
 
-#' Load and join secchi data for NCCA 2010 hydrographic data from csv files 
+#' Load and join secchi data for NCCA 2010 hydrographic data from csv files
 #'
 #' @description
-#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010 
-#' 
+#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
-#'  
+#'
 #' @return dataframe
 .readNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAwqQA, n_max = n_max) {
   # Read qa decisions
@@ -93,7 +93,7 @@
       FLAG = dplyr::case_when(
         Decision == "Impute" ~ paste(QA_COMMENT, ";", "Value is appropriate to impute"),
         Decision == "CTB" ~ paste(QA_COMMENT, ";", "Clear to Bottom"),
-        .default = QA_COMMENT 
+        .default = QA_COMMENT
       ),
       ANALYTE = dplyr::coalesce(PARAMETER_NAME, ANALYTE)
     ) %>%
@@ -134,11 +134,11 @@
 }
 
 
-#' Load and join secchi data for NCCA 2015 hydrographic data from csv files 
+#' Load and join secchi data for NCCA 2015 hydrographic data from csv files
 #'
 #' @description
-#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010 
-#' 
+#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
@@ -163,21 +163,22 @@
     dplyr::select(-DATE_COL)
 }
 
-#' Load and join hydrographic and secchi data for NCCA 2010 and 2015 
+#' Load and join hydrographic and secchi data for NCCA 2010 and 2015
 #'
 #' @description
 #' `.readNCCAhydro` returns a dataframe of all of the hydrographic data relating to NCCA 2010 and 2015
-#' 
+#'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-  NCCAwqQA, n_max = Inf) {
+.readNCCAhydro <- function(
+    NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+    NCCAwqQA, n_max = Inf) {
   dplyr::bind_rows(
     .readNCCAhydro2010(NCCAhydrofiles2010, NCCAwqQA = NCCAwqQA, n_max = n_max),
     .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max),
-    .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max))
-
+    .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max)
+  )
 }

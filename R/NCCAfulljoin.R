@@ -1,9 +1,9 @@
 #' Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data
-#' 
+#'
 #' @description
-#' `.LoadNCCAfull` returns water quality data along with spatial data from the 
+#' `.LoadNCCAfull` returns water quality data along with spatial data from the
 #'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
-#' 
+#'
 #' @details
 #' The spatial information for sites is read in using the .readSites helper functions, this is then
 #' joined to the water quality and hydrographic data and ultimately output as a data table.
@@ -19,32 +19,33 @@
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
 .LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
-                         NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                         Lakes=c("Lake Michigan"), namingFile, NCCAwqQA, n_max = Inf) {
+                          NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+                          Lakes = c("Lake Michigan"), namingFile, NCCAwqQA, n_max = Inf) {
   # [ ] Did we QC all of the great lakes already???
   sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
-  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015, 
-    NCCAwqQA = NCCAwqQA, n_max = n_max) %>%
+  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+    NCCAwqQA = NCCAwqQA, n_max = n_max
+  ) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
-  # Read NCCA Water chemistry files 
+  # Read NCCA Water chemistry files
   # [ ] Make the wqQA argument name consistent over all levels
   nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, nccaWQqaFile = NCCAwqQA, n_max = n_max) %>%
-  # XXX This might break when NCCA updates their data with new UID's
+    # XXX This might break when NCCA updates their data with new UID's
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDateTime))
 
 
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet= "NCCA_Map", na.strings = c("", "NA")) 
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA"))
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-    
+
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
     # Cleaning up a column naming mistake
@@ -57,35 +58,40 @@
       Year = lubridate::year(sampleDateTime),
       # [x] store the originally reported Units
       OriginalUnits = UNITS
-      ) %>%
+    ) %>%
     dplyr::select(-c(
       stationDepth.x, stationDepth.y,
-      DATE_COL #QAconsiderations,
+      DATE_COL # QAconsiderations,
     )) %>%
     # Great lakes get's priority over spcifying each lake
     dplyr::filter(NCCRreg == "Great Lakes") %>%
-    {if (!is.null(Lakes)) {
-      dplyr::filter(., WTBDY_NM %in% Lakes)
-    } else .} %>%
+    {
+      if (!is.null(Lakes)) {
+        dplyr::filter(., WTBDY_NM %in% Lakes)
+      } else {
+        .
+      }
+    } %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     # [x] fill missing units as the most common non-missing units within a given study-year
-    # Group by study-year, analytes then 
+    # Group by study-year, analytes then
     dplyr::mutate(
       ReportedUnits = ifelse(
         is.na(ReportedUnits),
         # impute with hte mode
-        (data.frame(table(ReportedUnits)) %>% 
-          tidyr::drop_na() %>% 
+        (data.frame(table(ReportedUnits)) %>%
+          tidyr::drop_na() %>%
           dplyr::arrange(dplyr::desc(Freq)))[[1]],
         ReportedUnits
       ),
       QAcode = ifelse(is.na(ReportedUnits),
         paste(QAcode, ";", "No reported units, so assumed same as most common units for this given analyte on this year"),
-        QAcode),
+        QAcode
+      ),
       .by = c(Study, Year, ANALYTE)
     ) %>%
     # rename
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches="na") %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na") %>%
     # unit conversions
     dplyr::left_join(key, by = "CodeName") %>%
     # standardize units
@@ -107,8 +113,8 @@
     dplyr::mutate(RESULT = dplyr::case_when(
       ReportedUnits == TargetUnits ~ RESULT,
       is.na(ReportedUnits) ~ RESULT,
-      .default = RESULT  * ConversionFactor),
-    ) %>%
+      .default = RESULT * ConversionFactor
+    ), ) %>%
     dplyr::select(-Units) %>%
     dplyr::rename(Units = TargetUnits) %>%
     dplyr::filter(CodeName != "Remove")
@@ -117,7 +123,7 @@
   #   filter(TargetUnits != ReportedUnits) %>%
   #   filter(is.na(ConversionFactor)) %>%
   #   count(ReportedUnits, Units, ConversionFactor)
-  # test %>% 
+  # test %>%
   #   filter(is.na(CodeName)) %>%
   #   count(Study, ANALYTE, ANL_CODE, METHOD)
   return(final)

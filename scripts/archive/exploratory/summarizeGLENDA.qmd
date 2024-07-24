@@ -19,7 +19,7 @@ library(gt)
 df <- readCleanGLENDA("Data/Raw/GLENDA/GLENDA.csv")
 remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
 # QCCodes <- read_csv("Data/Raw/GLENDA/QCcodes.csv")
-#depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
+# depthCodes <- read_csv("Data/Raw/GLENDA/DepthCodes.csv")
 ```
 
 
@@ -33,7 +33,7 @@ remarkCodes <- read_csv("Data/Raw/GLENDA/remarkCodes.csv")
 #| warning: false
 dfWide <- df %>%
   select(SAMPLE_ID, YEAR, SEASON, ANALYTE, VALUE) %>%
-  distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>% 
+  distinct(SAMPLE_ID, ANALYTE, .keep_all = T) %>%
   pivot_wider(id_cols = c(SAMPLE_ID, YEAR, SEASON), names_from = ANALYTE, values_from = VALUE) %>%
   filter(!is.na(`Chlorophyll-a`)) %>%
   janitor::clean_names()
@@ -41,10 +41,8 @@ dfWide <- df %>%
 naniar::gg_miss_var(dfWide, show_pct = T)
 dfWide %>%
   mutate(ninetySizePlus = year > 1996) %>%
-  naniar::gg_miss_var(show_pct = T, facet = ninetySizePlus) + 
+  naniar::gg_miss_var(show_pct = T, facet = ninetySizePlus) +
   ggtitle("Pre/post '96")
-
-
 ```
 
 # Summaries
@@ -54,9 +52,11 @@ dfWide %>%
 #| cache: true
 # Download map data if necessary
 if (length(dir("Data/Other", "ne_10m_lakes")) < 7) {
-  url <- paste0("https://www.naturalearthdata.com/",
-                "http//www.naturalearthdata.com/download/10m/physical/",
-                "ne_10m_lakes.zip")
+  url <- paste0(
+    "https://www.naturalearthdata.com/",
+    "http//www.naturalearthdata.com/download/10m/physical/",
+    "ne_10m_lakes.zip"
+  )
   path <- "Data/Other"
   download.file(url, paste0(path, "/lakes.zip"))
   unzip(paste0(path, "/lakes.zip"))
@@ -67,25 +67,29 @@ lakes <- sf::read_sf("Data/Other/ne_10m_lakes.shp")
 ggplot(lakes) +
   geom_sf(fill = "lightblue") +
   coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
-  theme(panel.background = element_rect(fill = '#d0d890'),
-        panel.grid = element_line(color = '#00000010')) +
-  geom_point(data= df, aes(x = LONGITUDE, y = LATITUDE))
-
+  theme(
+    panel.background = element_rect(fill = "#d0d890"),
+    panel.grid = element_line(color = "#00000010")
+  ) +
+  geom_point(data = df, aes(x = LONGITUDE, y = LATITUDE))
 ```
 
 ```{r depths}
-tempDF <- data.frame("Depth" = c(10, 40),
-                     "Text" = c("Suggestion = 10m",
-                                "Deepest thermocline (summer) = 13m"),
-                     "Height" = c(200, 400)) 
+tempDF <- data.frame(
+  "Depth" = c(10, 40),
+  "Text" = c(
+    "Suggestion = 10m",
+    "Deepest thermocline (summer) = 13m"
+  ),
+  "Height" = c(200, 400)
+)
 
 df %>%
-  distinct(SAMPLE_ID, .keep_all=T) %>%
+  distinct(SAMPLE_ID, .keep_all = T) %>%
   ggplot(aes(x = SAMPLE_DEPTH_M)) +
-  geom_histogram() + 
-  geom_vline(aes(xintercept = Depth), data= tempDF, color = "red") +
-  geom_text(aes(x = Depth, y = Height, label = Text), data= tempDF)
-
+  geom_histogram() +
+  geom_vline(aes(xintercept = Depth), data = tempDF, color = "red") +
+  geom_text(aes(x = Depth, y = Height, label = Text), data = tempDF)
 ```
 
 ### Sampling Fraction
@@ -97,13 +101,14 @@ fractions <- df %>%
   group_by(ANALYTE) %>%
   mutate(total = sum(n))
 fractions %>%
-  ggplot(aes(x = ANALYTE, y =n, fill = FRACTION)) +
+  ggplot(aes(x = ANALYTE, y = n, fill = FRACTION)) +
   geom_bar(stat = "identity") +
-  geom_text( aes(label = ANALYTE, y = total), data = fractions[fractions$total > 5000 ,], angle =45, size = 2) + 
-  theme(axis.title.x=element_blank(),
-     axis.text.x=element_blank(),
-     axis.ticks.x=element_blank())
-
+  geom_text(aes(label = ANALYTE, y = total), data = fractions[fractions$total > 5000, ], angle = 45, size = 2) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 ```
 
 ### Depth Codes
@@ -115,32 +120,34 @@ fractions <- df %>%
   group_by(ANALYTE) %>%
   mutate(total = sum(n))
 fractions %>%
-  ggplot(aes(x = ANALYTE, y =n, fill = DEPTH_CODE)) +
+  ggplot(aes(x = ANALYTE, y = n, fill = DEPTH_CODE)) +
   geom_bar(stat = "identity") +
-  geom_text( aes(label = ANALYTE, y = total), data = fractions[fractions$total > 2500 ,], angle =45, size = 2) + 
-  theme(axis.title.x=element_blank(),
-     axis.text.x=element_blank(),
-     axis.ticks.x=element_blank(),
-     legend.position = "none")
-
+  geom_text(aes(label = ANALYTE, y = total), data = fractions[fractions$total > 2500, ], angle = 45, size = 2) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "none"
+  )
 ```
 
 ## Time
 ```{r sampleYears}
 #| tbl-cap: "Range of years of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  mutate(VALUE = VALUE ==0) %>%
+  # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE == 0) %>%
   group_by(YEAR, ANALYTE) %>%
-  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
-  ggplot(aes(x = YEAR,
-             y = ANALYTE,
-             col = `Proportion 0`)) +
-  #geom_dotplot()
-  #geom_quasirandom() 
+  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>%
+  ggplot(aes(
+    x = YEAR,
+    y = ANALYTE,
+    col = `Proportion 0`
+  )) +
+  # geom_dotplot()
+  # geom_quasirandom()
   # geom_violin(
-  geom_point(alpha= 0.8)
-  
+  geom_point(alpha = 0.8)
 ```
 
 ### Season summary
@@ -148,20 +155,21 @@ df %>%
 ```{r sampleSeason}
 #| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
-  mutate(VALUE = VALUE ==0) %>%
+  # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  mutate(VALUE = VALUE == 0) %>%
   group_by(MONTH, ANALYTE) %>%
-  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>% 
+  reframe(`Proportion 0` = mean(VALUE, na.rm = T)) %>%
   mutate(MONTH = factor(MONTH, levels = c("January", "February", "March", "April", "June", "July", "August", "September", "October", "November", "December"))) %>%
-  ggplot(aes(x = MONTH,
-             y = ANALYTE,
-             col = `Proportion 0`)) +
-  #geom_dotplot()
-  #geom_quasirandom() 
+  ggplot(aes(
+    x = MONTH,
+    y = ANALYTE,
+    col = `Proportion 0`
+  )) +
+  # geom_dotplot()
+  # geom_quasirandom()
   # geom_violin(
-  geom_point(alpha= 0.8)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
+  geom_point(alpha = 0.8) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
 ### Time of Day
@@ -169,11 +177,10 @@ df %>%
 ```{r sampleTime}
 #| tbl-cap: "Range of  months of sampling for each analyte colored by the proportion of zeros that were observed"
 df %>%
- # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
+  # mutate(ANALYTE = reorder(ANALYTE, MIN)) %>%
   mutate(Hour = hour(SAMPLING_DATE)) %>%
   ggplot(aes(x = Hour)) +
   geom_histogram()
-
 ```
 
 
@@ -182,20 +189,19 @@ df %>%
 
 ```{r missingCoords}
 dfWide <- dfWide %>%
-  select_if(~mean(is.na(.)) < 0.2)
-df %>% 
+  select_if(~ mean(is.na(.)) < 0.2)
+df %>%
   select(ANALYTE, LATITUDE, LONGITUDE, STN_DEPTH_M) %>%
-  naniar::gg_miss_var(show_pct = T, facet = ANALYTE) + 
+  naniar::gg_miss_var(show_pct = T, facet = ANALYTE) +
   ggtitle("Overall Missingness")
 
-df %>% 
+df %>%
   filter(YEAR < 1996) %>%
   group_by(ANALYTE) %>%
   dplyr::select(LATITUDE, LONGITUDE, STN_DEPTH_M, ANALYTE) %>%
-  naniar::gg_miss_var(show_pct = T) + 
+  naniar::gg_miss_var(show_pct = T) +
   ggtitle("pre-'96 missingness") +
   facet_wrap(~ANALYTE)
-
 ```
 
 

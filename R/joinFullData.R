@@ -8,7 +8,7 @@
 #'
 #' @param out (optional) filepath to save the dataset to
 #' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster
-#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency? 
+#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?
 #' @export
 #' @return full, harmonized dataset
 assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
@@ -23,20 +23,20 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NCCAwq2010 <- filepaths["NCCAwq2010"]
   NCCAqa2010 <- filepaths["NCCAqa2010"]
   NCCAwq2015 <- filepaths["NCCAwq2015"]
-  NCCAwqQA  <- filepaths["NCCAwqQA"]
+  NCCAwqQA <- filepaths["NCCAwqQA"]
   Glenda <- filepaths["Glenda"]
   GlendalimitsPath <- filepaths["GlendalimitsPath"]
-  GLENDAsitePath = filepaths["GL_Data-main/GLENDA/GLENDAsiteInfo.Rds"]
-  #csmi2010 <- filepaths["csmi2010"]
+  GLENDAsitePath <- filepaths["GL_Data-main/GLENDA/GLENDAsiteInfo.Rds"]
+  # csmi2010 <- filepaths["csmi2010"]
   csmi2015 <- filepaths["csmi2015"]
   csmi2021 <- filepaths["csmi2021"]
   seaBird <- filepaths["seaBird"]
   namingFile <- filepaths["namingFile"]
-  noaaWQ  <- filepaths["noaaWQ"]
+  noaaWQ <- filepaths["noaaWQ"]
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
   # [ ] water body name arguement
-  n_max = ifelse(.test, 50, Inf)
+  n_max <- ifelse(.test, 50, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/6: Load naming and unit conversion files")
   key <- openxslx::read.xlsx(namingFile, sheet = "Key") %>%
@@ -46,28 +46,31 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet= "SeaBird_Map", na.strings = c("", "NA")) 
+  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet = "SeaBird_Map", na.strings = c("", "NA"))
 
   print("Step 2/6: Read and clean NCCA")
   ncca <- .LoadNCCAfull(
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
     NCCAwq2015, NCCAhydrofiles2010,
     NCCAhydrofile2015, NCCAsecchifile2015,
-    Lakes=c("Lake Michigan"), namingFile,
-    NCCAwqQA = NCCAwqQA, n_max = n_max) %>%
-      dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
-      dplyr::select(-Years)
+    Lakes = c("Lake Michigan"), namingFile,
+    NCCAwqQA = NCCAwqQA, n_max = n_max
+  ) %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
+    dplyr::select(-Years)
 
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
-    .cleanGLENDA(., namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
-    GLENDAsitePath=GLENDAsitePath , GLENDAlimitsPath= GLENDAlimitsPath)
+    .cleanGLENDA(.,
+      namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
+      GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
+    )
   # [ ] filter "remove" analytes
-  
+
   print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
 
-  # [ ] Move this out of the main function 
-  seaBirdDf <- readr::read_rds(seaBird)  %>%
+  # [ ] Move this out of the main function
+  seaBirdDf <- readr::read_rds(seaBird) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::mutate(
@@ -93,23 +96,24 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
     ncca, GLENDA, CSMI, NOAA
-  ) %>% 
-  dplyr::mutate(
-    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
   ) %>%
-  # [x] convert to any_of/one_of selection 
-  
-  dplyr::select(dplyr::any_of(c(
-    # time and space
-    "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
-    # analyte name
-    "CodeName", "ANALYTE", "Category", "LongName", # [ ] Add LongName from key tab for the "long name"
-    # unit conversion
-    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
-    # measurement and limits
-    "RESULT", "MDL", "MRL", "PQL",
-    # QA
-    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG")))
+    dplyr::mutate(
+      SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
+    ) %>%
+    # [x] convert to any_of/one_of selection
+
+    dplyr::select(dplyr::any_of(c(
+      # time and space
+      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
+      # analyte name
+      "CodeName", "ANALYTE", "Category", "LongName", # [ ] Add LongName from key tab for the "long name"
+      # unit conversion
+      "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
+      # measurement and limits
+      "RESULT", "MDL", "MRL", "PQL",
+      # QA
+      "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
+    )))
 
 
   if (!is.null(out) & binaryOut) {
@@ -124,7 +128,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   }
 
   print("Clean up: Delete temporary data folder")
-  unlink("GL_Data-main", recursive=TRUE)
+  unlink("GL_Data-main", recursive = TRUE)
   return(allWQ)
 }
 
@@ -132,9 +136,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 # [ ]: Identify all analytes with missing Code Names and add to naming shee
 # - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
 # - Then fill all missing ANL_CODE with nonmissing
-# test <- data  %>% 
+# test <- data  %>%
 #   filter(is.na(CodeName)) %>%
 #   count(Study, ANALYTE, ANL_CODE, FRACTION, METHOD, MEDIUM)
-# [ ] : ID all conversions with na (that aren't identical) 
+# [ ] : ID all conversions with na (that aren't identical)
 # [ ] Make a table of all flags after all is said and done so we can
 # annotate them for end-users

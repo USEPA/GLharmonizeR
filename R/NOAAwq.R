@@ -7,31 +7,31 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map")
 
-  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet=  "WQ 2007-2022", rows=2) %>%
+  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2) %>%
     dplyr::select(-c(1:5)) %>%
     t() %>%
     as.data.frame() %>%
     dplyr::select(-V2) %>%
-    dplyr::rename(ANALYTE= V1) %>%
+    dplyr::rename(ANALYTE = V1) %>%
     dplyr::mutate(
       Units = rownames(.),
       ANALYTE = tolower(ANALYTE),
       Units = stringr::str_remove_all(Units, "\\.*"),
       Units = stringr::str_remove_all(Units, "[:digit:]")
-      ) %>%
-      dplyr::filter(
-        !grepl("NA", ANALYTE),
-        ANALYTE != "depth",
-      ) %>% 
-      dplyr::mutate(
-        Units = stringr::str_remove(Units, "\\/")
-      )
+    ) %>%
+    dplyr::filter(
+      !grepl("NA", ANALYTE),
+      ANALYTE != "depth",
+    ) %>%
+    dplyr::mutate(
+      Units = stringr::str_remove(Units, "\\/")
+    )
 
 
-  noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet=  "sites") %>%
-    dplyr::rename(SITE_ID = `Station:`, Latitude= Lat, Longitude = Long, stationDepth = `Depth (m)`)
+  noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
+    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth (m)`)
 
-  noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet=  "WQ 2007-2022", rows = 3:n_max) %>%
+  noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 3:n_max) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
     dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
     dplyr::mutate(
@@ -39,16 +39,16 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       # assuming 12 noon for consistency with other datasets
       Time = "12:00",
       UID = paste("NOAAwq", sep = "-", dplyr::row_number())
-      ) %>%
+    ) %>%
     tidyr::unite(sampleDateTime, Year, Month, Day, Time, sep = "-") %>%
     dplyr::mutate(
       sampleDateTime = lubridate::ymd_hm(sampleDateTime),
     ) %>%
     dplyr::mutate(
       # fill in secchi for every sampling event and depth
-      secchi = mean(secchi, na.rm=T),
-      surfaceTemp = mean(`Surface Temp`, na.rm=T),
-      .by = c(sampleDateTime, SITE_ID), 
+      secchi = mean(secchi, na.rm = T),
+      surfaceTemp = mean(`Surface Temp`, na.rm = T),
+      .by = c(sampleDateTime, SITE_ID),
     ) %>%
     tidyr::pivot_longer(cols = CHL:N, names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::select(-c(`...14`, `...15`), DOY) %>%
@@ -61,9 +61,9 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       dplyr::across(c(Londeg, Lonmin), as.numeric),
       Latitude = Latdeg + Latmin / 60,
       Longitude = Londeg + Lonmin / 60
-      ) %>%
+    ) %>%
     dplyr::select(-c(Latdeg, Latmin, Londeg, Lonmin)) %>%
-    dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>% 
+    dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>%
     dplyr::left_join(noaaWQunits, by = "ANALYTE")
 
   # rename and convert units
@@ -74,7 +74,7 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor))
 
-    return(noaaWQdata)
+  return(noaaWQdata)
 }
 
 # file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2022 CTD files", "6659", "Pothoven", "278-22", "raw", "SBE19plus_01906659_2022_10_12_0011.hex")

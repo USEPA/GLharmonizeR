@@ -4,7 +4,7 @@ test_that("Units and names convert and values are reported correctly", {
 })
 
 
-# Test that analytes (Fraction, ANALYTe, etc.) appear in map tab 
+# Test that analytes (Fraction, ANALYTe, etc.) appear in map tab
 #   for each respective study
 # Test that each code name appears in Key tab
 # Test that each unique reported units/ target units combo
@@ -13,4 +13,4 @@ test_that("Units and names convert and values are reported correctly", {
 #   Add DL column, then test if want to impute DL exists
 # Could add options for the imputation method
 # Give Eric's table priority over < values in GLENDA
-# 
+#

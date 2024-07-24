@@ -4,7 +4,7 @@
 #'
 #' @description
 #' `.LoadCSMI2015` returns a dataframe of all of the joined water quality data relating to CSMI 2015
-#' 
+#'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
@@ -21,18 +21,18 @@
     dplyr::rename(
       SITE_ID = StationCodeKey,
       targetDepth = `DepthM _target`,
-      targetLat = LatDD_target, 
-      targetLon = LonDD_target) %>%
+      targetLat = LatDD_target,
+      targetLon = LonDD_target
+    ) %>%
     dplyr::select(SITE_ID, targetDepth, targetLat, targetLon) %>%
-  # sample information (time, depth)
+    # sample information (time, depth)
     dplyr::full_join(., RODBC::sqlFetch(dbi, "L2a_StationSampleEvent") %>%
-
-    # [x] Grab eastern time
-    dplyr::rename(SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual) %>%
-    dplyr::select(SITE_ID, Latitude, Longitude, sampleDate, sampleTime, stationDepth, SampleEventKey))
+      # [x] Grab eastern time
+      dplyr::rename(SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual) %>%
+      dplyr::select(SITE_ID, Latitude, Longitude, sampleDate, sampleTime, stationDepth, SampleEventKey))
 
   # Water chem sample depth
-  chemInfo2 <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>% 
+  chemInfo2 <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
     dplyr::rename(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m) %>%
     dplyr::full_join(., stationInfo)
   # impute missing coordinates from target coordinates if possible
@@ -51,8 +51,8 @@
     dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
 
   # XXX these are depth matched, so there is more data out there
-  # i.e. we could find the raw data and get measures at every 1m 
-  ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>% 
+  # i.e. we could find the raw data and get measures at every 1m
+  ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>%
     tidyr::pivot_longer(Temptr_C:pH, values_to = "RESULT", names_to = "ANALYTE") %>%
     dplyr::rename(STIS = STISkey, sampleDepth = CTDdepth) %>%
     dplyr::select(STIS, sampleDepth, ANALYTE, RESULT) %>%
@@ -77,16 +77,16 @@
     ) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::select(-ASTlayername) %>%
-
     # [x] combine date and time
     dplyr::mutate(
       sampleDateTime = lubridate::ymd_h(
-        paste0(lubridate::date(sampleDate),
-        "-",
-        lubridate::hour(sampleTime)
-      ))
+        paste0(
+          lubridate::date(sampleDate),
+          "-",
+          lubridate::hour(sampleTime)
+        )
+      )
     ) %>%
-
     dplyr::rename(
       UNITS = WQUnits,
       METHOD = AnalMethod
@@ -99,20 +99,20 @@
     # simplify unit names
 
     # [x] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
-      dplyr::mutate(
-        UNITS = dplyr::case_when(
-          UNITS == "ug N/L" ~ "ugl",
-          UNITS == "ug P/L" ~ "ugl",
-          UNITS == "ug/L" ~ "ugl",
-          UNITS == "mg/L" ~ "mgl",
-          UNITS == "oC" ~ "C",
-          UNITS == "--" ~ NA,
-          UNITS == "uS/cm" ~ "uscm",
-          UNITS == "percent" ~ "%",
-        )
-        # [ ] what happend to ph log scale?
-        # [ ] Did pH get removed?
+    dplyr::mutate(
+      UNITS = dplyr::case_when(
+        UNITS == "ug N/L" ~ "ugl",
+        UNITS == "ug P/L" ~ "ugl",
+        UNITS == "ug/L" ~ "ugl",
+        UNITS == "mg/L" ~ "mgl",
+        UNITS == "oC" ~ "C",
+        UNITS == "--" ~ NA,
+        UNITS == "uS/cm" ~ "uscm",
+        UNITS == "percent" ~ "%",
       )
+      # [ ] what happend to ph log scale?
+      # [ ] Did pH get removed?
+    )
   # Note that conversions are done for all CSMI files together
 
   RODBC::odbcClose(dbi)

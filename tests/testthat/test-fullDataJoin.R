@@ -1,4 +1,3 @@
-
 # Input full dataset
 # - Has necessary column names : Study, Flag, QAcomment, QACode
 
@@ -7,13 +6,15 @@
 # - coverage for all flags present in data
 # - has column names: Flag, QAcomment, QACode
 # - Missing values inserted appropriately
-test_that("all data files can be found, read, cleaned, and joined. Expected column names and 
+test_that("all data files can be found, read, cleaned, and joined. Expected column names and
           datatypes are present.", {
-  options(readr.show_col_types=FALSE, readr.num_columns = 0, readr.show_progress = FALSE,
-          readxl.show_progress= FALSE)
+  options(
+    readr.show_col_types = FALSE, readr.num_columns = 0, readr.show_progress = FALSE,
+    readxl.show_progress = FALSE
+  )
   df <- assembleData(.test = T, out = "fullData", binaryOut = TRUE)
 
-  #df <- .UnifyUnitsNames(df, namingFile = namingFile)
+  # df <- .UnifyUnitsNames(df, namingFile = namingFile)
 
   expect_s3_class(df, "data.frame")
 
@@ -28,8 +29,4 @@ test_that("all data files can be found, read, cleaned, and joined. Expected colu
   # Join flagMapper to data
 
   # Drop old columns
-
 })
-
-
-
