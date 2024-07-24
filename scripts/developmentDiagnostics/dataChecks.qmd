@@ -5,14 +5,15 @@ date: today
 
 ```{r setup}
 library(tidyverse)
-library(kableExtra)
 devtools::load_all()
-df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
-#df <- readRDS("data/fullData.Rds")
+#df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+df <- readRDS("fullData.Rds")
 ```
 
 # Missingness
 ```{r}
+
+
 df %>%
   select(1:9, 16:21, 23:24,27) %>%
   reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
@@ -89,4 +90,24 @@ flags <- df %>%
     QAcomment = str_trim(QAcomment),
     ) %>%
   filter((!is.na(QAcode))  | (!is.na(QAcomment)))
+```
+
+
+# Duplicates
+```{r duplicates}
+
+removedDup <- df %>%  # 11877651 partial observations
+  dplyr::distinct() %>% # 11853750 
+  dplyr::reframe(
+    .by = c(UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName, LongName, TargetUnits),
+    across(c(RESULT, MDL, MRL, PQL), mean, na.rm=T))
+
+    )
+  filter(n() > 1, .by = c(Longitude, Latitude, sampleDepth, CodeName, sampleDateTime)) # 6683746
+
+suspectedDup %>%
+  select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)
+
+removedObviousdups <- df %>% dplyr::distinct()
+
 ```

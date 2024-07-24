@@ -73,7 +73,7 @@
 #' @return dataframe
 .readNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAwqQA, n_max = n_max) {
   # Read qa decisions
-  QA <- readxl::read_xlsx(NCCAwqQA, sheet = "NCCAQAcounts2", .name_repair = "unique_quiet")
+  QA <- openxlsx::read.xlsx(NCCAwqQA, sheet = "NCCAQAcounts2")
 
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max) %>%

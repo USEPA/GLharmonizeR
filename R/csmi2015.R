@@ -11,8 +11,11 @@
 #' @return dataframe of the fully joined water quality data from CSMI 2015
 .LoadCSMI2015 <- function() {
   # Establish connection to the database
+  download.file(csmi2015, destfile = "tempCSMI2015.zip")
+  unzip("tempCSMI2015.zip")
+  file.remove("tempCSMI2015.zip")
 
-  dbi <- RODBC::odbcConnectAccess2007("GL_Data-main/CSMI_2015/CSMI2015_newQuery.accdb")
+  dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery.accdb")
   # Spatial information
   stationInfo <- RODBC::sqlFetch(dbi, "L1_Stationmaster") %>%
     dplyr::rename(
@@ -114,6 +117,7 @@
 
   RODBC::odbcClose(dbi)
 
+  file.remove("CSMI2015_newQuery.accdb")
   return(WQ)
 }
 

@@ -11,7 +11,7 @@
 
 .fullFlagStandardizer <- function(data, flagMapperFile) {
   # Read flagMapper file
-  flagMap <- readxl::read_xlsx(..., )
+  flagMap <- openxlsx::read.xlsx(..., )
 
   # Join flagMapper to data
   data <- dplyr::left_join(data, flagMap, by = ...)
@@ -28,7 +28,7 @@
 #  distinct()
 #
 #
-#nccaFlags <- readxl::read_xlsx(namingFile, sheet= "flag_Map") %>%
+#nccaFlags <- openxlsx::read.xlsx(namingFile, sheet= "flag_Map") %>%
 #  select(SAMPYEAR, QAcode, Definition, QAconsiderations) %>%
 #  mutate(Study = paste("NCCA", SAMPYEAR, sep = "_")) %>%
 #  select(-SAMPYEAR)

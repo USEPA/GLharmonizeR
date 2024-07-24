@@ -18,8 +18,9 @@
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
   ## 
-  CTD <- file.path(csmi2021, "2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    readxl::read_xlsx(sheet = "Lake Michigan 2020 CSMI Data", skip = 1, na = c("", "-9.99e-29"), n_max=  n_max, .name_repair = "unique_quiet") %>% 
+
+  CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
+    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", rows = 2:n_max, na.strings = c("", "-9.99e-29")) %>% 
     dplyr::rename(Site = ...2, sampleDateTime = ...3) %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
     # don't select bio samples, scans
@@ -44,9 +45,9 @@
   # Water chemistry  copied from 
   # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
   # Contact is Annie Fosso
-  DL <- file.path(csmi2021, "Chem2021_detection limits.xlsx") %>%
+  DL <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
-    readxl::read_xlsx(sheet = "detection limits", .name_repair = "unique_quiet") %>%
+    openxlsx::read.xlsx(sheet = "detection limits") %>%
     dplyr::select(23:38) %>%
     dplyr::mutate(Limit = dplyr::coalesce(...23, ...24)) %>%
     dplyr::select(-c(...23, ...24)) %>%
@@ -55,7 +56,7 @@
     dplyr::select(-`NA`)
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
-    readxl::read_xlsx(sheet = "DetLimitCorr", .name_repair = "unique_quiet") %>%
+    openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-dplyr::contains("...")) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%

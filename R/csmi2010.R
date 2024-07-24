@@ -13,7 +13,7 @@
 #' @param csmi2010 a string specifying the directory path of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2010
 .LoadCSMI2010 <- function(csmi2010, n_max= Inf){
-  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), sheet =1, n_max = n_max, .name_repair = "unique_quiet") %>%
+  df <- openxlsx::read.xlsx(file.path(csmi2010, "GL2010db.xlsx"), sheet =1, rows = 1:n_max) %>%
     dplyr::slice(9:dplyr::n()) %>%
     # Move spatial information to front to simplify table conversion
     dplyr::relocate(contains(c("Stn Depth", "Acutal", "Actual"))) %>%
@@ -79,7 +79,7 @@
 
 
     # move detection limits to own column
-  df <- readxl::read_xlsx(file.path(csmi2010, "GL2010db.xlsx"), sheet = 1, n_max =  2, .name_repair = "unique_quiet") %>%
+  df <- openxlsx::read.xlsx(file.path(csmi2010, "GL2010db.xlsx"), sheet = 1, rows =  1:2) %>%
     dplyr::slice(1:2)
 
   dls <- df %>%
@@ -105,11 +105,11 @@
 
 
   # Didn't find anything immediately usable in here, maybe it will come up when we do more intense QC
-  # meta1 <- readxl::read_xlsx(file.path(directoryPath, "LMich10forms.xls"))
-  # meta2 <- readxl::read_xlsx(file.path(directoryPath, "smpstts10.xls"))
+  # meta1 <- openxlsx::read.xlsx(file.path(directoryPath, "LMich10forms.xls"))
+  # meta2 <- openxslx::read.xlsx(file.path(directoryPath, "smpstts10.xls"))
 
   # CTD data, look like raw CTD measures, where the sheet names might correspond to the site?
-#   ctd <- readxl::excel_sheets(file.path(
+#   ctd <- openxlsx::read.xlsx(file.path(
 #     "L:",
 #     "Priv",
 #     "Great lakes Coastal",
