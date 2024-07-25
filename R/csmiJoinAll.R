@@ -11,7 +11,7 @@
 #' @param csmi2010 a string specifying the directory containing CSMI 2010 data
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021
-.LoadCSMI <- function(csmi2010, csmi2021, namingFile, n_max = Inf) {
+.LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf) {
   # Load file to map analyte names to standard names
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA"))
   CSMI <- dplyr::bind_rows(
@@ -19,7 +19,7 @@
     # .LoadCSMI2010(csmi2010, n_max = n_max),
     # [x] 2015 has a lot of missing in VALUE column
     # This is just becuase the way the original data is stored
-    .LoadCSMI2015(),
+    .LoadCSMI2015(csmi2015),
     .LoadCSMI2021(csmi2021, n_max = n_max)
   ) %>%
     dplyr::bind_rows(dplyr::tibble(FRACTION = character())) %>%

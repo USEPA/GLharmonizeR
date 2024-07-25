@@ -25,7 +25,8 @@ Imports:
     tools,
     oce,
     httr,
-    openxlsx
+    openxlsx,
+    fuzzyjoin
 Suggests: 
     knitr,
     lintr,

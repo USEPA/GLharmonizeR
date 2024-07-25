@@ -32,6 +32,7 @@
             Row = "-",
             .default = "c"
           ),
+          show_col_types= FALSE,
           n_max = n_max
         )
       } else {

@@ -25,9 +25,10 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NCCAwq2015 <- filepaths["NCCAwq2015"]
   NCCAwqQA <- filepaths["NCCAwqQA"]
   Glenda <- filepaths["Glenda"]
-  GlendalimitsPath <- filepaths["GlendalimitsPath"]
-  GLENDAsitePath <- filepaths["GLENDAsiteInfo.Rds"]
+  GLENDAlimitsPath <- filepaths["GLENDAlimitsPath"]
+  GLENDAsitePath <- filepaths["GLENDAsitePath"]
   # csmi2010 <- filepaths["csmi2010"]
+  # csmi2010 <- NULL 
   csmi2015 <- filepaths["csmi2015"]
   csmi2021 <- filepaths["csmi2021"]
   seaBird <- filepaths["seaBird"]
@@ -57,7 +58,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     NCCAwqQA = NCCAwqQA, n_max = n_max
   ) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
-    dplyr::select(-Years)
+    dplyr::select(-c(Years, Finalized))
 
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
@@ -82,16 +83,18 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
-  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf)
+  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
+    select(-Finalized)
 
   print("Step 5/6: Read and clean CSMI data")
-  CSMI <- .LoadCSMI(csmi2010, csmi2021, namingFile = namingFile, n_max = n_max) %>%
-    dplyr::select(-Years) %>%
+  CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
+    # Years is in the date, and ANL_CODE is all NA
+    dplyr::select(-c(Years, ANL_CODE)) %>%
     dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
   # [x] filter "remove" analytes
 
   print("Step 5.5/6: Read and clean NOAA data")
-  NOAA <- noaaReadClean(noaaWQ, namingFile)
+  NOAA <- noaaReadClean(noaaWQ, namingFile, n_max = n_max)
 
   print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
@@ -127,8 +130,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }
 
-  print("Clean up: Delete temporary data folder")
-  unlink("GL_Data-main", recursive = TRUE)
   return(allWQ)
 }
 

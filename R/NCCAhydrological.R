@@ -9,7 +9,7 @@
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
-  df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max) %>%
+  df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max, show_col_types= FALSE) %>%
     dplyr::filter(
       # Kept estimated and based on trans
       # We will explicitly test if the measurements are greater than station depth
@@ -76,7 +76,7 @@
   QA <- openxlsx::read.xlsx(NCCAwqQA, sheet = "NCCAQAcounts2")
 
   df <- NCCAhydrofiles2010 %>%
-    purrr::map_dfr(readr::read_csv, n_max = n_max) %>%
+    purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types= FALSE) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::left_join(QA, by = c("QA_CODE" = "QAcode")) %>%
@@ -145,7 +145,7 @@
 #' @param NCCAhydrofile2015 a string specifying the filepath of the data
 #' @return dataframe
 .readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
-  readr::read_csv(NCCAhydrofile2015, n_max = n_max) %>%
+  readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types= FALSE) %>%
     # the only comments mention no measurment data or typo
     dplyr::filter(is.na(NARS_COMMENT)) %>%
     dplyr::filter(CAST == "DOWNCAST") %>%

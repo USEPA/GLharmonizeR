@@ -20,8 +20,9 @@
   ##
 
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", rows = 2:n_max, na.strings = c("", "-9.99e-29")) %>%
-    dplyr::rename(Site = ...2, sampleDateTime = ...3) %>%
+    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", rows = 2:n_max, na.strings = c("", "-9.99e-29"),
+    check.names=TRUE) %>%
+    dplyr::rename(Site = X2, sampleDateTime = X3) %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
     # don't select bio samples, scans
     dplyr::select(2:23) %>%
@@ -36,8 +37,10 @@
       values_to = "RESULT"
     ) %>%
     dplyr::rename(
-      sampleDepth = `Depth [fresh water, m]`, Latitude = `Latitude [deg]`,
-      Longitude = `Longitude [deg]`, SITE_ID = Site
+      sampleDepth = Depth..fresh.water..m.,
+      Latitude = Latitude..deg.,
+      Longitude = Longitude..deg.,
+      SITE_ID = Site
     ) %>%
     # [x] Need to include pH
     # [x] Don't rename, instead think about a regex pivot to also grab the units
@@ -51,23 +54,20 @@
   # Contact is Annie Fosso
   DL <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
-    openxlsx::read.xlsx(sheet = "detection limits") %>%
-    dplyr::select(23:38) %>%
-    dplyr::mutate(Limit = dplyr::coalesce(...23, ...24)) %>%
-    dplyr::select(-c(...23, ...24)) %>%
-    tidyr::pivot_longer(-Limit, values_to = "RESULT", names_to = "ANALYTE") %>%
-    tidyr::pivot_wider(id_cols = ANALYTE, names_from = Limit, values_from = RESULT, values_fn = mean) %>%
-    dplyr::select(-`NA`)
+    openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
+    dplyr::select(16:28) %>%
+    dplyr::slice(2) %>%
+    tidyr::pivot_longer(everything(), values_to = "mdl", names_to = "ANALYTE")
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
     openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
-    dplyr::select(-dplyr::contains("...")) %>%
+    dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
     # [x] parse the time column along with date
     # [x] flag it if we need to assume it's noon
     # split time and tz, infer timezones as needed, rejoin, convert to UTC
-    tidyr::separate_wider_regex(`Time (EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
+    tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
     dplyr::mutate(
       time = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "12:00", time),
       QAcomment = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "Assumed sample at noon", NA),
@@ -110,20 +110,18 @@
     dplyr::mutate(
       sampleDateTime = lubridate::ymd_hm(sampleDateTime)
     ) %>%
-    dplyr::rename(stationDepth = `Site Depth (m)`, sampleDepth = `Separate depths (m)`) %>%
+    dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
     dplyr::select(-c(
-      Month, Ship, Lake, `Research Project`, `Integrated depths (m)`, `DCL?`, `Stratified/ Unstratified?`,
+      Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`,
       Station, tz, time1, time2
     )) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
-    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS = ".*$")) %>%
     dplyr::rename(SITE_ID = Site) %>%
     dplyr::bind_rows(., CTD) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
-    dplyr::rename(mdl = `method detection limit`) %>%
-    dplyr::select(-contains("detection limit corrected")) %>%
     dplyr::mutate(
       # [x] Flag if below detection limit
       QA_CODE = dplyr::case_when(
@@ -169,7 +167,7 @@
 
   # grab additional site data from zooplankton files
   zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
-    readr::read_csv() %>%
+    readr::read_csv(show_col_types = FALSE) %>%
     dplyr::rename(SITE_ID = TRANSECT) %>%
     dplyr::reframe(
       Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T),

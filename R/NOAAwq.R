@@ -1,4 +1,4 @@
-noaaReadClean <- function(noaaWQ, namingFile) {
+noaaReadClean <- function(noaaWQ, namingFile, n_max = Inf) {
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -7,12 +7,11 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map")
 
-  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2) %>%
+  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names=T) %>%
     dplyr::select(-c(1:5)) %>%
     t() %>%
     as.data.frame() %>%
-    dplyr::select(-V2) %>%
-    dplyr::rename(ANALYTE = V1) %>%
+    dplyr::rename(ANALYTE = `1`) %>%
     dplyr::mutate(
       Units = rownames(.),
       ANALYTE = tolower(ANALYTE),
@@ -29,13 +28,13 @@ noaaReadClean <- function(noaaWQ, namingFile) {
 
 
   noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
-    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth (m)`)
+    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth.(m)`)
 
   noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 3:n_max) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
     dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
     dplyr::mutate(
-      dplyr::across(`Surface Temp`:N, as.numeric),
+      dplyr::across(Surface.Temp:N, as.numeric),
       # assuming 12 noon for consistency with other datasets
       Time = "12:00",
       UID = paste("NOAAwq", sep = "-", dplyr::row_number())
@@ -47,12 +46,12 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::mutate(
       # fill in secchi for every sampling event and depth
       secchi = mean(secchi, na.rm = T),
-      surfaceTemp = mean(`Surface Temp`, na.rm = T),
+      surfaceTemp = mean(Surface.Temp, na.rm = T),
       .by = c(sampleDateTime, SITE_ID),
     ) %>%
     tidyr::pivot_longer(cols = CHL:N, names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::select(-c(`...14`, `...15`), DOY) %>%
-    dplyr::select(-`Surface Temp`) %>%
+    dplyr::select(-c(X14, X15), DOY) %>%
+    dplyr::select(-Surface.Temp) %>%
     # convert lat lon
     tidyr::separate(col = Latitude, into = c("Latdeg", "Latmin"), sep = " ") %>%
     tidyr::separate(col = Longitude, into = c("Londeg", "Lonmin"), sep = " ") %>%
@@ -64,15 +63,16 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     ) %>%
     dplyr::select(-c(Latdeg, Latmin, Londeg, Lonmin)) %>%
     dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>%
-    dplyr::left_join(noaaWQunits, by = "ANALYTE")
+    dplyr::left_join(noaaWQunits, by = "ANALYTE") %>%
 
-  # rename and convert units
-  test <- noaaWQdata %>%
+    # rename and convert units
     dplyr::rename(ReportedUnits = Units) %>%
     dplyr::left_join(renamingTable, by = "ANALYTE") %>%
     dplyr::left_join(key, by = "CodeName") %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor))
+    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
+    dplyr::select(-c(`RL.Agree?`, `Original.comment/observation`, `Resolution.Comment`, Finalized,
+    TargetUnits, Category, ConversionFactor, Lepak.input, X5))
 
   return(noaaWQdata)
 }

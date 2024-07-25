@@ -12,6 +12,7 @@
   filepaths %>%
     purrr::map_dfr(readr::read_csv,
       n_max = n_max,
+      show_col_types= FALSE,
       col_types = readr::cols(
         # DONE Load MDL, MRL, PQL
         "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
@@ -92,11 +93,12 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the directory of the data
+#' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2015 <- function(filepath, n_max = Inf) {
-  readr::read_csv(filepath,
+.readNCCA2015 <- function(NCCAwq2015, n_max = Inf) {
+  readr::read_csv(NCCAwq2015,
     n_max = n_max,
+    show_col_types= FALSE,
     col_types = readr::cols(
       "UID" = "d",
       "SITE_ID" = "c",
@@ -182,12 +184,12 @@
 #' @param filepath a string specifying the directory of the data
 #'
 #' @return dataframe
-.readNCCAchemistry <- function(tenFiles = NULL, fifteenFiles = NULL, nccaWQqaFile = NULL, n_max = n_max) {
+.readNCCAchemistry <- function(NCCAwq2010 = NULL, NCCAwq2015 = NULL, nccaWQqaFile = NULL, n_max = n_max) {
   # [ ] Replace these argument names to match the overall function
   dfs <- list()
   # [ ] Incorporate QA into both 2010 and 2015, and make the argument consistently nccaWQqaFile
-  if (!is.null(tenFiles)) dfs[[1]] <- .readNCCA2010(tenFiles, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
-  if (!is.null(fifteenFiles)) dfs[[2]] <- .readNCCA2015(fifteenFiles, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
+  if (!is.null(NCCAwq2010)) dfs[[1]] <- .readNCCA2010(NCCAwq2010, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
+  if (!is.null(NCCAwq2015)) dfs[[2]] <- .readNCCA2015(NCCAwq2015, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
 
   # DONE check if bind_rows breaks with one file
   dfs <- dplyr::bind_rows(dfs) %>%
@@ -197,16 +199,25 @@
 
   # DONE add a try catch if the filepath isn't included
   tryCatch(
-    QA <- openxlsx::read.xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2"),
+    QA <- openxlsx::read.xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2") %>%
+      select(SAMPYEAR, QAcode, Definition, QAconsiderations, Decision),
     error = function(e) {
       message("The NCCA QA water chemistry filepath was not correctly specified.")
     }
   )
 
-
   dfs %>%
-    dplyr::left_join(QA, by = c("SAMPYEAR", "QAcode", "ANALYTE", "ANL_CODE")) %>%
+    # fuzzy join solution from 
+    # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
+    fuzzyjoin::fuzzy_join(
+      QA,
+      by = c("SAMPYEAR", "QAcode"),
+      match_fun = list(`==`, stringr::str_detect),
+      mode = "left"
+    ) %>%
     dplyr::mutate(
+      QAcode = dplyr::coalesce(QAcode.x, QAcode.y),
+      SAMPYEAR = dplyr::coalesce(SAMPYEAR.x, SAMPYEAR.y),
       RESULT = dplyr::case_when(
         Decision == "Keep" ~ RESULT,
         Decision == "Impute" ~ NA,
@@ -222,5 +233,6 @@
         .default = NA
       )
     ) %>%
+    dplyr::select(-c(dplyr::ends_with(".x"), dplyr::ends_with(".y"))) %>%
     dplyr::filter(Decision != "Remove")
 }

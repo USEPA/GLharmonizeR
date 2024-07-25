@@ -9,7 +9,7 @@
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @return dataframe of the fully joined water quality data from CSMI 2015
-.LoadCSMI2015 <- function() {
+.LoadCSMI2015 <- function(csmi2015) {
   # Establish connection to the database
   download.file(csmi2015, destfile = "tempCSMI2015.zip")
   unzip("tempCSMI2015.zip")

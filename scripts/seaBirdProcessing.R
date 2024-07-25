@@ -18,3 +18,4 @@ seaBirdDf <- seaBird %>%
 
 # Save the cleaned seabird Files
 
+test <- oce::read.oce(seaBird[[1]])
