@@ -94,7 +94,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [x] filter "remove" analytes
 
   print("Step 5.5/6: Read and clean NOAA data")
-  NOAA <- noaaReadClean(noaaWQ, namingFile, n_max = n_max)
+  NOAA <- noaaReadClean(noaaWQ, namingFile)
 
   print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
