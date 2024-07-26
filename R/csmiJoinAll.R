@@ -20,7 +20,7 @@
     # [x] 2015 has a lot of missing in VALUE column
     # This is just becuase the way the original data is stored
     .LoadCSMI2015(csmi2015),
-    .LoadCSMI2021(csmi2021, n_max = n_max)
+    .LoadCSMI2021(csmi2021)
   ) %>%
     dplyr::bind_rows(dplyr::tibble(FRACTION = character())) %>%
     # XXX this is for csmi 2010, since it's not included, leaving it commented out

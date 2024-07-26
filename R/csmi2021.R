@@ -8,7 +8,7 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param csmi2021 a string specifying the directory to CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI 2021
-.LoadCSMI2021 <- function(csmi2021, n_max = Inf) {
+.LoadCSMI2021 <- function(csmi2021) {
   # CTD
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
@@ -20,7 +20,7 @@
   ##
 
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", rows = 2:n_max, na.strings = c("", "-9.99e-29"),
+    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", startRow=2, na.strings = c("", "-9.99e-29"),
     check.names=TRUE) %>%
     dplyr::rename(Site = X2, sampleDateTime = X3) %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%

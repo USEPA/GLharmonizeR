@@ -1,4 +1,4 @@
-noaaReadClean <- function(noaaWQ, namingFile, n_max = Inf) {
+noaaReadClean <- function(noaaWQ, namingFile) {
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -30,7 +30,7 @@ noaaReadClean <- function(noaaWQ, namingFile, n_max = Inf) {
   noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
     dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth.(m)`)
 
-  noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 3:n_max) %>%
+  noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", startRow = 3) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
     dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
     dplyr::mutate(

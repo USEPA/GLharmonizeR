@@ -74,15 +74,13 @@
     } %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     # [x] fill missing units as the most common non-missing units within a given study-year
-    # Group by study-year, analytes then
+    # Group by study-year, analytes
     dplyr::mutate(
       ReportedUnits = ifelse(
         is.na(ReportedUnits),
-        # impute with hte mode
-        (data.frame(table(ReportedUnits)) %>%
-          tidyr::drop_na() %>%
-          dplyr::arrange(dplyr::desc(Freq)))[[1]],
-        ReportedUnits
+        # impute with the mode
+        as.character(names(sort(table(ReportedUnits), decreasing=T, na.last =T))[1]),
+        as.character(ReportedUnits)
       ),
       QAcode = ifelse(is.na(ReportedUnits),
         paste(QAcode, ";", "No reported units, so assumed same as most common units for this given analyte on this year"),
