@@ -32,8 +32,14 @@
 
   # Read NCCA Water chemistry files
   # [x] Make the wqQA argument name consistent over all levels
-  nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, NCCAwqQA = NCCAwqQA, n_max = n_max) %>%
-    # XXX This might break when NCCA updates their data with new UID's
+  if (!is.null(NCCAwq2010)) dfs[[1]] <- .readNCCA2010(NCCAwq2010, n_max = n_max) else print("2010 WQ filepath not specified or trouble finding")
+  if (!is.null(NCCAwq2015)) dfs[[2]] <- .readNCCA2015(NCCAwq2015, n_max = n_max) else print("2015 WQ filepath not specified or trouble finding")
+   nccaWQ <- dplyr::bind_rows(dfs) %>%
+    # QC filters
+    # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
+    dplyr::mutate(
+      SAMPYEAR = lubridate::year(sampleDateTime)# XXX This might break when NCCA updates their data with new UID's
+    ) %>%
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDateTime))
 

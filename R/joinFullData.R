@@ -118,6 +118,17 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
     )))
 
+    # [ ] join flag explanations
+    # fuzzy join solution from 
+    # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
+    fuzzyjoin::fuzzy_join(
+      QA,
+      # didn't include sampyear, because codes seem to have stayed the same
+      by = c("QAcode"),
+      match_fun = list(stringr::str_detect),
+      mode = "left"
+    ) %>%
+
 
   if (!is.null(out) & binaryOut) {
     print("Writing data to")

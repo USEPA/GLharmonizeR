@@ -78,26 +78,12 @@
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types= FALSE) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
-    # [x] filter out based on QA decisions
-    dplyr::filter(!grepl("remove", Decision, ignore.case = T)) %>%
-    dplyr::filter(!((Decision == "Remove based on comment") & (grepl("suspect", QA_COMMENT)))) %>%
-    dplyr::mutate(
-      RESULT = dplyr::case_when(
-        Decision == "Impute" ~ NA,
-        Decision == "Keep" ~ RESULT,
-        Decision == "CTB" ~ NA,
-        .default = RESULT
-      ),
-      FLAG = dplyr::case_when(
-        Decision == "Impute" ~ paste(QA_COMMENT, ";", "Value is appropriate to impute"),
-        Decision == "CTB" ~ paste(QA_COMMENT, ";", "Clear to Bottom"),
-        .default = QA_COMMENT
-      ),
-      ANALYTE = dplyr::coalesce(PARAMETER_NAME, ANALYTE)
-    ) %>%
     dplyr::rename(
+      ANALYTE = PARAMETER_NAME,
       sampleDepth = SDEPTH,
-      stationDepth = `STATION_DEPTH(m)`
+      stationDepth = `STATION_DEPTH(m)`,
+      QAcode = QA_CODE,
+      QAcomment = QA_COMMENT
     ) %>%
     dplyr::mutate(
       # This is unaffected by being grouped
@@ -127,8 +113,8 @@
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010"
-    ) %>%
-    dplyr::select(DATE_COL)
+    )
+  return(df)
 }
 
 
