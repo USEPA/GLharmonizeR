@@ -159,9 +159,9 @@
 #' @return dataframe
 .readNCCAhydro <- function(
     NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-    NCCAwqQA, n_max = Inf) {
+    n_max = Inf) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(NCCAhydrofiles2010, NCCAwqQA = NCCAwqQA, n_max = n_max),
+    .readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max),
     .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max),
     .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max)
   )
