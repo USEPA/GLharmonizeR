@@ -47,14 +47,15 @@
         CLEAR_TO_BOTTOM == FALSE ~ RESULT,
         is.na(CLEAR_TO_BOTTOM) ~ RESULT
       ),
-      QAcomment = dplyr::case_when(
-        CLEAR_TO_BOTTOM == TRUE ~ paste("Clear to bottom", QAcomment, sep = ";"),
-        CLEAR_TO_BOTTOM == FALSE ~ QAcomment,
-        is.na(CLEAR_TO_BOTTOM) ~ QAcomment
+      # Looked through and saw none of the QAcomments were relevent
+      # So only relevant comments are related to whether clear to bottom
+      QAcomment = NA,
+      QAcode = dplyr::case_when(
+        CLEAR_TO_BOTTOM == TRUE ~ "CTB",
       )
     ) %>%
     dplyr::mutate(
-      Study = "NCCA_secchi_2015"
+      Study = "NCCA_secchi_2015",
     ) %>%
     tidyr::drop_na(RESULT)
   return(df)
@@ -71,15 +72,12 @@
 #' @param filepath a string specifying the filepath of the data
 #'
 #' @return dataframe
-.readNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAwqQA, n_max = n_max) {
-  # Read qa decisions
-  QA <- openxlsx::read.xlsx(NCCAwqQA, sheet = "NCCAQAcounts2")
+.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
 
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types= FALSE) %>%
     # filter to just downcast
     dplyr::filter(CAST == "DOWNCAST") %>%
-    dplyr::left_join(QA, by = c("QA_CODE" = "QAcode")) %>%
     # [x] filter out based on QA decisions
     dplyr::filter(!grepl("remove", Decision, ignore.case = T)) %>%
     dplyr::filter(!((Decision == "Remove based on comment") & (grepl("suspect", QA_COMMENT)))) %>%

@@ -6,10 +6,10 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepaths a string specifying the directory of the data
+#' @param NCCAwq2010 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2010 <- function(filepaths, n_max = Inf) {
-  filepaths %>%
+.readNCCA2010 <- function(NCCAwq2010, n_max = Inf) {
+  NCCAwq2010 %>%
     purrr::map_dfr(readr::read_csv,
       n_max = n_max,
       show_col_types= FALSE,
@@ -82,12 +82,8 @@
     ) %>%
     dplyr::rename(
       QAcode = QACODE
-    ) %>%
-    dplyr::mutate(
-      QAcode = paste(QAcode, ifelse(STATE == "WI", "WSLH", ""), sep = ";"),
-      QAcode = stringr::str_remove(QAcode, ";$")
-    )
-}
+    ) 
+    }
 
 #' Read in all NCCA water quality from 2015
 #'
@@ -171,7 +167,11 @@
       QAcode = stringr::str_remove(QAcode, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
-      QAcomment = paste(QAcode, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";")
+      QAcomment = paste(QAcomment, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";"),
+      QAcomment = stringr::str_remove_all(QAcomment, "NA;"),
+      QAcomment = stringr::str_remove_all(QAcomment, ": "),
+      QAcode = stringr::str_replace_all(QAcode, ";", ","),
+      QAcode = stringr::str_remove_all(QAcode, " ")
     )
 }
 
@@ -191,7 +191,7 @@
 #' @param filepath a string specifying the directory of the data
 #'
 #' @return dataframe
-.readNCCAchemistry <- function(NCCAwq2010 = NULL, NCCAwq2015 = NULL, nccaWQqaFile = NULL, n_max = n_max) {
+.readNCCAchemistry <- function(NCCAwq2010 = NULL, NCCAwq2015 = NULL, NCCAwqQA = NULL, n_max = n_max) {
   # [ ] Replace these argument names to match the overall function
   dfs <- list()
   # [ ] Incorporate QA into both 2010 and 2015, and make the argument consistently nccaWQqaFile
@@ -206,44 +206,21 @@
       SAMPYEAR = lubridate::year(sampleDateTime),
     )
 
+  QA <- openxlsx::read.xlsx(NCCAwqQA, sheet = "NCCAQAcounts2") %>%
+      dplyr::distinct(QAcode, Definition, QAconsiderations)
 
-
-  # DONE add a try catch if the filepath isn't included
-  tryCatch(
-    QA <- openxlsx::read.xlsx(nccaWQqaFile, sheet = "NCCAQAcounts2") %>%
-      select(SAMPYEAR, QAcode, Definition, QAconsiderations, Decision),
-    error = function(e) {
-      message("The NCCA QA water chemistry filepath was not correctly specified.")
-    }
-  )
-
-  dfs %>%
+  test <- dfs %>%
     # fuzzy join solution from 
     # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
     fuzzyjoin::fuzzy_join(
       QA,
-      by = c("SAMPYEAR", "QAcode"),
-      match_fun = list(`==`, stringr::str_detect),
+      # didn't include sampyear, because codes seem to have stayed the same
+      by = c("QAcode"),
+      match_fun = list(stringr::str_detect),
       mode = "left"
     ) %>%
     dplyr::mutate(
       QAcode = dplyr::coalesce(QAcode.x, QAcode.y),
-      SAMPYEAR = dplyr::coalesce(SAMPYEAR.x, SAMPYEAR.y),
-      RESULT = dplyr::case_when(
-        Decision == "Keep" ~ RESULT,
-        Decision == "Impute" ~ NA,
-        Decision == "Estimate" ~ RESULT,
-        Decision == "Remove" ~ NA,
-        .default = RESULT
-      ),
-      FLAG = dplyr::case_when(
-        Decision == "Keep" ~ NA,
-        Decision == "Impute" ~ "Impute value using one or more detect limits (see QA comment)",
-        Decision == "Estimate" ~ "Value estimate",
-        Decision == "Remove" ~ NA,
-        .default = NA
-      )
     ) %>%
-    dplyr::select(-c(dplyr::ends_with(".x"), dplyr::ends_with(".y"))) %>%
-    dplyr::filter(Decision != "Remove")
+    dplyr::select(-c(dplyr::ends_with(".x"), dplyr::ends_with(".y")))
 }

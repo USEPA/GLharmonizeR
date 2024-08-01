@@ -32,7 +32,7 @@
 
   # Read NCCA Water chemistry files
   # [x] Make the wqQA argument name consistent over all levels
-  nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, nccaWQqaFile = NCCAwqQA, n_max = n_max) %>%
+  nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, NCCAwqQA = NCCAwqQA, n_max = n_max) %>%
     # XXX This might break when NCCA updates their data with new UID's
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
     dplyr::mutate(Year = lubridate::year(sampleDateTime))
