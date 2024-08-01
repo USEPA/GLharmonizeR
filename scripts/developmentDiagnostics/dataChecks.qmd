@@ -72,10 +72,11 @@ GLENDA %>%
 
 # Flags
 ```{r flags}
-flags <- df %>%
-  distinct(Study, QAcode, QAcomment) %>%
+flags <- df %>% 
+  distinct(Study, QAcode, QAcomment, Decision) %>%
   separate_longer_delim(QAcode, delim = ";") %>%
   separate_longer_delim(QAcomment, delim = ";") %>%
+  distinct() %>%
   mutate(
     QAcode = str_remove_all(QAcode, "NA,"),
     QAcode = str_remove_all(QAcode, " NA,"),
@@ -90,6 +91,9 @@ flags <- df %>%
     QAcomment = str_trim(QAcomment),
     ) %>%
   filter((!is.na(QAcode))  | (!is.na(QAcomment)))
+
+write_csv(flags, "tempFlags.csv")
+
 ```
 
 

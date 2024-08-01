@@ -31,7 +31,7 @@
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files
-  # [ ] Make the wqQA argument name consistent over all levels
+  # [x] Make the wqQA argument name consistent over all levels
   nccaWQ <- .readNCCAchemistry(NCCAwq2010, NCCAwq2015, nccaWQqaFile = NCCAwqQA, n_max = n_max) %>%
     # XXX This might break when NCCA updates their data with new UID's
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
@@ -49,9 +49,7 @@
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
     # Cleaning up a column naming mistake
-    # [ ] Make sure these still work after the upstream changes
-    dplyr::mutate(QAcode = dplyr::coalesce(QAcode, QACODE)) %>%
-    dplyr::select(-QACODE) %>%
+    # [x] Make sure these still work after the upstream changes
     dplyr::mutate(
       stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x),
       sampleDateTime = dplyr::coalesce(sampleDateTime, DATE_COL),
@@ -83,7 +81,7 @@
         as.character(ReportedUnits)
       ),
       QAcode = ifelse(is.na(ReportedUnits),
-        paste(QAcode, ";", "No reported units, so assumed same as most common units for this given analyte on this year"),
+        paste(QAcode, ";", "No reported units, so assumed most common units for this given analyte-year"),
         QAcode
       ),
       .by = c(Study, Year, ANALYTE)

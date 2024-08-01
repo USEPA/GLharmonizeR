@@ -31,47 +31,47 @@
       ANALYTE = PARAMETER_NAME,
       sampleDateTime = DATE_COL
     ) %>%
-    dplyr::mutate(
-      # Combine Nitrate  Nitrite
-      Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
-      Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
-      METHOD = as.character(METHOD),
-      `Nitrate/Nitrite` = Nitrate + Nitrite,
-      # DONE does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
-      # NO. We discussed these in our meetings and decide it has the correct behavior when one or more
-      # values are missing
-      # XXX maybe easier to do pivot_wider first
-      # DONE make sure Nitrate and Nitrite are already mg/L (this is true)
-      # DOCTHIS We assume sampling events that don't have certain analytes reported
-      # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
-      RESULT = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
-        .default = RESULT
-      ),
-      ANALYTE = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "Nitrate/Nitrite",
-        .default = ANALYTE
-      ),
-      ANL_CODE = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "Diss_NOx",
-        .default = ANALYTE
-      ),
-      UNITS = dplyr::case_when(
-        ANALYTE == "Nitrate" ~ "mgl",
-        .default = UNITS
-      ),
-      .by = c(UID, SITE_ID, sampleDateTime)
-    ) %>%
+    # dplyr::mutate(
+    #   # Combine Nitrate  Nitrite
+    #   Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
+    #   Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
+    #   METHOD = as.character(METHOD),
+    #   `Nitrate/Nitrite` = Nitrate + Nitrite,
+    #   # DONE does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
+    #   # NO. We discussed these in our meetings and decide it has the correct behavior when one or more
+    #   # values are missing
+    #   # XXX maybe easier to do pivot_wider first
+    #   # DONE make sure Nitrate and Nitrite are already mg/L (this is true)
+    #   # DOCTHIS We assume sampling events that don't have certain analytes reported
+    #   # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
+    #   RESULT = dplyr::case_when(
+    #     ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
+    #     .default = RESULT
+    #   ),
+    #   ANALYTE = dplyr::case_when(
+    #     ANALYTE == "Nitrate" ~ "Nitrate/Nitrite",
+    #     .default = ANALYTE
+    #   ),
+    #   ANL_CODE = dplyr::case_when(
+    #     ANALYTE == "Nitrate" ~ "Diss_NOx",
+    #     .default = ANALYTE
+    #   ),
+    #   UNITS = dplyr::case_when(
+    #     ANALYTE == "Nitrate" ~ "mgl",
+    #     .default = UNITS
+    #   ),
+    #   .by = c(UID, SITE_ID, sampleDateTime)
+    # ) %>%
     # [x] remove vlaues if one is missing
-    dplyr::filter((!is.na(Nitrite)) & (!is.na(Nitrate))) %>%
-    dplyr::select(
-      # Remove the columns that we created called Nitrate, Nitrite and Nitrate/Nitrite
-      -dplyr::contains("Nitr")
-    ) %>%
-    # Don't need to drop Ambient PAR because we enter CPAR in its stead
-    dplyr::filter(
-      ANALYTE != "Nitrite"
-    ) %>%
+    #dplyr::filter((!is.na(Nitrite)) & (!is.na(Nitrate))) %>%
+    # dplyr::select(
+    #   # Remove the columns that we created called Nitrate, Nitrite and Nitrate/Nitrite
+    #   -dplyr::contains("Nitr")
+    # ) %>%
+    # # Don't need to drop Ambient PAR because we enter CPAR in its stead
+    # dplyr::filter(
+    #   ANALYTE != "Nitrite"
+    # ) %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDepth = 0.5
@@ -80,8 +80,12 @@
       # [x] add this to Analytes3
       Study = "NCCA_WChem_2010"
     ) %>%
+    dplyr::rename(
+      QAcode = QACODE
+    ) %>%
     dplyr::mutate(
-      QACODE = paste(QACODE, ifelse(STATE == "WI", "WSLH", ""), sep = ";")
+      QAcode = paste(QAcode, ifelse(STATE == "WI", "WSLH", ""), sep = ";"),
+      QAcode = stringr::str_remove(QAcode, ";$")
     )
 }
 
@@ -164,6 +168,9 @@
     ) %>%
     dplyr::mutate(
       QAcode = paste(QAcode, ifelse(LAB == "WSLH", "WSLH", ""), sep = ";"),
+      QAcode = stringr::str_remove(QAcode, ";$"),
+      QAcomment = stringr::str_remove(QAcomment, ";$"),
+      QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = paste(QAcode, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";")
     )
 }
@@ -195,7 +202,11 @@
   dfs <- dplyr::bind_rows(dfs) %>%
     # QC filters
     # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
-    dplyr::mutate(SAMPYEAR = lubridate::year(sampleDateTime))
+    dplyr::mutate(
+      SAMPYEAR = lubridate::year(sampleDateTime),
+    )
+
+
 
   # DONE add a try catch if the filepath isn't included
   tryCatch(
