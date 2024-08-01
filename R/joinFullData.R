@@ -54,11 +54,39 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
     NCCAwq2015, NCCAhydrofiles2010,
     NCCAhydrofile2015, NCCAsecchifile2015,
-    Lakes = c("Lake Michigan"), namingFile,
-    NCCAwqQA = NCCAwqQA, n_max = n_max
+    Lakes = c("Lake Michigan"),
+    n_max = n_max
   ) %>%
-    dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
-    dplyr::select(-c(Years, Finalized))
+  # rename
+  dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
+    by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na") %>%
+  # unit conversions
+  dplyr::left_join(key, by = "CodeName") %>%
+  # standardize units
+  dplyr::mutate(
+    ReportedUnits = tolower(ReportedUnits),
+    ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+    ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+    ReportedUnits = dplyr::case_when(
+      # [x] can we make this more year specific
+      # These were take from hdyro 2015 metadata file
+      (Year == 2015) & (CodeName == "DO") ~ "mgl",
+      (Year == 2015) & (CodeName == "Secchi") ~ "m",
+      (Year == 2015) & (CodeName == "Temp") ~ "c",
+      (Year == 2015) & (CodeName == "Cond") ~ "uscm",
+      (Year == 2015) & (CodeName == "CPAR") ~ "%"
+    )
+  ) %>%
+  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+  dplyr::mutate(RESULT = dplyr::case_when(
+    ReportedUnits == TargetUnits ~ RESULT,
+    is.na(ReportedUnits) ~ RESULT,
+    .default = RESULT * ConversionFactor
+  ), ) %>%
+  dplyr::select(-Units) %>%
+  dplyr::rename(Units = TargetUnits) %>%
+  dplyr::filter(CodeName != "Remove")
+  # [ ] Join to QA flag decisiosn and filter
 
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
@@ -66,7 +94,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
     )
-  # [ ] filter "remove" analytes
 
   print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
 
@@ -128,7 +155,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       match_fun = list(stringr::str_detect),
       mode = "left"
     ) %>%
-
 
   if (!is.null(out) & binaryOut) {
     print("Writing data to")

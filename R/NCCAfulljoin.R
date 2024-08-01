@@ -20,22 +20,21 @@
 #' @return dataframe
 .LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                          Lakes = c("Lake Michigan"), namingFile, n_max = Inf) {
+                          Lakes = c("Lake Michigan"), n_max = Inf) {
   # [ ] Did we QC all of the great lakes already???
   sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-    n_max = n_max
-  ) %>%
+    n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files
   # [x] Make the wqQA argument name consistent over all levels
   nccaWQ <- dplyr::bind_rows(
-    c(.readNCCA2010(NCCAwq2010, n_max = n_max),
+    .readNCCA2010(NCCAwq2010, n_max = n_max),
     .readNCCA2015(NCCAwq2015, n_max = n_max)
-  )) %>%
+  ) %>%
   # QC filters
   # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
   dplyr::mutate(
@@ -45,13 +44,6 @@
   dplyr::mutate(Year = lubridate::year(sampleDateTime))
 
 
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA"))
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
@@ -68,15 +60,16 @@
       stationDepth.x, stationDepth.y,
       DATE_COL # QAconsiderations,
     )) %>%
+    # [ ] Fix filter for region and lake
     # Great lakes get's priority over spcifying each lake
-    dplyr::filter(NCCRreg == "Great Lakes") %>%
-    {
-      if (!is.null(Lakes)) {
-        dplyr::filter(., WTBDY_NM %in% Lakes)
-      } else {
-        .
-      }
-    } %>%
+    #dplyr::filter(NCCRreg == "Great Lakes") %>%
+    #{
+    #  if (!is.null(Lakes)) {
+    #    dplyr::filter(., WTBDY_NM %in% Lakes)
+    #  } else {
+    #    .
+    #  }
+    #} %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     # [x] fill missing units as the most common non-missing units within a given study-year
     # Group by study-year, analytes
@@ -88,39 +81,15 @@
         as.character(ReportedUnits)
       ),
       QAcode = ifelse(is.na(ReportedUnits),
-        paste(QAcode, ";", "No reported units, so assumed most common units for this given analyte-year"),
+        paste0(QAcode, "; U"),
+        QAcode
+      ),
+      QAcomment = ifelse(is.na(ReportedUnits),
+        paste0(QAcode, "; No reported units, so assumed most common units for this given analyte-year"),
         QAcode
       ),
       .by = c(Study, Year, ANALYTE)
-    ) %>%
-    # rename
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na") %>%
-    # unit conversions
-    dplyr::left_join(key, by = "CodeName") %>%
-    # standardize units
-    dplyr::mutate(
-      ReportedUnits = tolower(ReportedUnits),
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
-      ReportedUnits = dplyr::case_when(
-        # [x] can we make this more year specific
-        # These were take from hdyro 2015 metadata file
-        (Year == 2015) & (CodeName == "DO") ~ "mgl",
-        (Year == 2015) & (CodeName == "Secchi") ~ "m",
-        (Year == 2015) & (CodeName == "Temp") ~ "c",
-        (Year == 2015) & (CodeName == "Cond") ~ "uscm",
-        (Year == 2015) & (CodeName == "CPAR") ~ "%"
-      )
-    ) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = dplyr::case_when(
-      ReportedUnits == TargetUnits ~ RESULT,
-      is.na(ReportedUnits) ~ RESULT,
-      .default = RESULT * ConversionFactor
-    ), ) %>%
-    dplyr::select(-Units) %>%
-    dplyr::rename(Units = TargetUnits) %>%
-    dplyr::filter(CodeName != "Remove")
+    )
   # Turn into test
   # final %>%
   #   filter(TargetUnits != ReportedUnits) %>%
