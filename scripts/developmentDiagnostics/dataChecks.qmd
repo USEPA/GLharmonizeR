@@ -7,13 +7,11 @@ date: today
 library(tidyverse)
 devtools::load_all()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
-df <- readRDS("fullData.Rds")
+#df <- readRDS("fullData.Rds")
 ```
 
 # Missingness
 ```{r}
-
-
 df %>%
   select(1:9, 16:21, 23:24,27) %>%
   reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
@@ -73,8 +71,9 @@ GLENDA %>%
 # Flags
 ```{r flags}
 flags <- df %>% 
-  distinct(Study, QAcode, QAcomment, Decision) %>%
+  distinct(Study, QAcode, QAcomment) %>%
   separate_longer_delim(QAcode, delim = ";") %>%
+  separate_longer_delim(QAcode, delim = ",") %>%
   separate_longer_delim(QAcomment, delim = ";") %>%
   distinct() %>%
   mutate(
@@ -90,8 +89,14 @@ flags <- df %>%
     QAcode = str_trim(QAcode),
     QAcomment = str_trim(QAcomment),
     ) %>%
-  filter((!is.na(QAcode))  | (!is.na(QAcomment)))
-
+  filter((!is.na(QAcode))  | (!is.na(QAcomment))) %>%
+    dplyr::mutate(
+      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
+      "U", QAcode),
+      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
+    ) %>%
+    distinct()
 write_csv(flags, "tempFlags.csv")
 
 ```
@@ -105,9 +110,7 @@ removedDup <- df %>%  # 11877651 partial observations
   dplyr::reframe(
     .by = c(UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName, LongName, TargetUnits),
     across(c(RESULT, MDL, MRL, PQL), mean, na.rm=T))
-
-    )
-  filter(n() > 1, .by = c(Longitude, Latitude, sampleDepth, CodeName, sampleDateTime)) # 6683746
+  #filter(n() > 1, .by = c(Longitude, Latitude, sampleDepth, CodeName, sampleDateTime)) # 6683746
 
 suspectedDup %>%
   select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)

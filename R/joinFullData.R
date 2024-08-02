@@ -64,9 +64,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   dplyr::left_join(key, by = "CodeName") %>%
   # standardize units
   dplyr::mutate(
-    ReportedUnits = tolower(ReportedUnits),
     ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
     ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+    ReportedUnits = tolower(ReportedUnits),
     ReportedUnits = dplyr::case_when(
       # [x] can we make this more year specific
       # These were take from hdyro 2015 metadata file
@@ -82,11 +82,13 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     ReportedUnits == TargetUnits ~ RESULT,
     is.na(ReportedUnits) ~ RESULT,
     .default = RESULT * ConversionFactor
-  ), ) %>%
+  )) %>%
   dplyr::select(-Units) %>%
   dplyr::rename(Units = TargetUnits) %>%
-  dplyr::filter(CodeName != "Remove")
+  dplyr::filter(CodeName != "Remove") %>%
+  dplyr::select(-c(Finalized, Years))
   # [ ] Join to QA flag decisiosn and filter
+
 
   print("Step 3/6: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
@@ -95,9 +97,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
     )
 
-  print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
 
-  # [ ] Move this out of the main function
+  print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
   seaBirdDf <- readr::read_rds(seaBird) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
@@ -111,17 +112,20 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
   GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
-    select(-Finalized)
+    select(-c(Finalized))
+
+
 
   print("Step 5/6: Read and clean CSMI data")
   CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
     # Years is in the date, and ANL_CODE is all NA
-    dplyr::select(-c(Years, ANL_CODE)) %>%
+    dplyr::select(-c(Years, ANL_CODE, Finalized)) %>%
     dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
   # [x] filter "remove" analytes
 
   print("Step 5.5/6: Read and clean NOAA data")
-  NOAA <- noaaReadClean(noaaWQ, namingFile)
+  NOAA <- noaaReadClean(noaaWQ, namingFile) %>%
+    dplyr::select(-Years)
 
   print("Step 6/6: Combine and return full data")
   allWQ <- dplyr::bind_rows(
@@ -136,34 +140,39 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       # time and space
       "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
       # analyte name
-      "CodeName", "ANALYTE", "Category", "LongName", # [ ] Add LongName from key tab for the "long name"
+      "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
       # unit conversion
       "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
       # measurement and limits
       "RESULT", "MDL", "MRL", "PQL",
       # QA
       "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
-    )))
+    ))) %>%
+    # catching some where units were inferred
+    dplyr::mutate(
+      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
+      "U", QAcode),
+      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
+    )
 
     # [ ] join flag explanations
     # fuzzy join solution from 
     # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
-    fuzzyjoin::fuzzy_join(
-      QA,
-      # didn't include sampyear, because codes seem to have stayed the same
-      by = c("QAcode"),
-      match_fun = list(stringr::str_detect),
-      mode = "left"
-    ) %>%
+    # fuzzyjoin::fuzzy_join(
+    #   QA,
+    #   # didn't include sampyear, because codes seem to have stayed the same
+    #   by = c("QAcode"),
+    #   match_fun = list(stringr::str_detect),
+    #   mode = "left"
+    # ) %>%
 
   if (!is.null(out) & binaryOut) {
-    print("Writing data to")
-    print(paste0(out, ".Rds"))
+    print(paste0("Writing data to ", out, ".Rds"))
     saveRDS(allWQ, paste0(out, ".Rds"))
   } else {
     out <- paste0(out, ".csv")
-    print("Writing data to")
-    print(out)
+    print(paste0("Writing data to ", out, ".csv"))
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }
 

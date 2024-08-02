@@ -1,0 +1,61 @@
+Study,QAcode,QAcomment,Definition,Unified Flag,Decision
+NCCA_hydro_2010,U,"No reported units, so assumed most common units for this given analyte-year","No reported units, so assumed most common units for this given analyte-year",,"Change units, report flag"
+NCCA_hydro_2010,Q14,<3 Records,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q14,Kd not calculated,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q14,UW value is suspect,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q14,AMB value is suspect,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q14,NA,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q14,No depth,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,R,pH & COND probe malfunction,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,,
+NCCA_hydro_2010,Q01,pH & COND probe malfunction,field equipment questionable/failure,,
+NCCA_hydro_2010,Q01,NA,field equipment questionable/failure,,
+NCCA_hydro_2010,R,pH failed QC check,Data did not meet NCCA DQOs.  Data removed from NARS analysis; use of data at end-users' discretion,,
+NCCA_hydro_2010,Q01,pH failed QC check,field equipment questionable/failure,,
+NCCA_hydro_2010,Q14,Duplicate depth,Record not used in regression calculation of Kd,,Remove: UW values suspect; AMB values suspect. Basically only remove if 'suspect' is in the comment
+NCCA_hydro_2010,Q10,UW value is suspect,Field Procedure QC not met,,
+NCCA_hydro_2015,U,"No reported units, so assumed most common units for this given analyte-year","No reported units, so assumed most common units for this given analyte-year",,
+NCCA_secchi_2015,U,"No reported units, so assumed most common units for this given analyte-year","No reported units, so assumed most common units for this given analyte-year",,
+NCCA_WChem_2010,N,Non-detect; numeric zero entered in results field to simplify database manipulation,Non-detect; numeric zero entered in results field to simplify database manipulation,,Set value to NA; flag as <MDL
+NCCA_WChem_2010,J01,No MDL Reported;  MDL set to lowest result value reported by lab,No MDL Reported;  MDL set to lowest result value reported by lab,,
+NCCA_WChem_2010,J02,Reported value is less than MDL but greater than zero.,Reported value is less than MDL but greater than zero.,,Set value to NA; flag as <MDL
+NCCA_WChem_2010,J03,reported value is between MDL and RL and therefore considered an estimate,reported value is between MDL and RL and therefore considered an estimate,,Keep value; flag as estimate
+NCCA_WChem_2010,Q06,NA,,,
+NCCA_WChem_2010,Q08,Holding Time Exceeded,Holding Time Exceeded,,
+NCCA_WChem_2010,L,Less than reporting limit but above MDL,Less than reporting limit but above MDL,,Keep value; flag as estimate
+NCCA_WChem_2010,Q21,NA,,,
+NCCA_WChem_2010,Q23,Result value calculated by NARS IM team,Result value calculated by NARS IM team,,
+NCCA_WChem_2010,Q05,NA,,,
+NCCA_WChem_2015,WSLH,WSLH used large filters for Chla-A,WSLH used large filters for Chla-A,,"Keep, flag"
+GLENDA,NA,Field Lab Anomaly,,,
+GLENDA,NA,Quality Control incomplete,,,
+GLENDA,NA,Exceeded Holding Time,,,
+GLENDA,NA,"Suspected Contamination, field",,,
+GLENDA,NA,"Field Reagent Blank, failed",,,
+GLENDA,NA,"Method Detection Limit, less than",,,
+GLENDA,NA,"Field Duplicate, failed",,,
+GLENDA,NA,"Performance Check, failed",,,
+GLENDA,NA,"Estimated Value, outside limit of precision",,,
+GLENDA,NA,"Detection Limit, less than",,,
+GLENDA,NA,"Lab Duplicate, failed",,,
+GLENDA,NA,"Suspected Contamination, unknown",,,
+GLENDA,NA,"Correction Factor, lab",,,
+GLENDA,NA,"Suspected Contamination, lab analysis",,,
+GLENDA,NA,"Lab Reagent Blank, failed",,,
+GLENDA,NA,"No Result Reported, analysis canceled",,,
+GLENDA,NA,Composite Inconsistent With Sample Results,,,
+GLENDA,NA,"Reporting Limit, less than",,,
+GLENDA,NA,Likely Biased High,,,
+GLENDA,NA,"Lab Calibration Verification Solution, failed",,,
+GLENDA,NA,"No Result Reported, other",,,
+GLENDA,NA,Likely Biased Low,,,
+GLENDA,NA,"Matrix Spike, failed",,,
+GLENDA,NA,Between Instrument Detection and Quantification Limits,,,
+GLENDA,NA,"Lab Procedural Blank, failed",,,
+GLENDA,NA,"Lab Spike Blank, failed",,,
+GLENDA,NA,"CLP Flag, Estimate",,,
+GLENDA,NA,"No Result Reported, lab accident",,,
+GLENDA,NA,"Estimated Value, serial dilution difference",,,
+GLENDA,NA,"Known Contamination, field",,,
+GLENDA,NA,"Outlier, accross stations",,,
+GLENDA,NA,"Outlier, single station",,,
+CSMI_2015,NA,Below mdl,,,

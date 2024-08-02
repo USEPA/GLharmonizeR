@@ -85,8 +85,8 @@
         QAcode
       ),
       QAcomment = ifelse(is.na(ReportedUnits),
-        paste0(QAcode, "; No reported units, so assumed most common units for this given analyte-year"),
-        QAcode
+        paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
+        QAcomment
       ),
       .by = c(Study, Year, ANALYTE)
     )
