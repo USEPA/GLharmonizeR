@@ -131,7 +131,7 @@
 .readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
   readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types= FALSE) %>%
     # the only comments mention no measurment data or typo
-    dplyr::filter(is.na(NARS_COMMENT)) %>%
+    # [x] Need to remove all NARS_COMMENTs
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
