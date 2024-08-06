@@ -242,7 +242,7 @@
         .default = VALUE
       ),
       RESULT_REMARK = dplyr::case_when(
-        grepl("estimate", RESULT_REMARK, ignore.case = TRUE) ~ paste(RESULT_REMARK, NA, sep = ";"),
+        grepl("estimate", RESULT_REMARK, ignore.case = TRUE) ~ paste(RESULT_REMARK, "CTB", sep = ";"),
         .default = RESULT_REMARK
       )
     ) %>%

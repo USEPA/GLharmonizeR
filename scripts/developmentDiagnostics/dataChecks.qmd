@@ -107,14 +107,104 @@ write_csv(flags, "tempFlags.csv")
 
 removedDup <- df %>%  # 11877651 partial observations
   dplyr::distinct() %>% # 11853750 
-  dplyr::reframe(
-    .by = c(UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName, LongName, TargetUnits),
-    across(c(RESULT, MDL, MRL, PQL), mean, na.rm=T))
-  #filter(n() > 1, .by = c(Longitude, Latitude, sampleDepth, CodeName, sampleDateTime)) # 6683746
+  # [ ] Round to that decimal place and do exact match
+  # [ ] Include study as another column
+  # [ ] For each lat/lon write list of stations
+    # [ ] Then do an exact match
+
 
 suspectedDup %>%
   select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)
 
 removedObviousdups <- df %>% dplyr::distinct()
+
+```
+
+### rounding lat lon
+```{r}
+rounded <- df %>%
+  distinct(Study, SITE_ID, Latitude, Longitude) %>%
+  reframe(studies = toString(unique(Study)), .by = c(SITE_ID, Latitude, Longitude)) %>%
+  mutate(
+    Lat2 = round(Latitude, digits=2),
+    Lat3 = round(Latitude, digits=3),
+    Lat4 = round(Latitude, digits=4),
+    Long2 = round(Longitude, digits=2),
+    Long3 = round(Longitude, digits=3),
+    Long4 = round(Longitude, digits=4),
+    )
+
+rounded2 <- rounded %>% 
+  filter(n() > 1, .by =c(Lat2,Long2)) %>%
+  reframe(
+    sites = toString(unique(SITE_ID)),
+    studies = toString(unique(studies)),
+    .by = c(Lat2, Long2)
+  )
+rounded3 <- rounded %>% 
+  filter(n() > 1, .by =c(Lat3,Long3)) %>%
+  reframe(
+    sites = toString(unique(SITE_ID)),
+    studies = toString(unique(studies)),
+    .by = c(Lat3, Long3)
+  )
+rounded4 <- rounded %>% 
+  filter(n() > 1, .by =c(Lat4,Long4)) %>%
+  reframe(
+    sites = toString(unique(SITE_ID)),
+    studies = toString(unique(studies)),
+    .by = c(Lat4, Long4)
+  )
+nrow(rounded2)
+nrow(rounded3)
+nrow(rounded4)
+
+write_csv(rounded2, "2digitStationOverlap.csv")
+write_csv(rounded3, "3digitStationOverlap.csv")
+write_csv(rounded4, "4digitStationOverlap.csv")
+```
+
+```{r}
+unzip("ne_50m_lakes.zip")
+theme_set(theme_bw())
+lakes <- sf::read_sf("ne_50m_lakes.shp")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black",  alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)/2))
+ggsave("differencePrecisionsLM.png")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-87, -86), ylim = c(44, 45)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black", alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)))
+ggsave("differencePrecisionsLMzoom.png")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-85.9, -85.3), ylim = c(44.7, 45.4)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black", alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)))
+ggsave("differencePrecisionsLMNOAA.png")
+
+
+stations %>%
+  mutate(nch = nchar(as.character(Latitude))) %>%
+  count(nch)
 
 ```

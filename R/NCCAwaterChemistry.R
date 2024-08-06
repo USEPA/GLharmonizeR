@@ -31,47 +31,15 @@
       ANALYTE = PARAMETER_NAME,
       sampleDateTime = DATE_COL
     ) %>%
-    # dplyr::mutate(
-    #   # Combine Nitrate  Nitrite
-    #   Nitrite = mean(ifelse(ANALYTE == "Nitrite", RESULT, NA), na.rm = TRUE),
-    #   Nitrate = mean(ifelse(ANALYTE == "Nitrate", RESULT, NA), na.rm = TRUE),
-    #   METHOD = as.character(METHOD),
-    #   `Nitrate/Nitrite` = Nitrate + Nitrite,
-    #   # DONE does this create a problem (check if whenever Nitrate is missing Nitrite is missing)
-    #   # NO. We discussed these in our meetings and decide it has the correct behavior when one or more
-    #   # values are missing
-    #   # XXX maybe easier to do pivot_wider first
-    #   # DONE make sure Nitrate and Nitrite are already mg/L (this is true)
-    #   # DOCTHIS We assume sampling events that don't have certain analytes reported
-    #   # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
-    #   RESULT = dplyr::case_when(
-    #     ANALYTE == "Nitrate" ~ `Nitrate/Nitrite`,
-    #     .default = RESULT
-    #   ),
-    #   ANALYTE = dplyr::case_when(
-    #     ANALYTE == "Nitrate" ~ "Nitrate/Nitrite",
-    #     .default = ANALYTE
-    #   ),
-    #   ANL_CODE = dplyr::case_when(
-    #     ANALYTE == "Nitrate" ~ "Diss_NOx",
-    #     .default = ANALYTE
-    #   ),
-    #   UNITS = dplyr::case_when(
-    #     ANALYTE == "Nitrate" ~ "mgl",
-    #     .default = UNITS
-    #   ),
-    #   .by = c(UID, SITE_ID, sampleDateTime)
-    # ) %>%
-    # [x] remove vlaues if one is missing
-    #dplyr::filter((!is.na(Nitrite)) & (!is.na(Nitrate))) %>%
-    # dplyr::select(
-    #   # Remove the columns that we created called Nitrate, Nitrite and Nitrate/Nitrite
-    #   -dplyr::contains("Nitr")
-    # ) %>%
-    # # Don't need to drop Ambient PAR because we enter CPAR in its stead
-    # dplyr::filter(
-    #   ANALYTE != "Nitrite"
-    # ) %>%
+    dplyr::mutate(
+      # Combine Nitrate  Nitrite
+      METHOD = as.character(METHOD),
+      .by = c(UID, SITE_ID, sampleDateTime)
+      # [x] make sure Nitrate and Nitrite are already mg/L (this is true)
+      # DOCTHIS We assume sampling events that don't have certain analytes reported
+      # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
+    ) %>%
+    dplyr::filter(ANALYTE != "Nitrate", ANALYTE != "Nitrite") %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDepth = 0.5
@@ -82,7 +50,7 @@
     ) %>%
     dplyr::rename(
       QAcode = QACODE
-    ) 
+    )
     }
 
 #' Read in all NCCA water quality from 2015

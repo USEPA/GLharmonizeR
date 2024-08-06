@@ -44,8 +44,7 @@
     dplyr::mutate(
       RESULT = dplyr::case_when(
         CLEAR_TO_BOTTOM == TRUE ~ NA,
-        CLEAR_TO_BOTTOM == FALSE ~ RESULT,
-        is.na(CLEAR_TO_BOTTOM) ~ RESULT
+        .default = RESULT
       ),
       # Looked through and saw none of the QAcomments were relevent
       # So only relevant comments are related to whether clear to bottom
@@ -56,8 +55,7 @@
     ) %>%
     dplyr::mutate(
       Study = "NCCA_secchi_2015",
-    ) %>%
-    tidyr::drop_na(RESULT)
+    )
   return(df)
 }
 
