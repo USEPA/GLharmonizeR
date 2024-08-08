@@ -2,6 +2,8 @@ GL_Data*
 GL_Data-main/*
 *.zip
 
+*digitStationOverlap.csv
+
 # History files
 .Rhistory
 .Rapp.history

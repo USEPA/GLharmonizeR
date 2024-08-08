@@ -101,25 +101,6 @@ write_csv(flags, "tempFlags.csv")
 
 ```
 
-
-# Duplicates
-```{r duplicates}
-
-removedDup <- df %>%  # 11877651 partial observations
-  dplyr::distinct() %>% # 11853750 
-  # [ ] Round to that decimal place and do exact match
-  # [ ] Include study as another column
-  # [ ] For each lat/lon write list of stations
-    # [ ] Then do an exact match
-
-
-suspectedDup %>%
-  select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)
-
-removedObviousdups <- df %>% dplyr::distinct()
-
-```
-
 ### rounding lat lon
 ```{r}
 rounded <- df %>%
@@ -129,9 +110,11 @@ rounded <- df %>%
     Lat2 = round(Latitude, digits=2),
     Lat3 = round(Latitude, digits=3),
     Lat4 = round(Latitude, digits=4),
+    Lat5 = round(Latitude, digits=5),
     Long2 = round(Longitude, digits=2),
     Long3 = round(Longitude, digits=3),
     Long4 = round(Longitude, digits=4),
+    Long5 = round(Longitude, digits=5),
     )
 
 rounded2 <- rounded %>% 
@@ -155,13 +138,18 @@ rounded4 <- rounded %>%
     studies = toString(unique(studies)),
     .by = c(Lat4, Long4)
   )
-nrow(rounded2)
-nrow(rounded3)
-nrow(rounded4)
+rounded5 <- rounded %>% 
+  filter(n() > 1, .by =c(Lat5,Long5)) %>%
+  reframe(
+    sites = toString(unique(SITE_ID)),
+    studies = toString(unique(studies)),
+    .by = c(Lat4, Long4)
+  )
 
 write_csv(rounded2, "2digitStationOverlap.csv")
 write_csv(rounded3, "3digitStationOverlap.csv")
 write_csv(rounded4, "4digitStationOverlap.csv")
+write_csv(rounded5, "5digitStationOverlap.csv")
 ```
 
 ```{r}
@@ -206,5 +194,22 @@ ggsave("differencePrecisionsLMNOAA.png")
 stations %>%
   mutate(nch = nchar(as.character(Latitude))) %>%
   count(nch)
+
+```
+
+# Duplicates
+```{r duplicates}
+
+removedDup <- df %>%  # 11877651 partial observations
+  dplyr::distinct() %>% # 11853750 
+  # [ ] Round to that decimal place and do exact match
+  # [ ] Include study as another column
+  # [ ] For each lat/lon write list of stations
+    # [ ] Then do an exact match
+
+
+suspectedDup %>%
+  select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)
+
 
 ```

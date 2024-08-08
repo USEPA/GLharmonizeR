@@ -64,7 +64,7 @@
 #' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
 .readNCCA2015 <- function(NCCAwq2015, n_max = Inf) {
-  readr::read_csv(NCCAwq2015,
+  df <- readr::read_csv(NCCAwq2015,
     n_max = n_max,
     show_col_types= FALSE,
     col_types = readr::cols(
@@ -81,13 +81,23 @@
       "RESULT_UNITS" = "c"
     )
   ) %>%
-    dplyr::rename(
-      sampleDateTime = DATE_COL,
-      QAcode = NARS_FLAG,
-      QAcomment = NARS_COMMENT,
-      UNITS = RESULT_UNITS,
-      ANL_CODE = ANALYTE
-    ) %>%
+  dplyr::rename(
+    sampleDateTime = DATE_COL,
+    QAcode = NARS_FLAG,
+    QAcomment = NARS_COMMENT,
+    UNITS = RESULT_UNITS,
+    ANL_CODE = ANALYTE
+  ) %>%
+  # 95% missingness beofre LRL 88% after
+  # 40% missingness before MDL 24% after
+  # Didn't do anything for method so removing it's inference 
+  # fill in lab specific quantities
+  dplyr::mutate(
+    LRL = mean(LRL, na.rm = T),
+    MDL = mean(MDL, na.rm= T),
+    # Lab isn't missing
+    .by = c(LAB, ANL_CODE)
+  ) %>%
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime),
       # Combine Nitrate adn Nitrite
@@ -98,11 +108,17 @@
       # We decided not to do this actually. That it is easy enough to read and understand
       Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
       Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
+      # Only 5% couldn't be imputed this way
+      NitriteMDL = mean(ifelse(ANL_CODE == "NITRITE_N", MDL, NA), na.rm = TRUE),
+      NitrateMDL = mean(ifelse(ANL_CODE == "NITRATE_N", MDL, NA), na.rm = TRUE),
       `Nitrate/Nitrite` = Nitrate + Nitrite,
+      NitrateNitriteMDL = NitriteMDL + NitrateMDL,
       RESULT = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ `Nitrate/Nitrite`,
         .default = RESULT
       ),
+      # [x] create mdl for imputing nitrate nitrite
+      MDL = ifelse(ANL_CODE == "NITRATE_N", NitrateNitriteMDL, MDL),
       # Change the names
       ANL_CODE = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
@@ -138,7 +154,11 @@
       QAcomment = paste(QAcomment, ifelse(LAB == "WSLH", "WSLH used large filters for Chla-A", ""), sep = ";"),
       QAcomment = stringr::str_remove_all(QAcomment, "NA;"),
       QAcomment = stringr::str_remove_all(QAcomment, ": "),
+      QAcomment = ifelse(QAcomment == "", NA, QAcomment),
       QAcode = stringr::str_replace_all(QAcode, ";", ","),
-      QAcode = stringr::str_remove_all(QAcode, " ")
+      QAcode = stringr::str_remove_all(QAcode, " "),
+      QAcode = ifelse(QAcode == "NA", NA, QAcode) 
     )
+  
+  return(df)
 }

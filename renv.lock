@@ -152,6 +152,23 @@
       ],
       "Hash": "962174cf2aeb5b9eea581522286a911f"
     },
+    "fuzzyjoin": {
+      "Package": "fuzzyjoin",
+      "Version": "0.1.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "dplyr",
+        "geosphere",
+        "purrr",
+        "stringdist",
+        "stringr",
+        "tibble",
+        "tidyr"
+      ],
+      "Hash": "24af5fc67dbeaac6d776a8e6630aacd9"
+    },
     "generics": {
       "Package": "generics",
       "Version": "0.1.3",
@@ -162,6 +179,18 @@
         "methods"
       ],
       "Hash": "15e9634c0fcd294799e9b2e929ed1b86"
+    },
+    "geosphere": {
+      "Package": "geosphere",
+      "Version": "1.5-18",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "Rcpp",
+        "sp"
+      ],
+      "Hash": "45aa4def70a402e7d20efde490c13ecb"
     },
     "glue": {
       "Package": "glue",
@@ -222,6 +251,21 @@
         "methods"
       ],
       "Hash": "e1b9c55281c5adc4dd113652d9e26768"
+    },
+    "lattice": {
+      "Package": "lattice",
+      "Version": "0.22-6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics",
+        "grid",
+        "stats",
+        "utils"
+      ],
+      "Hash": "cc5ac1ba4c238c7ca9fa6a87ca11a7e2"
     },
     "lifecycle": {
       "Package": "lifecycle",
@@ -420,6 +464,34 @@
       ],
       "Hash": "3eec01f8b1dee337674b2e34ab1f9bc1"
     },
+    "sp": {
+      "Package": "sp",
+      "Version": "2.1-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "grDevices",
+        "graphics",
+        "grid",
+        "lattice",
+        "methods",
+        "stats",
+        "utils"
+      ],
+      "Hash": "75940133cca2e339afce15a586f85b11"
+    },
+    "stringdist": {
+      "Package": "stringdist",
+      "Version": "0.9.12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "parallel"
+      ],
+      "Hash": "f360720fa3feb7db9d4133b31ebb067f"
+    },
     "stringi": {
       "Package": "stringi",
       "Version": "1.8.4",
@@ -589,15 +661,15 @@
     },
     "withr": {
       "Package": "withr",
-      "Version": "3.0.0",
+      "Version": "3.0.1",
       "Source": "Repository",
-      "Repository": "RSPM",
+      "Repository": "CRAN",
       "Requirements": [
         "R",
         "grDevices",
         "graphics"
       ],
-      "Hash": "d31b6c62c10dcf11ec530ca6b0dd5d35"
+      "Hash": "07909200e8bbe90426fbfeb73e1e27aa"
     },
     "zip": {
       "Package": "zip",

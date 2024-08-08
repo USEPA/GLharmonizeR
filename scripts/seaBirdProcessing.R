@@ -5,17 +5,37 @@ teamsFolder <- file.path("C:", "Users", "ccoffman", "Environmental Protection Ag
 seaBird <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"), 
   pattern = , ".cnv$", full.names=T) 
 seaBird <- seaBird[grepl("_MI", seaBird, ignore.case = t)]
-test <- F
+test <-F 
 if (test) {
    seaBird <- seaBird[c(1:5, (length(seaBird) - 5): length(seaBird))]
 }
 seaBirdDf <- seaBird %>%
-    purrr::map(\(x)
-      oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
-    dplyr::bind_rows() %>% 
-    dplyr::mutate(Study = "SeaBird")
-    saveRDS(seaBirdDf, "../GL_Data/GLENDA/seabird.Rds")
+  purrr::map(\(x)
+    oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE), .progress = TRUE) %>%
+  dplyr::bind_rows() %>% 
+  dplyr::mutate(Study = "SeaBird") %>%
+  mutate(
+    STATION_ID = basename(STATION_ID),
+    STATION_ID = gsub("^\\d+", "", STATION_ID),
+    STATION_ID = stringr::str_remove_all(STATION_ID, ".CNV"),
+    STATION_ID = stringr::str_remove(STATION_ID, ".BIN")
+  ) %>%
+  # Catch all for 2, 3, and fourth casts
+
+seaBirdDf <- seaBirdDf %>%
+  filter(!grepl("CAST", STATION_ID, ignore.case = T)) %>%
+  # Not sure what this is
+  filter(!grepl("DERIVE", STATION_ID, ignore.case = T)) %>%
+  # Not sure what these are 
+  filter(!grepl("(911)", STATION_ID, ignore.case = T))
+
 
 # Save the cleaned seabird Files
+saveRDS(seaBirdDf, "../GL_Data/GLENDA/seabird.Rds")
 
-test <- oce::read.oce(seaBird[[1]])
+
+# Look at data
+seaBirdDf %>% 
+  distinct(STATION_ID) %>%
+  print(n=399)
+

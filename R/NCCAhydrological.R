@@ -74,8 +74,9 @@
 
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types= FALSE) %>%
-    # filter to just downcast
-    dplyr::filter(CAST == "DOWNCAST") %>%
+    # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
+    # observed in great lakes so don't need to worry about it)
+    dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
     dplyr::rename(
       ANALYTE = PARAMETER_NAME,
       sampleDepth = SDEPTH,
@@ -102,7 +103,7 @@
       .by = c(UID, sampleDepth, stationDepth)
     ) %>%
     # [x] filter out where either ambientPAR or underPAR check if this does what we think
-    dplyr::filter((!is.na(ambientPAR)) | (!is.na(underPAR))) %>%
+    dplyr::filter((!is.na(ambientPAR)) | (!is.na(underPAR)) | grepl("secchi", ANALYTE, ignore.case = T)) %>%
     # Don't need to drop Ambient PAR because we enter CPAR in its stead
     dplyr::filter(
       ANALYTE != "Underwater PAR"
@@ -127,7 +128,7 @@
 #' @param NCCAhydrofile2015 a string specifying the filepath of the data
 #' @return dataframe
 .readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
-  readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types= FALSE) %>%
+  df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types= FALSE) %>%
     # the only comments mention no measurment data or typo
     # [x] Need to remove all NARS_COMMENTs
     dplyr::filter(CAST == "DOWNCAST") %>%
@@ -143,6 +144,8 @@
     dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::select(-DATE_COL)
+
+  return(df)
 }
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015

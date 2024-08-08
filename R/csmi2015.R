@@ -72,8 +72,8 @@
     # [x] Check if measure is below DL, replace with NA and put a flag
     dplyr::mutate(
       mdl = as.numeric(DetectLimit),
-      QAcomment = ifelse(RESULT <= mdl, paste(QAcomment, "Below mdl", sep = ";"), QAcomment),
-      QAcode = ifelse(RESULT <= mdl, paste(QAcode, "MDL", sep = ";"), QAcode),
+      QAcomment = ifelse(RESULT <= mdl, "Below mdl", NA),
+      QAcode = ifelse(RESULT <= mdl, "MDL", NA),
       RESULT = ifelse(RESULT <= mdl, NA, RESULT)
     ) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%

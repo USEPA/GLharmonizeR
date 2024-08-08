@@ -2,20 +2,32 @@ Study,QAcode,QAcomment
 NCCA_hydro_2010,U,"No reported units, so assumed most common units for this given analyte-year"
 NCCA_hydro_2010,Q14,<3 Records
 NCCA_hydro_2010,Q14,Kd not calculated
+NCCA_hydro_2010,Q10,recorded mean secchi depth is greater than station depth.
+NCCA_hydro_2010,R,recorded mean secchi depth is greater than station depth.
 NCCA_hydro_2010,Q14,UW value is suspect
+NCCA_hydro_2010,B,NA
 NCCA_hydro_2010,Q14,AMB value is suspect
 NCCA_hydro_2010,Q14,NA
 NCCA_hydro_2010,Q14,No depth
+NCCA_hydro_2010,Q10,Secchi depths varied by >0.5m
+NCCA_hydro_2010,R,Field equipment questionable
+NCCA_hydro_2010,Q01,Field equipment questionable
 NCCA_hydro_2010,R,pH & COND probe malfunction
 NCCA_hydro_2010,R,"No reported units, so assumed most common units for this given analyte-year"
 NCCA_hydro_2010,Q01,pH & COND probe malfunction
 NCCA_hydro_2010,Q01,"No reported units, so assumed most common units for this given analyte-year"
 NCCA_hydro_2010,U,pH & COND probe malfunction
 NCCA_hydro_2010,Q01,NA
+NCCA_hydro_2010,Q10,Less than 6 total disappear/reappear measurements
+NCCA_hydro_2010,Q10,NA
+NCCA_hydro_2010,B,Less than 6 total disappear/reappear measurements
 NCCA_hydro_2010,R,pH failed QC check
 NCCA_hydro_2010,Q01,pH failed QC check
 NCCA_hydro_2010,U,pH failed QC check
 NCCA_hydro_2010,Q14,Duplicate depth
+NCCA_hydro_2010,B,Clear to Bottom reading questionable
+NCCA_hydro_2010,R,Clear to Bottom reading questionable
+NCCA_hydro_2010,Q01,Clear to Bottom reading questionable
 NCCA_hydro_2010,Q10,UW value is suspect
 NCCA_hydro_2015,U,"No reported units, so assumed most common units for this given analyte-year"
 NCCA_secchi_2015,U,"No reported units, so assumed most common units for this given analyte-year"
@@ -67,4 +79,4 @@ GLENDA,NA,"Estimated Value, serial dilution difference"
 GLENDA,NA,"Known Contamination, field"
 GLENDA,NA,"Outlier, accross stations"
 GLENDA,NA,"Outlier, single station"
-CSMI_2015,NA,Below mdl
+CSMI_2015,MDL,Below mdl
