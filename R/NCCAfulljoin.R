@@ -26,7 +26,8 @@
     dplyr::distinct(SITE_ID, .keep_all = T)
 
   NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-    n_max = n_max) %>%
+    n_max = n_max
+  ) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files
@@ -35,13 +36,13 @@
     .readNCCA2010(NCCAwq2010, n_max = n_max),
     .readNCCA2015(NCCAwq2015, n_max = n_max)
   ) %>%
-  # QC filters
-  # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
-  dplyr::mutate(
-    SAMPYEAR = lubridate::year(sampleDateTime)# XXX This might break when NCCA updates their data with new UID's
-  ) %>%
-  dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
-  dplyr::mutate(Year = lubridate::year(sampleDateTime))
+    # QC filters
+    # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
+    dplyr::mutate(
+      SAMPYEAR = lubridate::year(sampleDateTime) # XXX This might break when NCCA updates their data with new UID's
+    ) %>%
+    dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
+    dplyr::mutate(Year = lubridate::year(sampleDateTime))
 
 
 
@@ -62,14 +63,14 @@
     )) %>%
     # [ ] Fix filter for region and lake
     # Great lakes get's priority over spcifying each lake
-    #dplyr::filter(NCCRreg == "Great Lakes") %>%
-    #{
+    # dplyr::filter(NCCRreg == "Great Lakes") %>%
+    # {
     #  if (!is.null(Lakes)) {
     #    dplyr::filter(., WTBDY_NM %in% Lakes)
     #  } else {
     #    .
     #  }
-    #} %>%
+    # } %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     # [x] fill missing units as the most common non-missing units within a given study-year
     # Group by study-year, analytes
@@ -77,7 +78,7 @@
       ReportedUnits = ifelse(
         is.na(ReportedUnits),
         # impute with the mode
-        as.character(names(sort(table(ReportedUnits), decreasing=T, na.last =T))[1]),
+        as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
         as.character(ReportedUnits)
       ),
       QAcode = ifelse(is.na(ReportedUnits),

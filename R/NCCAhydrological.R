@@ -9,7 +9,7 @@
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
 .readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
-  df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max, show_col_types= FALSE) %>%
+  df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max, show_col_types = FALSE) %>%
     dplyr::filter(
       # Kept estimated and based on trans
       # We will explicitly test if the measurements are greater than station depth
@@ -71,9 +71,8 @@
 #'
 #' @return dataframe
 .readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
-
   df <- NCCAhydrofiles2010 %>%
-    purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types= FALSE) %>%
+    purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
     # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
     # observed in great lakes so don't need to worry about it)
     dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
@@ -128,7 +127,7 @@
 #' @param NCCAhydrofile2015 a string specifying the filepath of the data
 #' @return dataframe
 .readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
-  df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types= FALSE) %>%
+  df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
     # the only comments mention no measurment data or typo
     # [x] Need to remove all NARS_COMMENTs
     dplyr::filter(CAST == "DOWNCAST") %>%

@@ -12,7 +12,7 @@
   NCCAwq2010 %>%
     purrr::map_dfr(readr::read_csv,
       n_max = n_max,
-      show_col_types= FALSE,
+      show_col_types = FALSE,
       col_types = readr::cols(
         # DONE Load MDL, MRL, PQL
         "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
@@ -51,7 +51,7 @@
     dplyr::rename(
       QAcode = QACODE
     )
-    }
+}
 
 #' Read in all NCCA water quality from 2015
 #'
@@ -66,7 +66,7 @@
 .readNCCA2015 <- function(NCCAwq2015, n_max = Inf) {
   df <- readr::read_csv(NCCAwq2015,
     n_max = n_max,
-    show_col_types= FALSE,
+    show_col_types = FALSE,
     col_types = readr::cols(
       "UID" = "d",
       "SITE_ID" = "c",
@@ -81,23 +81,23 @@
       "RESULT_UNITS" = "c"
     )
   ) %>%
-  dplyr::rename(
-    sampleDateTime = DATE_COL,
-    QAcode = NARS_FLAG,
-    QAcomment = NARS_COMMENT,
-    UNITS = RESULT_UNITS,
-    ANL_CODE = ANALYTE
-  ) %>%
-  # 95% missingness beofre LRL 88% after
-  # 40% missingness before MDL 24% after
-  # Didn't do anything for method so removing it's inference 
-  # fill in lab specific quantities
-  dplyr::mutate(
-    LRL = mean(LRL, na.rm = T),
-    MDL = mean(MDL, na.rm= T),
-    # Lab isn't missing
-    .by = c(LAB, ANL_CODE)
-  ) %>%
+    dplyr::rename(
+      sampleDateTime = DATE_COL,
+      QAcode = NARS_FLAG,
+      QAcomment = NARS_COMMENT,
+      UNITS = RESULT_UNITS,
+      ANL_CODE = ANALYTE
+    ) %>%
+    # 95% missingness beofre LRL 88% after
+    # 40% missingness before MDL 24% after
+    # Didn't do anything for method so removing it's inference
+    # fill in lab specific quantities
+    dplyr::mutate(
+      LRL = mean(LRL, na.rm = T),
+      MDL = mean(MDL, na.rm = T),
+      # Lab isn't missing
+      .by = c(LAB, ANL_CODE)
+    ) %>%
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime),
       # Combine Nitrate adn Nitrite
@@ -158,8 +158,8 @@
       QAcomment = ifelse(QAcomment == "", NA, QAcomment),
       QAcode = stringr::str_replace_all(QAcode, ";", ","),
       QAcode = stringr::str_remove_all(QAcode, " "),
-      QAcode = ifelse(QAcode == "NA", NA, QAcode) 
+      QAcode = ifelse(QAcode == "NA", NA, QAcode)
     )
-  
+
   return(df)
 }

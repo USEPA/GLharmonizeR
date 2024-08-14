@@ -20,8 +20,10 @@
   ##
 
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
-    openxlsx::read.xlsx(sheet = "Lake Michigan 2020 CSMI Data", startRow=2, na.strings = c("", "-9.99e-29"),
-    check.names=TRUE) %>%
+    openxlsx::read.xlsx(
+      sheet = "Lake Michigan 2020 CSMI Data", startRow = 2, na.strings = c("", "-9.99e-29"),
+      check.names = TRUE
+    ) %>%
     dplyr::rename(Site = X2, sampleDateTime = X3) %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
     # don't select bio samples, scans

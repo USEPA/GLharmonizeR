@@ -46,8 +46,8 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
     # QC: apply despike over all columns then grab dataframe
     oce::despike(reference = "median") %>%
     # handleFlags we need to find their flag reporting scheme
-    #oce::initializeFlagScheme(., name = "argo") %>%
-    #oce::handleFlags(.) %>%
+    # oce::initializeFlagScheme(., name = "argo") %>%
+    # oce::handleFlags(.) %>%
     .@data %>%
     as.data.frame()
 

@@ -32,7 +32,7 @@
             Row = "-",
             .default = "c"
           ),
-          show_col_types= FALSE,
+          show_col_types = FALSE,
           n_max = n_max
         )
       } else {
@@ -85,11 +85,11 @@
       SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
       QC_TYPE == "routine field sample",
       # If value and remarks are missing, we assume sample was never taken
-      !is.na(VALUE) | !is.na(RESULT_REMARK)#,
+      !is.na(VALUE) | !is.na(RESULT_REMARK) # ,
       # The only QA Codes worth removing "Invalid" and "Known Contamination".
       # The rest already passed an initial QA screening before being entered
-      #!grepl("Invalid", RESULT_REMARK, ignore.case = T),
-      #RESULT_REMARK != "Known Contamination"
+      # !grepl("Invalid", RESULT_REMARK, ignore.case = T),
+      # RESULT_REMARK != "Known Contamination"
     )
   return(df)
 }

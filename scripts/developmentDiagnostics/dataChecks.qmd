@@ -12,6 +12,39 @@ df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
 
 ```
 
+# Flags
+```{r flags}
+flags <- df %>% 
+  distinct(Study, QAcode, QAcomment) %>%
+  separate_longer_delim(QAcode, delim = ";") %>%
+  separate_longer_delim(QAcode, delim = ",") %>%
+  separate_longer_delim(QAcomment, delim = ";") %>%
+  distinct() %>%
+  mutate(
+    QAcode = str_remove_all(QAcode, "NA,"),
+    QAcode = str_remove_all(QAcode, " NA,"),
+    QAcomment = str_remove_all(QAcomment, "NA,"),
+    QAcomment = str_remove_all(QAcomment, ", NA"),
+    QAcomment = str_remove_all(QAcomment, " NA"),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    QAcode = ifelse(grepl("^NA", QAcode, ignore.case =T), NA, QAcode),
+    QAcomment = ifelse(grepl("^NA", QAcomment, ignore.case =T), NA, QAcomment),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    ) %>%
+  filter((!is.na(QAcode))  | (!is.na(QAcomment))) %>%
+    dplyr::mutate(
+      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
+      "U", QAcode),
+      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
+    ) %>%
+    distinct() %>%
+    arrange(Study, QAcode)
+write_csv(flags, "tempFlags.csv")
+```
+
 # Joining flags
 ```{r}
 flags <- file.path("~", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "flagsMap.csv")
@@ -80,39 +113,6 @@ GLENDA %>%
 
 # Missingness by data source
 
-# Flags
-```{r flags}
-flags <- df %>% 
-  distinct(Study, QAcode, QAcomment) %>%
-  separate_longer_delim(QAcode, delim = ";") %>%
-  separate_longer_delim(QAcode, delim = ",") %>%
-  separate_longer_delim(QAcomment, delim = ";") %>%
-  distinct() %>%
-  mutate(
-    QAcode = str_remove_all(QAcode, "NA,"),
-    QAcode = str_remove_all(QAcode, " NA,"),
-    QAcomment = str_remove_all(QAcomment, "NA,"),
-    QAcomment = str_remove_all(QAcomment, ", NA"),
-    QAcomment = str_remove_all(QAcomment, " NA"),
-    QAcode = str_trim(QAcode),
-    QAcomment = str_trim(QAcomment),
-    QAcode = ifelse(grepl("^NA", QAcode, ignore.case =T), NA, QAcode),
-    QAcomment = ifelse(grepl("^NA", QAcomment, ignore.case =T), NA, QAcomment),
-    QAcode = str_trim(QAcode),
-    QAcomment = str_trim(QAcomment),
-    ) %>%
-  filter((!is.na(QAcode))  | (!is.na(QAcomment))) %>%
-    dplyr::mutate(
-      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
-      "U", QAcode),
-      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
-    ) %>%
-    distinct() %>%
-    arrange(Study, QAcode)
-write_csv(flags, "tempFlags.csv")
-
-```
 
 ### rounding lat lon
 ```{r}
@@ -128,7 +128,8 @@ rounded <- df %>%
     Long3 = round(Longitude, digits=3),
     Long4 = round(Longitude, digits=4),
     Long5 = round(Longitude, digits=5),
-    )
+    ) %>%
+  tidyr::unite(SITE, Study, SITE_ID, sep = "-")
 
 rounded2 <- rounded %>% 
   filter(n() > 1, .by =c(Lat2,Long2)) %>%

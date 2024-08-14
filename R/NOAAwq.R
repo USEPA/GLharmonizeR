@@ -7,7 +7,7 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map")
 
-  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names=T) %>%
+  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names = T) %>%
     dplyr::select(-c(1:5)) %>%
     t() %>%
     as.data.frame() %>%
@@ -64,15 +64,16 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::select(-c(Latdeg, Latmin, Londeg, Lonmin)) %>%
     dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>%
     dplyr::left_join(noaaWQunits, by = "ANALYTE") %>%
-
     # rename and convert units
     dplyr::rename(ReportedUnits = Units) %>%
     dplyr::left_join(renamingTable, by = "ANALYTE") %>%
     dplyr::left_join(key, by = "CodeName") %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
-    dplyr::select(-c(`RL.Agree?`, `Original.comment/observation`, `Resolution.Comment`, Finalized,
-    TargetUnits, Category, ConversionFactor, Lepak.input, X5))
+    dplyr::select(-c(
+      `RL.Agree?`, `Original.comment/observation`, `Resolution.Comment`, Finalized,
+      TargetUnits, Category, ConversionFactor, Lepak.input, X5
+    ))
 
   return(noaaWQdata)
 }
