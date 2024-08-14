@@ -39,7 +39,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [ ] water body name arguement
   n_max <- ifelse(.test, 50, Inf)
   # [x] report sample DateTime not just date
-  print("Step 1/6: Load naming and unit conversion files")
+  print("Step 1/8: Load naming and unit conversion files")
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -49,7 +49,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet = "SeaBird_Map", na.strings = c("", "NA"))
 
-  print("Step 2/6: Read and clean NCCA")
+  print("Step 2/8: Read and clean NCCA")
   ncca <- .LoadNCCAfull(
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
     NCCAwq2015, NCCAhydrofiles2010,
@@ -90,7 +90,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [ ] Join to QA flag decisiosn and filter
 
 
-  print("Step 3/6: Read and clean GLENDA")
+  print("Step 3/8: Read and clean GLENDA")
   GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(.,
       namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
@@ -98,7 +98,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     )
 
 
-  print("Step 4/6: Read preprocessed Seabird files associated with GLENDA")
+  print("Step 4/8: Read preprocessed Seabird files associated with GLENDA")
   seaBirdDf <- readr::read_rds(seaBird) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
@@ -116,18 +116,18 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
 
 
-  print("Step 5/6: Read and clean CSMI data")
+  print("Step 5/8: Read and clean CSMI data")
   CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
     # Years is in the date, and ANL_CODE is all NA
     dplyr::select(-c(Years, ANL_CODE, Finalized)) %>%
     dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
   # [x] filter "remove" analytes
 
-  print("Step 5.5/6: Read and clean NOAA data")
+  print("Step 6/8: Read and clean NOAA data")
   NOAA <- noaaReadClean(noaaWQ, namingFile) %>%
     dplyr::select(-Years)
 
-  print("Step 6/6: Combine and return full data")
+  print("Step 7/8: Combine and return full data")
   allWQ <- dplyr::bind_rows(
     ncca, GLENDA, CSMI, NOAA
   ) %>%
@@ -153,19 +153,37 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
       "U", QAcode),
       QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
+      "No reported units, assumed most common units in analyte-year", QAcomment)
     )
 
-    # [ ] join flag explanations
-    # fuzzy join solution from 
-    # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
-    # fuzzyjoin::fuzzy_join(
-    #   QA,
-    #   # didn't include sampyear, because codes seem to have stayed the same
-    #   by = c("QAcode"),
-    #   match_fun = list(stringr::str_detect),
-    #   mode = "left"
-    # ) %>%
+  print("Step 8/8 joining QC flags and suggestions to dataset")
+  # [x] Split into flagged and unflagged values
+  flagged <- allWQ %>% dplyr::filter(!is.na(QAcode) | !is.na(QAcomment))
+  notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment))
+  # [x] join flag explanations
+  # fuzzy join solution from 
+  # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
+  flagged <- flagged %>%
+    fuzzyjoin::fuzzy_join(
+        flags,
+        # didn't include sampyear, because codes seem to have stayed the same
+        by = c("Study", "QAcode", "QAcomment"),
+        match_fun = list(`==`, stringr::str_detect, stringr::str_detect),
+        mode = "left"
+      )  %>%
+      dplyr::rename(
+        # fuzzy matching appends x and y onto matching columns
+        Study = Study.x, QAcode = QAcode.x, QAcomment = QAcomment.x) %>%
+      dplyr::mutate(
+        # grab values in the mapping file in case we filled out by hand
+        QAcode = dplyr::coalesce(QAcode, QAcode.y),
+        QAcomment = dplyr::coalesce(QAcomment, QAcomment.y),
+        ) %>%
+    dplyr::select(
+      -c(Study.y, QAcode.y, QAcomment.y)
+      )
+    # [x] recombine full dataset
+    allWQ <- dplyr::bind_rows(flagged, notflagged)
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".Rds"))

@@ -5,10 +5,22 @@ date: today
 
 ```{r setup}
 library(tidyverse)
+library(fuzzy)
 devtools::load_all()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
 #df <- readRDS("fullData.Rds")
+
 ```
+
+# Joining flags
+```{r}
+flags <- file.path("~", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "flagsMap.csv")
+flags <- read_csv(flags)
+
+flaggedValues <- df %>% filter(!is.na(QAcode) | !is.na(QAcomment))
+test <- flaggedValues %>%
+```
+
 
 # Missingness
 ```{r}
@@ -96,7 +108,8 @@ flags <- df %>%
       QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
       "No reported units, so assumed most common units for this given analyte-year", QAcomment)
     ) %>%
-    distinct()
+    distinct() %>%
+    arrange(Study, QAcode)
 write_csv(flags, "tempFlags.csv")
 
 ```
@@ -105,7 +118,7 @@ write_csv(flags, "tempFlags.csv")
 ```{r}
 rounded <- df %>%
   distinct(Study, SITE_ID, Latitude, Longitude) %>%
-  reframe(studies = toString(unique(Study)), .by = c(SITE_ID, Latitude, Longitude)) %>%
+  # reframe(studies = toString(unique(Study)), .by = c(SITE_ID, Latitude, Longitude)) %>%
   mutate(
     Lat2 = round(Latitude, digits=2),
     Lat3 = round(Latitude, digits=3),
@@ -123,7 +136,9 @@ rounded2 <- rounded %>%
     sites = toString(unique(SITE_ID)),
     studies = toString(unique(studies)),
     .by = c(Lat2, Long2)
-  )
+  ) 
+  # [ ] DOTHIS ....
+  # mutate( studies + sites)
 rounded3 <- rounded %>% 
   filter(n() > 1, .by =c(Lat3,Long3)) %>%
   reframe(
@@ -143,7 +158,7 @@ rounded5 <- rounded %>%
   reframe(
     sites = toString(unique(SITE_ID)),
     studies = toString(unique(studies)),
-    .by = c(Lat4, Long4)
+    .by = c(Lat5, Long5)
   )
 
 write_csv(rounded2, "2digitStationOverlap.csv")

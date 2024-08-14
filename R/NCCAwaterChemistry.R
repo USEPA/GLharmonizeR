@@ -147,6 +147,7 @@
       Study = "NCCA_WChem_2015"
     ) %>%
     dplyr::mutate(
+      QAcode = stringr::str_replace(QAcode, ",", ";"),
       QAcode = paste(QAcode, ifelse(LAB == "WSLH", "WSLH", ""), sep = ";"),
       QAcode = stringr::str_remove(QAcode, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
