@@ -127,40 +127,46 @@ rounded <- df %>%
     Long2 = round(Longitude, digits=2),
     Long3 = round(Longitude, digits=3),
     Long4 = round(Longitude, digits=4),
-    Long5 = round(Longitude, digits=5),
+    Long5 = round(Longitude, digits=5)
     ) %>%
-  tidyr::unite(SITE, Study, SITE_ID, sep = "-")
+  tidyr::unite(SITE, Study, SITE_ID, sep = "-", remove=FALSE)
 
 rounded2 <- rounded %>% 
-  filter(n() > 1, .by =c(Lat2,Long2)) %>%
+  distinct(SITE, Study, Lat2, Long2) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
   reframe(
-    sites = toString(unique(SITE_ID)),
-    studies = toString(unique(studies)),
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
     .by = c(Lat2, Long2)
-  ) 
-  # [ ] DOTHIS ....
-  # mutate( studies + sites)
+  )
 rounded3 <- rounded %>% 
-  filter(n() > 1, .by =c(Lat3,Long3)) %>%
+  distinct(SITE, Study, Lat3, Long3) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
   reframe(
-    sites = toString(unique(SITE_ID)),
-    studies = toString(unique(studies)),
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
     .by = c(Lat3, Long3)
-  )
+  ) 
 rounded4 <- rounded %>% 
-  filter(n() > 1, .by =c(Lat4,Long4)) %>%
+  distinct(SITE, Study, Lat4, Long4) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
   reframe(
-    sites = toString(unique(SITE_ID)),
-    studies = toString(unique(studies)),
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
     .by = c(Lat4, Long4)
-  )
+  ) 
 rounded5 <- rounded %>% 
-  filter(n() > 1, .by =c(Lat5,Long5)) %>%
+  distinct(SITE, Study, Lat5, Long5) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
   reframe(
-    sites = toString(unique(SITE_ID)),
-    studies = toString(unique(studies)),
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
     .by = c(Lat5, Long5)
-  )
+  ) 
 
 write_csv(rounded2, "2digitStationOverlap.csv")
 write_csv(rounded3, "3digitStationOverlap.csv")

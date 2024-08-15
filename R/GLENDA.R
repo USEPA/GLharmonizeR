@@ -126,24 +126,12 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  # [x] extract self reported mdl's
-  selfMdls <- df %>%
-    dplyr::filter(
-      is.na(as.numeric(VALUE)),
-      grepl("<", VALUE)
-    ) %>%
-    dplyr::distinct(ANALYTE, YEAR, VALUE) %>%
-    dplyr::mutate(VALUE = readr::parse_number(VALUE), YEAR = as.numeric(YEAR)) %>%
-    dplyr::rename(mdl = VALUE) %>%
-    dplyr::left_join(., renamingTable, by = "ANALYTE") %>%
-    dplyr::select(YEAR, CodeName, mdl) %>%
-    dplyr::distinct()
 
   # All self reported mdls are identical across all years for a gien analyte
   limitNames <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_mdl_Map")
 
   # [x] utilize Mdl from glenda sheet
-  outsideMdls <- readr::read_rds(GLENDAlimitsPath) %>%
+  Mdls <- readr::read_rds(GLENDAlimitsPath) %>%
     tidyr::pivot_longer(2:5, names_to = "ANALYTE", values_to = "mdl") %>%
     dplyr::mutate(YEAR = readr::parse_number(`Survey (Units)`), mdl = as.numeric(mdl)) %>%
     dplyr::reframe(mdl = mean(mdl, na.rm = T), .by = c(YEAR, ANALYTE)) %>%
@@ -154,10 +142,6 @@
     dplyr::left_join(., limitNames, by = c("ANALYTE" = "OldName")) %>%
     dplyr::select(-ANALYTE) %>%
     dplyr::rename(CodeName = ANALYTE.y)
-
-  fullDLs <- dplyr::bind_rows(selfMdls, outsideMdls)
-  # Luckily there is no overlap so
-  # count(CodeName, mdl, YEAR) %>% arrange(desc(n))
 
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
@@ -265,6 +249,8 @@
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
+    # [ ] Check this filter is working
+    dplyr::filter(grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
     dplyr::mutate(RESULT = dplyr::case_when(
       # convert from silicon to silica which has more mass
       ANALYTE == "Silicon, Elemental" ~ RESULT * 2.13918214,
@@ -279,7 +265,7 @@
     # [x] Join them all together then join back to the data
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
-    dplyr::left_join(., fullDLs, by = "CodeName") %>%
+    dplyr::left_join(., Mdls, by = "CodeName") %>%
     dplyr::select(-sampleDate)
 
   return(df)
