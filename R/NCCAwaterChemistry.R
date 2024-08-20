@@ -135,9 +135,6 @@
     dplyr::mutate(
       QAcode = stringr::str_replace(QAcode, ",", ";"),
       QAcode = stringr::str_remove(QAcode, ";$"),
-      QAcode = ifelse(LAB == "WSLH", paste(QAcode, "ChlaF"), QAcode),
-      QAcomment = ifelse(LAB == "WSLH", paste(QAcomment, "WSLH uses 5 micron pore size vs. NARS uses 0.7 micron for chl-a"), QAcomment),
-      QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = stringr::str_remove_all(QAcomment, "NA;"),
       QAcomment = stringr::str_remove_all(QAcomment, ": "),

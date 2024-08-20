@@ -249,8 +249,9 @@
     dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
-    # [ ] Check this filter is working
-    dplyr::filter(grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
+    # [x] Check this filter is working
+    # this was doing the opposite of what we wanted only choosing integrated
+    dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
     dplyr::mutate(RESULT = dplyr::case_when(
       # convert from silicon to silica which has more mass
       ANALYTE == "Silicon, Elemental" ~ RESULT * 2.13918214,
@@ -265,7 +266,8 @@
     # [x] Join them all together then join back to the data
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
-    dplyr::left_join(., Mdls, by = "CodeName") %>%
+    dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
+    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR")) %>%
     dplyr::select(-sampleDate)
 
   return(df)

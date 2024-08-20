@@ -217,7 +217,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
      .by = c(
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
       ANALYTE, Category, LongName, ConversionFactor, TargetUnits, Conversion, ReportedUnits, RESULT, 
-      MDL, PQL, LAB
+      MDL, PQL, RL, LAB
      ))  %>%
      # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well

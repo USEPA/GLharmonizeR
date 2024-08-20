@@ -42,15 +42,14 @@
       .by = c(UID)
     ) %>%
     dplyr::mutate(
-      RESULT = dplyr::case_when(
-        CLEAR_TO_BOTTOM == TRUE ~ NA,
-        .default = RESULT
-      ),
       # Looked through and saw none of the QAcomments were relevent
       # So only relevant comments are related to whether clear to bottom
       QAcomment = NA,
       QAcode = dplyr::case_when(
         CLEAR_TO_BOTTOM == TRUE ~ "CTB"
+      ),
+      QAcomment = dplyr::case_when(
+        CLEAR_TO_BOTTOM == TRUE ~ "Secchi clear to bottom"
       )
     ) %>%
     dplyr::mutate(
