@@ -37,7 +37,8 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       dplyr::across(Surface.Temp:N, as.numeric),
       # assuming 12 noon for consistency with other datasets
       Time = "12:00",
-      UID = paste("NOAAwq", sep = "-", dplyr::row_number())
+      Study= "NOAAwq",
+      UID = paste(Study, sep = "-", dplyr::row_number())
     ) %>%
     tidyr::unite(sampleDateTime, Year, Month, Day, Time, sep = "-") %>%
     dplyr::mutate(

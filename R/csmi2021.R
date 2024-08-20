@@ -19,13 +19,16 @@
   ## There are already processed, formatted ready to use files Should we use that?
   ##
 
+
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
     openxlsx::read.xlsx(
       sheet = "Lake Michigan 2020 CSMI Data", startRow = 2, na.strings = c("", "-9.99e-29"),
       check.names = TRUE
     ) %>%
     dplyr::rename(Site = X2, sampleDateTime = X3) %>%
-    dplyr::mutate(sampleDateTime = lubridate::ymd_h(paste(lubridate::date(sampleDateTime), "12"))) %>%
+    dplyr::mutate(
+      sampleDateTime = as.POSIXct(sampleDateTime * 86400, origin = "1900-01-01", tz = "UTC"),
+      sampleDateTime = lubridate::ymd_h(paste(sampleDateTime, "12"))) %>%
     # don't select bio samples, scans
     dplyr::select(2:23) %>%
     dplyr::mutate(
@@ -71,6 +74,7 @@
     # split time and tz, infer timezones as needed, rejoin, convert to UTC
     tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
     dplyr::mutate(
+      Date = as.POSIXct(Date * 86400, origin = "1900-01-01", tz = "UTC"),
       time = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "12:00", time),
       QAcomment = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "Assumed sample at noon", NA),
       time = stringr::str_remove_all(time, "[:space:]")
@@ -105,7 +109,6 @@
       tz = ifelse(is.na(tz), "EST", tz),
       tz = sub("\\(", "", tz),
       tz = sub("\\)", "", tz),
-      Date = lubridate::date(Date)
     ) %>%
     tidyr::unite("sampleDateTime", Date, time, sep = " ") %>%
     # XXX Gave up on tz's for now being within 1 hour is close enough

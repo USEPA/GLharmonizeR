@@ -128,7 +128,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 6/8: Read and clean NOAA data")
   NOAA <- noaaReadClean(noaaWQ, namingFile) %>%
-    dplyr::select(-Years)
+    dplyr::select(-Years) %>%
+    dplyr::mutate(Study = "NOAAwq")
 
   print("Step 7/8: Combine and return full data")
   allWQ <- dplyr::bind_rows(
