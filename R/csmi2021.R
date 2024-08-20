@@ -125,22 +125,6 @@
     dplyr::bind_rows(., CTD) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
     dplyr::mutate(
-      # [x] Flag if below detection limit
-      QA_CODE = dplyr::case_when(
-        # Remember these cases are evaluated in order
-        is.na(mdl) ~ NA,
-        # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-        RESULT < mdl ~ "Below detection limit"
-      ),
-      .default = NA,
-      RESULT = dplyr::case_when(
-        is.na(mdl) ~ RESULT,
-        # If a value is equal to 1/2 the respective MDL, either replace it with NA or flag as nondetect with imputed value (or whatever you need to do to ensure consistency across datasets)
-        RESULT < mdl ~ NA,
-        .default = NA
-      )
-    ) %>%
-    dplyr::mutate(
       Year = 2021,
     ) %>%
     # water chem contains station depth, ctd contains lat lon, so for those sites that

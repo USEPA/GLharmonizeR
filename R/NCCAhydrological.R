@@ -50,7 +50,7 @@
       # So only relevant comments are related to whether clear to bottom
       QAcomment = NA,
       QAcode = dplyr::case_when(
-        CLEAR_TO_BOTTOM == TRUE ~ "CTB",
+        CLEAR_TO_BOTTOM == TRUE ~ "CTB"
       )
     ) %>%
     dplyr::mutate(

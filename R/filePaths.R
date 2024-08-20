@@ -1,6 +1,7 @@
 .getFilePaths <- function() {
   filepaths <- c(
     "namingFile" = "https://github.com/kvitense/GL_Data/raw/main/Meta/Analytes3.xlsx",
+    "flagsFile" = "https://github.com/kvitense/GL_Data/raw/main/Meta/flagsMap_withDecisions.xlsx",
 
     # %% NCCA
     # Not using not assessed data after Hugh's suggestion

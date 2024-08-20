@@ -33,6 +33,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   csmi2021 <- filepaths["csmi2021"]
   seaBird <- filepaths["seaBird"]
   namingFile <- filepaths["namingFile"]
+  flagsFile <- filepaths["flagsFile"]
   noaaWQ <- filepaths["noaaWQ"]
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
@@ -57,38 +58,39 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     Lakes = c("Lake Michigan"),
     n_max = n_max
   ) %>%
-    # rename
-    dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
-      by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na"
-    ) %>%
-    # unit conversions
-    dplyr::left_join(key, by = "CodeName") %>%
-    # standardize units
-    dplyr::mutate(
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
-      ReportedUnits = tolower(ReportedUnits),
-      ReportedUnits = dplyr::case_when(
-        # [x] can we make this more year specific
-        # These were take from hdyro 2015 metadata file
-        (Year == 2015) & (CodeName == "DO") ~ "mgl",
-        (Year == 2015) & (CodeName == "Secchi") ~ "m",
-        (Year == 2015) & (CodeName == "Temp") ~ "c",
-        (Year == 2015) & (CodeName == "Cond") ~ "uscm",
-        (Year == 2015) & (CodeName == "CPAR") ~ "%"
-      )
-    ) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = dplyr::case_when(
-      ReportedUnits == TargetUnits ~ RESULT,
-      is.na(ReportedUnits) ~ RESULT,
-      .default = RESULT * ConversionFactor
-    )) %>%
-    dplyr::select(-Units) %>%
-    dplyr::rename(Units = TargetUnits) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    dplyr::select(-c(Finalized, Years))
-  # [ ] Join to QA flag decisiosn and filter
+  # rename
+  dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
+    by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na"
+  ) %>%
+  # unit conversions
+  dplyr::left_join(key, by = "CodeName") %>%
+  # standardize units
+  dplyr::mutate(
+    ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+    ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+    ReportedUnits = tolower(ReportedUnits),
+    ReportedUnits = dplyr::case_when(
+      # [x] can we make this more year specific
+      # These were take from hdyro 2015 metadata file
+      (Year == 2015) & (CodeName == "DO") ~ "mgl",
+      (Year == 2015) & (CodeName == "Secchi") ~ "m",
+      (Year == 2015) & (CodeName == "Temp") ~ "c",
+      (Year == 2015) & (CodeName == "Cond") ~ "uscm",
+      (Year == 2015) & (CodeName == "CPAR") ~ "%",
+      .default = ReportedUnits
+    )
+  ) %>%
+  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+  dplyr::mutate(RESULT = dplyr::case_when(
+    ReportedUnits == TargetUnits ~ RESULT,
+    is.na(ReportedUnits) ~ RESULT,
+    .default = RESULT * ConversionFactor
+  )) %>%
+  dplyr::select(-Units) %>%
+  dplyr::rename(Units = TargetUnits) %>%
+  dplyr::filter(CodeName != "Remove") %>%
+  dplyr::select(-c(Finalized, Years))
+  # [x] Join to QA flag decisiosn and filter
 
 
   print("Step 3/8: Read and clean GLENDA")
@@ -132,41 +134,55 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   allWQ <- dplyr::bind_rows(
     ncca, GLENDA, CSMI, NOAA
   ) %>%
-    dplyr::mutate(
-      SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
-    ) %>%
-    # [x] convert to any_of/one_of selection
+  dplyr::mutate(
+    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
+  ) %>%
+  # [x] convert to any_of/one_of selection
 
-    dplyr::select(dplyr::any_of(c(
-      # time and space
-      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
-      # analyte name
-      "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
-      # unit conversion
-      "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
-      # measurement and limits
-      "RESULT", "MDL", "MRL", "PQL",
-      # QA
-      "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
-    ))) %>%
-    # catching some where units were inferred
-    dplyr::mutate(
-      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
-        "U", QAcode
-      ),
-      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-        "No reported units, assumed most common units in analyte-year", QAcomment
-      )
+  dplyr::select(dplyr::any_of(c(
+    # time and space
+    "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
+    # analyte name
+    "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
+    # unit conversion
+    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
+    # measurement and limits
+    "RESULT", "MDL", "MRL", "PQL",
+    # QA
+    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
+  ))) %>%
+  # catching some where units were inferred
+  dplyr::mutate(
+    QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
+      "U", QAcode
+    ),
+    QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+      "No reported units, assumed most common units in analyte-year", QAcomment
     )
+  ) %>%
+  dplyr::mutate(
+    RL = dplyr::coalesce(LRL, MRL),
+    # [x] Flag if below detection limit
+    # If MDL is missing, 
+    QAcode = ifelse((RESULT > MDL) | is.na(MDL),
+      QAcode,
+      paste(QAcomment, "MDL", sep = "; ")),
+    QAcomment = ifelse((RESULT > MDL) | is.na(MDL),
+      QAcomment,
+      paste(QAcomment, "Below Method Detection Limit", sep = "; "))
+  ) %>%
+  dplyr::select(-c(MRL, LRL))
 
   print("Step 8/8 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
-  flagged <- allWQ %>% dplyr::filter(!is.na(QAcode) | !is.na(QAcomment))
-  notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment))
+  notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment)) %>% distinct()
   # [x] join flag explanations
+  flags <- openxlsx::read.xlsx(flagsFile)
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
-  flagged <- flagged %>%
+  flagged <- allWQ %>% 
+    dplyr::filter(!is.na(QAcode) | !is.na(QAcomment)) %>% 
+    distinct() %>%
     fuzzyjoin::fuzzy_join(
       flags,
       # didn't include sampyear, because codes seem to have stayed the same
@@ -185,7 +201,53 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     ) %>%
     dplyr::select(
       -c(Study.y, QAcode.y, QAcomment.y)
+    ) %>%
+  # Compress instances that were matched multiple times into sinlge observation
+  # for QA comments and codes
+  # Checked dimenisons and this preserved the number of observvations from flgagd
+  # data
+    dplyr::reframe(
+      QAcode = toString(unique(QAcode)),
+      QAcomment = toString(unique(QAcomment)),
+      Definition = toString(unique(Definition)),
+      Unified_Flag = toString(unique(Unified_Flag)),
+      Unified_Comment = toString(unique(Unified_Comment)),
+      Retain = toString(unique(Retain)),
+      Action = toString(unique(Action)),
+     .by = c(
+      UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
+      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, Conversion, ReportedUnits, RESULT, 
+      MDL, PQL, LAB
+     ))  %>%
+     # handle Retain column by priority
+  # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
+  dplyr::filter(!grepl("Remove", Retain)) %>%
+  dplyr::mutate(
+    # Note this takes the first staemetn as true
+    # so it works in order of priority
+    RESULT = dplyr::case_when(
+      grepl("Replace with NA", Action) ~ NA,
+      grepl("Set value to NA; report MDL", Action) ~ NA,
+      grepl("Set value to NA; report DL", Action) ~ NA,
+ 
+      # This is explicitly set to avoid setting as NA with
+      # next condition
+      grepl("Occurs with", Action) ~ RESULT,
+      grepl("Set value to NA; report RL", Action) ~ NA,
+
+      .default = RESULT
+    ),
+    QAcode = dplyr::case_when(
+      grepl("Set value to NA; report MDL", Action) ~ paste(QAcode, sep ="; ", "MDL"),
+      grepl("Set value to NA; report DL", Action) ~ paste(QAcode, sep ="; ", "DL"),
+      # This is explicitly set to avoid setting as NA with
+      # next condition
+      grepl("Occurs with", Action) ~ QAcode,
+      grepl("Set value to NA; report RL", Action) ~ paste(QAcode, sep ="; ", "<RL"),
+      .default = QAcode
     )
+  )
+
   # [x] recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged)
 

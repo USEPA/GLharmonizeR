@@ -9,7 +9,7 @@
 #' @param NCCAwq2010 a string specifying the directory of the data
 #' @return dataframe
 .readNCCA2010 <- function(NCCAwq2010, n_max = Inf) {
-  NCCAwq2010 %>%
+  df <-NCCAwq2010 %>%
     purrr::map_dfr(readr::read_csv,
       n_max = n_max,
       show_col_types = FALSE,
@@ -47,11 +47,12 @@
     dplyr::mutate(
       # [x] add this to Analytes3
       Study = "NCCA_WChem_2010",
-      QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "Q"))
+      # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH"))
     ) %>%
     dplyr::rename(
       QAcode = QACODE
     )
+  return(df)
 }
 
 #' Read in all NCCA water quality from 2015
@@ -134,6 +135,8 @@
     dplyr::mutate(
       QAcode = stringr::str_replace(QAcode, ",", ";"),
       QAcode = stringr::str_remove(QAcode, ";$"),
+      QAcode = ifelse(LAB == "WSLH", paste(QAcode, "ChlaF"), QAcode),
+      QAcomment = ifelse(LAB == "WSLH", paste(QAcomment, "WSLH uses 5 micron pore size vs. NARS uses 0.7 micron for chl-a"), QAcomment),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
       QAcomment = stringr::str_remove_all(QAcomment, "NA;"),

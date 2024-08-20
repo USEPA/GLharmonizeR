@@ -49,9 +49,8 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       surfaceTemp = mean(Surface.Temp, na.rm = T),
       .by = c(sampleDateTime, SITE_ID),
     ) %>%
-    tidyr::pivot_longer(cols = CHL:N, names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(cols = Surface.Temp:N, names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::select(-c(X14, X15), DOY) %>%
-    dplyr::select(-Surface.Temp) %>%
     # convert lat lon
     tidyr::separate(col = Latitude, into = c("Latdeg", "Latmin"), sep = " ") %>%
     tidyr::separate(col = Longitude, into = c("Londeg", "Lonmin"), sep = " ") %>%
@@ -59,7 +58,9 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       dplyr::across(c(Latdeg, Latmin), as.numeric),
       dplyr::across(c(Londeg, Lonmin), as.numeric),
       Latitude = Latdeg + Latmin / 60,
-      Longitude = Londeg + Lonmin / 60
+      Longitude = Londeg + Lonmin / 60,
+      sampleDepth = ifelse(ANALYTE == "Surface.Temp", 0, sampleDepth),
+      sampleDepth = ifelse(ANALYTE == "secchi", NA, sampleDepth)
     ) %>%
     dplyr::select(-c(Latdeg, Latmin, Londeg, Lonmin)) %>%
     dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>%
