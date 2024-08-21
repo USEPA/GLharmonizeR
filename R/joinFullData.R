@@ -227,7 +227,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     RESULT = dplyr::case_when(
       grepl("N", Unified_Flag) ~ NA,
       # These next two are set in deliberate order set priority to the more complex match
-      grepl("E", Unified_Flag) & grepl("Between Instrument Detection and Quantification Limits", QAcomment) ~ RESULT,
+      grepl("E", Unified_Flag) ~ RESULT,
       grepl("R", Unified_Flag) ~ NA,
       grepl("B", Unified_Flag) ~ NA,
       .default = RESULT
