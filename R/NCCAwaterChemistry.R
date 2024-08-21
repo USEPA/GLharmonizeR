@@ -132,10 +132,12 @@
       sampleDepth = 0.5,
       Study = "NCCA_WChem_2015"
     ) %>%
+    # cleaning up flags ending with empty characters
     dplyr::mutate(
       QAcode = stringr::str_replace(QAcode, ",", ";"),
       QAcode = stringr::str_remove(QAcode, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
+      QAcode= stringr::str_remove_all(QAcode, "NA;"),
       QAcomment = stringr::str_remove_all(QAcomment, "NA;"),
       QAcomment = stringr::str_remove_all(QAcomment, ": "),
       QAcomment = ifelse(QAcomment == "", NA, QAcomment),
