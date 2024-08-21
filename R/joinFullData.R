@@ -224,28 +224,13 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
   dplyr::filter(!grepl("Remove", Retain)) %>%
   dplyr::mutate(
-    # Note this takes the first staemetn as true
-    # so it works in order of priority
     RESULT = dplyr::case_when(
-      grepl("Replace with NA", Action) ~ NA,
-      grepl("Set value to NA; report MDL", Action) ~ NA,
-      grepl("Set value to NA; report DL", Action) ~ NA,
- 
-      # This is explicitly set to avoid setting as NA with
-      # next condition
-      grepl("Occurs with", Action) ~ RESULT,
-      grepl("Set value to NA; report RL", Action) ~ NA,
-
+      grepl("N", Unified_Flag) ~ NA,
+      # These next two are set in deliberate order set priority to the more complex match
+      grepl("E", Unified_Flag) & grepl("Between Instrument Detection and Quantification Limits", QAcomment) ~ RESULT,
+      grepl("R", Unified_Flag) ~ NA,
+      grepl("B", Unified_Flag) ~ NA,
       .default = RESULT
-    ),
-    QAcode = dplyr::case_when(
-      grepl("Set value to NA; report MDL", Action) ~ paste(QAcode, sep ="; ", "MDL"),
-      grepl("Set value to NA; report DL", Action) ~ paste(QAcode, sep ="; ", "DL"),
-      # This is explicitly set to avoid setting as NA with
-      # next condition
-      grepl("Occurs with", Action) ~ QAcode,
-      grepl("Set value to NA; report RL", Action) ~ paste(QAcode, sep ="; ", "<RL"),
-      .default = QAcode
     )
   )
 
