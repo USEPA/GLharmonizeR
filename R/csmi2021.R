@@ -161,10 +161,18 @@
     dplyr::reframe(
       Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T),
       .by = SITE_ID
-    )
+    ) %>%
+    dplyr::mutate(SITE_ID = tolower(SITE_ID))
 
   # After adding site info from zooplank, missing lat/lons is 2%
   WQ <- WQ %>%
+    ##### TENTATIVE FIX
+    dplyr::mutate(
+      SITE_ID = tolower(SITE_ID),
+      SITE_ID = stringr::str_replace(SITE_ID, "^pwa", "pw"),
+      SITE_ID = stringr::str_replace(SITE_ID, "^sto", "st"),
+      SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud"),
+    ) %>%
     dplyr::left_join(zooPlank, by = "SITE_ID") %>%
     dplyr::mutate(
       Longitude = dplyr::coalesce(Longitude, Longitude2),
