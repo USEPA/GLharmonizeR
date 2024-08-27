@@ -28,10 +28,16 @@ noaaReadClean <- function(noaaWQ, namingFile) {
 
 
   noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
-    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth.(m)`)
+    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth.(m)`) %>%
+    dplyr::mutate(SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"))
 
   noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", startRow = 3) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
+    dplyr::mutate(
+      SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"),
+      SITE_ID = stringr::str_remove(SITE_ID, "leg"),
+      SITE_ID = stringr::str_remove(SITE_ID, "#")
+    ) %>%
     dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
     dplyr::mutate(
       dplyr::across(Surface.Temp:N, as.numeric),
