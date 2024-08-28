@@ -39,6 +39,8 @@
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     # [x] Join WQ with depth, then, simply row bind the CTD to it
     tidyr::pivot_longer(NH4_ugNL:CtoN_atom, names_to = "ANALYTE", values_to = "RESULT") %>%
+    # NAs in this dataset were simply unmeasured
+    tidyr::drop_na(RESULT) %>%
     dplyr::rename(STIS = `STIS#`, SITE_ID = Chem_site) %>%
     dplyr::select(STIS, SITE_ID, ANALYTE, RESULT) %>%
     dplyr::left_join(chemInfo2) %>%
@@ -73,8 +75,7 @@
     dplyr::mutate(
       mdl = as.numeric(DetectLimit),
       QAcomment = ifelse(RESULT <= mdl, "Below mdl", NA),
-      QAcode = ifelse(RESULT <= mdl, "MDL", NA),
-      RESULT = ifelse(RESULT <= mdl, NA, RESULT)
+      QAcode = ifelse(RESULT <= mdl, "MDL", NA)
     ) %>%
     dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
     dplyr::select(-ASTlayername) %>%

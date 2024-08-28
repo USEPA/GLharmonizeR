@@ -30,14 +30,14 @@
       sampleDateTime = as.POSIXct(sampleDateTime * 86400, origin = "1900-01-01", tz = "UTC"),
       sampleDateTime = lubridate::ymd_h(paste(sampleDateTime, "12"))) %>%
     # don't select bio samples, scans
-    dplyr::select(2:23) %>%
+    dplyr::select(2:5, 7,9,14, 21, 22, 23) %>%
     dplyr::mutate(
       Study = "CSMI_2021_CTD",
       # add UID before pivoting
       UID = paste0(Study, "-", 1:nrow(.))
     ) %>%
     tidyr::pivot_longer(
-      cols = c(4:20),
+      cols = c(4:8),
       names_to = "ANALYTE",
       values_to = "RESULT"
     ) %>%
@@ -47,9 +47,9 @@
       Longitude = Longitude..deg.,
       SITE_ID = Site
     ) %>%
-    # [x] Need to include pH
+    # [x] Need to include pH 
     # [x] Don't rename, instead think about a regex pivot to also grab the units
-    tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", " ", "UNITS" = "\\[.*\\]"), too_few = "align_start") %>%
+    tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", "\\.\\.", "UNITS" = ".*\\..*"), too_few = "align_start") %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
     )
@@ -62,20 +62,25 @@
     openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
     dplyr::select(16:28) %>%
     dplyr::slice(2) %>%
-    tidyr::pivot_longer(everything(), values_to = "mdl", names_to = "ANALYTE")
+    tidyr::pivot_longer(everything(), values_to = "mdl", names_to = "ANALYTE") %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
+      ANALYTE = stringr::str_remove(ANALYTE, "\\..*$"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "=")
+      )
 
-  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
-    openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
+  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
+    tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
     # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
     # [x] parse the time column along with date
-    # [x] flag it if we need to assume it's noon
     # split time and tz, infer timezones as needed, rejoin, convert to UTC
-    tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
     dplyr::mutate(
       Date = as.POSIXct(Date * 86400, origin = "1900-01-01", tz = "UTC"),
-      time = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "12:00", time),
+      time = ifelse(grepl("no time", `time`, ignore.case = T) | is.na(time), "12:00", time),
+      # [x] flag it if we need to assume it's noon
       QAcomment = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "Assumed sample at noon", NA),
       time = stringr::str_remove_all(time, "[:space:]")
     ) %>%
@@ -122,8 +127,14 @@
     )) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
     tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # NA's and non-reports are the only NA's in this dataset
+    tidyr::drop_na(RESULT) %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+    ) %>%
+    tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = "^[:alpha:]*", "\\.", ".g.*L$" ), too_few = "align_start") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
-    tidyr::separate_wider_regex(ANALYTE, c(ANALYTE = "[:graph:]*", "[:space:]*", UNITS = ".*$")) %>%
     dplyr::rename(SITE_ID = Site) %>%
     dplyr::bind_rows(., CTD) %>%
     dplyr::left_join(DL, by = "ANALYTE") %>%
@@ -166,12 +177,10 @@
 
   # After adding site info from zooplank, missing lat/lons is 2%
   WQ <- WQ %>%
-    ##### TENTATIVE FIX
     dplyr::mutate(
       SITE_ID = tolower(SITE_ID),
       SITE_ID = stringr::str_replace(SITE_ID, "^pwa", "pw"),
-      SITE_ID = stringr::str_replace(SITE_ID, "^sto", "st"),
-      SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud"),
+      SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud")
     ) %>%
     dplyr::left_join(zooPlank, by = "SITE_ID") %>%
     dplyr::mutate(

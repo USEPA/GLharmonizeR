@@ -14,6 +14,11 @@
 .LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf) {
   # Load file to map analyte names to standard names
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA"))
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
   CSMI <- dplyr::bind_rows(
     # We aren't including 2010 at this point
     # .LoadCSMI2010(csmi2010, n_max = n_max),
@@ -49,23 +54,17 @@
     ) %>%
     # Join CSMI to new names
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE"), na_matches = "na") %>%
-    dplyr::rename(ReportedUnits = Units)
-
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  CSMI %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::mutate(
+      ReportedUnits = stringr::str_squish(tolower(stringr::str_remove(ReportedUnits, "/")))
+    ) %>%
     dplyr::left_join(key, by = "CodeName") %>%
     # Simplify unit strings
-    dplyr::mutate(ReportedUnits = tolower(stringr::str_remove(ReportedUnits, "/"))) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
       RESULT * ConversionFactor
     )) %>%
-    dplyr::rename(Units = TargetUnits) %>%
+    dplyr::mutate(Units = TargetUnits) %>%
     dplyr::mutate(
       UID = as.character(UID),
       STIS = as.character(STIS),
@@ -73,6 +72,7 @@
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
       UID = paste0("CSMI-", UID)
     )
+  return(CSMI)
 }
 # Turn into test
 # test %>%
