@@ -5,7 +5,8 @@ noaaReadClean <- function(noaaWQ, namingFile) {
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map")
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
+    select(ANALYTE, CodeName, Units)
 
   noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names = T) %>%
     dplyr::select(-c(1:5)) %>%
@@ -57,6 +58,8 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       .by = c(sampleDateTime, SITE_ID),
     ) %>%
     tidyr::pivot_longer(cols = Surface.Temp:N, names_to = "ANALYTE", values_to = "RESULT") %>%
+    # NA's and non-reports are the only two source of NAs in this dataset (not detection limit issues)
+    drop_na(RESULT) %>%
     dplyr::select(-c(X14, X15), DOY) %>%
     # convert lat lon
     tidyr::separate(col = Latitude, into = c("Latdeg", "Latmin"), sep = " ") %>%
@@ -79,9 +82,9 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
     dplyr::select(-c(
-      `RL.Agree?`, `Original.comment/observation`, `Resolution.Comment`, Finalized,
-      TargetUnits, Category, ConversionFactor, Lepak.input, X5
-    ))
+      Lepak.input, X5
+    )) %>%
+    dplyr::filter(ANALYTE!= "surface.temp")
 
   return(noaaWQdata)
 }

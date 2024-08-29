@@ -22,7 +22,7 @@
 
 # Convert conductance with the following (suggested by James Gerads)
 # [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
-oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
+oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
   # load data as oce object
   # get Date, Lat, Lon, stationDepth # Station Name
   meta <- data.frame(
@@ -62,16 +62,11 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
   df <- df %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
-    dplyr::select(dplyr::one_of("depth", "temperature", "cpar", "oxygen", "specificConductance")) %>%
-    dplyr::mutate(UID = paste0(
-      studyName,
-      "-",
-      1:nrow(.)
-    ))
+    dplyr::select(dplyr::one_of("depth", "temperature", "cpar", "oxygen", "specificConductance"))
 
 
   # possible names
-  possibleNames <- c("temperature", "spar", "oxygen", "specificConductance", "pH")
+  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH")
 
   if (bin) {
     # Bin data
@@ -79,15 +74,15 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
     temp <- oce::binAverage(y = df$temperature, x = df$depth, xmin = 0.5, xinc = 1)
     temp <- data.frame("depth" = temp$x, "temperature" = temp$y)
 
-    for (analyte in possibleNames) {{ if (analyte %in% names(data)) {
-      df <- temp %>%
+    for (analyte in possibleNames) {{ if (analyte %in% names(df)) {
+      temp <- temp %>%
         dplyr::mutate(
           "{analyte}" := oce::binAverage(y = df[[analyte]], x = df[["depth"]], xmin = 0.5, xinc = 1)$y
         )
     } }}
   }
 
-  df <- df %>%
+  df <- temp %>%
     # add meta data
     dplyr::mutate(
       Latitude = meta$latitude,
@@ -103,7 +98,7 @@ oce2df <- function(data, studyName = NULL, bin = FALSE, downcast = FALSE) {
       Station = toupper(Station)
     ) %>%
     dplyr::rename(sampleDepth = depth) %>%
-    tidyr::pivot_longer(-c(UID, sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDateTime), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDateTime), names_to = "ANALYTE", values_to = "RESULT") %>%
     dplyr::rename(STATION_ID = Station)
 
   unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))
