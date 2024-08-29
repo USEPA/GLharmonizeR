@@ -9,8 +9,35 @@ library(fuzzyjoin)
 devtools::load_all()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
 #df <- readRDS("fullData.Rds")
-
 ```
+
+# Missing Checks
+```{r}
+df %>%
+  reframe(CodeName = mean(is.na(CodeName)), Lat = mean(is.na(Latitude)),
+   RESULT = mean(is.nan(RESULT)),
+    LongName = mean(is.na(LongName)), TargetUnits = mean(is.na(TargetUnits)),
+    ReportedUnits = mean(is.na(ReportedUnits)),
+    ConversionFactor = mean(is.na(ConversionFactor)), 
+    .by = Study)
+
+flagged %>% count(QAcode, Unified_Flag)
+```
+
+Study        CodeName Lat RESULT                    LongName TargetUnits ReportedUnits(these are good, pH,cpar etc)
+NCCA_hydro_2010  0    0    0                          0             0.3            0.36
+NCCA_hydro_2015  0    0    0.01                       0             0.2            0.2  
+NCCA_secchi_2015 0    0    0.06(0.3 w/CTB)            0             0              0    
+NCCA_WChem_2010  0    0    0.3(Doesn't make sense)    0             0              0    
+NCCA_WChem_2015  0    0    0.06                       0             0              0    
+GLENDA           0    0.04 0.1                        0             0.08           0    
+CSMI_2015        0    0.09 0.1                        0.4(itopes)   0.42           0.28
+SeaBird          0    0    0.1                        0             0              0.333
+CSMI_2021_WQ     0    0.06 0                          0             0              0
+CSMI_2021_CTD    0    0    0                          0             0.2            0.2  
+NOAAwq           0    0.04 0.2                        0             1              0.167
+
+
 
 
 
@@ -116,6 +143,25 @@ GLENDA %>%
 
 # Missingness by data source
 
+# CHLA sampling
+```{r}
+chlaDF <- df %>% filter(CodeName == "Chla", sampleDateTime > as.POSIXct("2000-01-01")) %>%
+chlaDF %>% 
+  count(Study)
+
+chlaDF %>%
+  ggplot(aes(x= sampleDateTime, fill = Study)) +
+  geom_histogram(position="stack")
+
+lakes <- sf::read_sf("ne_50m_lakes.shp")
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= chlaDF, aes(x = Longitude, y = Latitude), size = 3, col = "red",  alpha = 0.2)
+ggsave("differencePrecisionsLM.png")
+```
 
 ### rounding lat lon
 ```{r}

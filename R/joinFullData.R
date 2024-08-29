@@ -83,11 +83,13 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
   dplyr::mutate(RESULT = dplyr::case_when(
     ReportedUnits == TargetUnits ~ RESULT,
-    is.na(ReportedUnits) ~ RESULT,
-    .default = RESULT * ConversionFactor
+    ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
+    is.na(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
+    is.nan(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
+    .default = RESULT
   )) %>%
   dplyr::select(-Units) %>%
-  dplyr::rename(Units = TargetUnits) %>%
+  dplyr::mutate(Units = TargetUnits) %>%
   dplyr::filter(CodeName != "Remove") %>%
   dplyr::select(-c(Finalized, Years))
   # [x] Join to QA flag decisiosn and filter
@@ -115,8 +117,11 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
   GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
-    select(-c(Finalized))
-
+    select(-c(Finalized)) %>%
+    mutate(
+      # This is mostly intended to fill in missing values for seabird
+      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth)
+    )
 
 
   print("Step 5/8: Read and clean CSMI data")
@@ -128,7 +133,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 6/8: Read and clean NOAA data")
   NOAA <- noaaReadClean(noaaWQ, namingFile) %>%
-    dplyr::select(-Years) %>%
     dplyr::mutate(Study = "NOAAwq")
 
   print("Step 7/8: Combine and return full data")
@@ -178,19 +182,29 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [x] Split into flagged and unflagged values
   notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment)) %>% distinct()
   # [x] join flag explanations
-  flags <- openxlsx::read.xlsx(flagsFile)
+  flags <- openxlsx::read.xlsx(flagsFile) %>%
+    # Fill in missing for fuzzy join to work
+    dplyr::mutate(
+      QAcode = ifelse(is.na(QAcode), Study, QAcode),
+      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
+    )
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
-  flagged <- allWQ %>% 
-    dplyr::filter(!is.na(QAcode) | !is.na(QAcomment)) %>% 
-    distinct() %>%
-    fuzzyjoin::fuzzy_join(
-      flags,
-      # didn't include sampyear, because codes seem to have stayed the same
-      by = c("Study", "QAcode", "QAcomment"),
-      match_fun = list(`==`, stringr::str_detect, stringr::str_detect),
-      mode = "left"
+  flagged <- allWQ %>%
+    dplyr::filter(!is.na(QAcode) | !is.na(QAcomment)) %>%
+    dplyr::mutate(
+      QAcode = stringr::str_remove_all(QAcode, "^NA;"),
+      QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
+      QAcode = stringr::str_replace_all(QAcode, ",", ";"),
+      QAcode = ifelse(is.na(QAcode), Study, QAcode),
+      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     ) %>%
+    distinct() %>%
+    fuzzyjoin::fuzzy_join(flags,
+    by=c("Study", 'QAcode', "QAcomment"),
+    mode='left', #use left join
+    match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
+  ) %>%
     dplyr::rename(
       # fuzzy matching appends x and y onto matching columns
       Study = Study.x, QAcode = QAcode.x, QAcomment = QAcomment.x
@@ -201,7 +215,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       QAcomment = dplyr::coalesce(QAcomment, QAcomment.y),
     ) %>%
     dplyr::select(
-      -c(Study.y, QAcode.y, QAcomment.y)
+      -c(Study.y, QAcode.y)
     ) %>%
   # Compress instances that were matched multiple times into sinlge observation
   # for QA comments and codes
@@ -222,7 +236,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
      ))  %>%
      # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
-  dplyr::filter(!grepl("Remove", Retain)) %>%
   dplyr::mutate(
     RESULT = dplyr::case_when(
       grepl("N", Unified_Flag) ~ NA,
@@ -231,7 +244,16 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       grepl("R", Unified_Flag) ~ NA,
       grepl("B", Unified_Flag) ~ NA,
       .default = RESULT
-    )
+    ),
+    # Cleaning up unified flags
+    Unified_Flag = stringr::str_remove_all(Unified_Flag, "NA"),
+    Unified_Flag = ifelse(Unified_Flag == "", NA, Unified_Flag),
+    Unified_Flag = stringr::str_remove(Unified_Flag, "^,"),
+    Unified_Flag = stringr::str_squish(Unified_Flag)
+  ) %>%
+  dplyr::filter(
+    !is.na(RESULT) | grepl("B|N|R", Unified_Flag),
+    !grepl("Remove", Retain)
   )
 
   # [x] recombine full dataset
