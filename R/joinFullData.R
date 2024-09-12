@@ -91,7 +91,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     .default = RESULT
   )) %>%
   dplyr::select(-Units) %>%
-  dplyr::mutate(Units = TargetUnits) %>%
+  dplyr::mutate(Units = TargetUnits, SAMPLE_ID = as.character(SAMPLE_ID)) %>%
   dplyr::select(-c(Finalized, Years))
 
 
@@ -100,7 +100,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     .cleanGLENDA(.,
       namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
-    )
+    ) %>% 
+    dplyr::mutate(YEAR = as.numeric(YEAR))
 
 
   print("Step 4/8: Read preprocessed Seabird files associated with GLENDA")
@@ -117,7 +118,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
   GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
-    select(-c(Finalized)) %>%
     mutate(
       # This is mostly intended to fill in missing values for seabird
       stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth)
@@ -231,7 +231,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       Action = toString(unique(Action)),
      .by = c(
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
-      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, Conversion, ReportedUnits, RESULT, 
+      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT, 
       MDL, PQL, RL, LAB
      ))  %>%
      # handle Retain column by priority

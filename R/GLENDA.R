@@ -214,21 +214,6 @@
     } %>%
     dplyr::mutate(
       Study = "GLENDA",
-      VALUE = dplyr::case_when(
-        # Secchi estimates are treated differently (removed) than WChem estimates (not removed)
-        # [ ] Could we impute with station depth here?
-        # [x] Is the secchi estimamte ever greater than station depth?
-        # all secchi's are generally estimated
-        # df %>% filter(grepl("Secchi", ANALYTE, ignore.case= T)) %>% distinct(RESULT)
-        # If so, then it's a clear to bottom issue, if not, then filter these all out
-        # If so, make sure to add to the result_remark
-        (grepl("secchi", ANALYTE, ignore.case = TRUE)) & (grepl("estimate", RESULT_REMARK, ignore.case = TRUE)) ~ NA,
-        .default = VALUE
-      ),
-      RESULT_REMARK = dplyr::case_when(
-        (grepl("secchi", ANALYTE, ignore.case = TRUE) &grepl("estimate", RESULT_REMARK, ignore.case = TRUE)) ~ paste(RESULT_REMARK, "CTB", sep = ";"),
-        .default = RESULT_REMARK
-      ),
       # Grab all of the flags reported in the VALUE column
       RESULT_REMARK = ifelse(is.na(as.numeric(VALUE)), paste0(RESULT_REMARK, sep = "; ", VALUE), RESULT_REMARK),
       RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)
