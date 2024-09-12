@@ -65,7 +65,7 @@
     # Simplify unit strings
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(
-      ReportedUnits = ifelse("^CPAR$|^CPARCorrectedIrradiance$", ANALYTE, ignore.case=T), "percent", ReportedUnits),
+      ReportedUnits = ifelse(stringr::str_detect(ANALYTE, "^CPAR$|^CPARCorrectedIrradiance$"), "percent", ReportedUnits),
       ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
     ) %>%
     # To account for pH and CPAR being unitless

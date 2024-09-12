@@ -18,53 +18,58 @@
   dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery.accdb")
   # Spatial information
   stationInfo <- RODBC::sqlFetch(dbi, "L1_Stationmaster") %>%
-    dplyr::rename(
+    dplyr::select(
       SITE_ID = StationCodeKey,
       targetDepth = `DepthM _target`,
       targetLat = LatDD_target,
       targetLon = LonDD_target
-    ) %>%
-    dplyr::select(SITE_ID, targetDepth, targetLat, targetLon) %>%
+    )
+
     # sample information (time, depth)
-    dplyr::full_join(., RODBC::sqlFetch(dbi, "L2a_StationSampleEvent") %>%
+  eventInfo <- RODBC::sqlFetch(dbi, "L2a_StationSampleEvent") %>%
       # [x] Grab eastern time
-      dplyr::rename(SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual) %>%
-      dplyr::select(SITE_ID, Latitude, Longitude, sampleDate, sampleTime, stationDepth, SampleEventKey))
+      dplyr::select(SampleEventKey, SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual)
 
   # Water chem sample depth
-  chemInfo2 <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
-    dplyr::rename(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m) %>%
-    dplyr::full_join(., stationInfo)
+  stisInfo <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
+    dplyr::select(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m,
+      sampleType = ASTlayername)
+
+  sampleInfo <- dplyr::left_join(stisInfo, eventInfo, by = "SampleEventKey") %>%
+    dplyr::left_join(stationInfo, by = "SITE_ID")
+  
   # impute missing coordinates from target coordinates if possible
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     # [x] Join WQ with depth, then, simply row bind the CTD to it
     tidyr::pivot_longer(NH4_ugNL:CtoN_atom, names_to = "ANALYTE", values_to = "RESULT") %>%
     # NAs in this dataset were simply unmeasured
     tidyr::drop_na(RESULT) %>%
-    dplyr::rename(STIS = `STIS#`, SITE_ID = Chem_site) %>%
-    dplyr::select(STIS, SITE_ID, ANALYTE, RESULT) %>%
-    dplyr::left_join(chemInfo2) %>%
+    dplyr::select(STIS = `STIS#`, SITE_ID = Chem_site, ANALYTE, RESULT) %>%
+    dplyr::left_join(sampleInfo, by = "STIS") %>%
+    # retain the site information from the sample information 
+    dplyr::select(-SITE_ID.x) %>%
     # fill missing positions with targetted positions
     dplyr::mutate(
       Latitude = dplyr::coalesce(Latitude, targetLat),
       Longitude = dplyr::coalesce(Longitude, targetLon),
       stationDepth = dplyr::coalesce(stationDepth, targetDepth)
     ) %>%
-    dplyr::select(-dplyr::contains("target"), -c(WQlabelname))
+    dplyr::rename(SITE_ID = SITE_ID.y)
 
   # XXX these are depth matched, so there is more data out there
   # i.e. we could find the raw data and get measures at every 1m
   ctd <- RODBC::sqlFetch(dbi, "L3b_CTDLayerData") %>%
     tidyr::pivot_longer(Temptr_C:pH, values_to = "RESULT", names_to = "ANALYTE") %>%
-    dplyr::rename(STIS = STISkey, sampleDepth = CTDdepth) %>%
-    dplyr::select(STIS, sampleDepth, ANALYTE, RESULT) %>%
-    dplyr::left_join(chemInfo2) %>%
+    dplyr::select(STIS = STISkey, sampleDepth = CTDdepth, ANALYTE, RESULT) %>%
+    dplyr::left_join(sampleInfo, by = "STIS") %>%
+    # only want to keep the ctd sample depth
+    dplyr::select(-sampleDepth.y) %>%
     dplyr::mutate(
       Latitude = dplyr::coalesce(Latitude, targetLat),
       Longitude = dplyr::coalesce(Longitude, targetLon),
       stationDepth = dplyr::coalesce(stationDepth, targetDepth)
     ) %>%
-    dplyr::select(-c("WQlabelname"), -contains("target"))
+    dplyr::rename(sampleDepth = sampleDepth.x)
 
 
   WQ <- dplyr::bind_rows(chem, ctd) %>%
@@ -77,8 +82,8 @@
       QAcomment = ifelse(RESULT <= mdl, "Below mdl", NA),
       QAcode = ifelse(RESULT <= mdl, "MDL", NA)
     ) %>%
-    dplyr::filter(!grepl("_cmp", ASTlayername)) %>%
-    dplyr::select(-ASTlayername) %>%
+    dplyr::filter(!grepl("_cmp", sampleType)) %>%
+    dplyr::select(-sampleType) %>%
     # [x] combine date and time
     dplyr::mutate(
       sampleDateTime = lubridate::ymd_h(

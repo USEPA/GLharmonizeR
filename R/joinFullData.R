@@ -142,8 +142,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   dplyr::mutate(
     SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
   ) %>%
-  # [x] convert to any_of/one_of selection
-
   dplyr::select(dplyr::any_of(c(
     # time and space
     "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
@@ -158,9 +156,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   ))) %>%
   # catching some where units were inferred
   dplyr::mutate(
-    QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
-      "U", QAcode
-    ),
+    QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
+      paste0(QAcode, sep = "; ", "U"), QAcode),
     QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
       "No reported units, assumed most common units in analyte-year", QAcomment
     )
@@ -169,12 +166,18 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     RL = dplyr::coalesce(LRL, MRL),
     # [x] Flag if below detection limit
     # If MDL is missing, 
-    QAcode = ifelse((RESULT > MDL) | is.na(MDL),
-      QAcode,
-      paste(QAcomment, "MDL", sep = "; ")),
-    QAcomment = ifelse((RESULT > MDL) | is.na(MDL),
-      QAcomment,
-      paste(QAcomment, "Below Method Detection Limit", sep = "; "))
+    QAcode = dplyr::case_when(
+      is.na(MDL) ~ QAcode,
+      RESULT > MDL ~ QAcode, 
+      RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
+      .default = QAcode
+      ),
+    QAcomment = dplyr::case_when(
+      is.na(MDL) ~ QAcomment,
+      RESULT > MDL ~ QAcomment, 
+      RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
+      .default = QAcomment
+      )
   ) %>%
   dplyr::select(-c(MRL, LRL))
 

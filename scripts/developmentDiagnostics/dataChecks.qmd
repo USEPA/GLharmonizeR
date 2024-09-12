@@ -42,15 +42,18 @@ NOAAwq           0    0.04 0.2                        0             0           
 
 # zeros
 ```{r}
-df %>% 
-  filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
+df %>% #test %>% 
+  #filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
+  filter(is.na(RESULT), is.na(QAcode), is.na(QAcomment)) %>%
   reframe(.by = c(Study, CodeName), 
     Years= toString(unique(lubridate::year(sampleDateTime))), 
-    flags = toString(unique(Unified_Flag)),
-    count = n()
+    Uflags = toString(unique(Unified_Flag)),
+    QAcodes = toString(unique(QAcode)),
+    count = n(),
+    toString(unique(QAcode))
     ) %>%
   arrange(Study, CodeName) %>%
-  write_csv("NAs.csv")
+  write_csv("NAs_NEW.csv")
 
 df %>% 
   filter(RESULT <= 0) %>%
