@@ -19,27 +19,54 @@ df %>%
     LongName = mean(is.na(LongName)), TargetUnits = mean(is.na(TargetUnits)),
     ReportedUnits = mean(is.na(ReportedUnits)),
     ConversionFactor = mean(is.na(ConversionFactor)), 
-    .by = Study)
+    .by = Study) %>% 
+    write_csv("generalMissingness.csv")
 
 flagged %>% count(QAcode, Unified_Flag)
 ```
 
 Study        CodeName Lat RESULT                    LongName TargetUnits ReportedUnits(these are good, pH,cpar etc)
-NCCA_hydro_2010  0    0    0                          0             0.3            0.36
-NCCA_hydro_2015  0    0    0.01                       0             0.2            0.2  
-NCCA_secchi_2015 0    0    0.06(0.3 w/CTB)            0             0              0    
-NCCA_WChem_2010  0    0    0.3(Doesn't make sense)    0             0              0    
+NCCA_hydro_2010  0    0    0                          0             0            0.36
+NCCA_hydro_2015  0    0    0.01                       0             0            0.2  
+NCCA_secchi_2015 0    0    0(0.3 w/CTB)               0             0              0    
+NCCA_WChem_2010  0    0    0                          0             0              0    
 NCCA_WChem_2015  0    0    0.06                       0             0              0    
-GLENDA           0    0.04 0.1                        0             0.08           0    
-CSMI_2015        0    0.09 0.1                        0.4(itopes)   0.42           0.28
+GLENDA           0    0.04 0.1                        0             0           0    
+CSMI_2015        0    0.09 0.1                        0             0           0.28
 SeaBird          0    0    0.1                        0             0              0.333
 CSMI_2021_WQ     0    0.06 0                          0             0              0
-CSMI_2021_CTD    0    0    0                          0             0.2            0.2  
-NOAAwq           0    0.04 0.2                        0             1              0.167
+CSMI_2021_CTD    0    0    0                          0             0            0.2  
+NOAAwq           0    0.04 0.2                        0             0              0.167
 
 
 
+# zeros
+```{r}
+df %>% 
+  filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
+  reframe(.by = c(Study, CodeName), 
+    Years= toString(unique(lubridate::year(sampleDateTime))), 
+    flags = toString(unique(Unified_Flag)),
+    count = n()
+    ) %>%
+  arrange(Study, CodeName) %>%
+  write_csv("NAs.csv")
 
+df %>% 
+  filter(RESULT <= 0) %>%
+  mutate(type = case_when(
+    RESULT < 0 ~ "Negative",
+    RESULT == 0 ~ "Zero"
+  )) %>%
+  reframe(.by = c(Study, CodeName, type), 
+    Years= toString(unique(lubridate::year(sampleDateTime))), 
+    flags = toString(unique(Unified_Flag)),
+    count = n()
+    ) %>%
+  arrange(Study, CodeName, type) %>%
+  write_csv("zerosNegs.csv")
+
+```
 
 
 # Flags
@@ -271,8 +298,8 @@ stations %>%
 # Duplicates
 ```{r duplicates}
 
-removedDup <- df %>%  # 11877651 partial observations
-  dplyr::distinct() %>% # 11853750 
+removedDup <- df %>%  # 185374 partial observations
+  dplyr::distinct() %>% 
   # [ ] Round to that decimal place and do exact match
   # [ ] Include study as another column
   # [ ] For each lat/lon write list of stations

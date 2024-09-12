@@ -143,7 +143,7 @@
     dplyr::select(-ANALYTE) %>%
     dplyr::rename(CodeName = ANALYTE.y)
 
-  df <- df %>%
+  test <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
       # [x] Check if remove RESULTstart - verified it's gone
@@ -226,11 +226,13 @@
         .default = VALUE
       ),
       RESULT_REMARK = dplyr::case_when(
-        grepl("estimate", RESULT_REMARK, ignore.case = TRUE) ~ paste(RESULT_REMARK, "CTB", sep = ";"),
+        (grepl("secchi", ANALYTE, ignore.case = TRUE) &grepl("estimate", RESULT_REMARK, ignore.case = TRUE)) ~ paste(RESULT_REMARK, "CTB", sep = ";"),
         .default = RESULT_REMARK
-      )
+      ),
+      # Grab all of the flags reported in the VALUE column
+      RESULT_REMARK = ifelse(is.na(as.numeric(VALUE)), paste0(RESULT_REMARK, sep = "; ", VALUE), RESULT_REMARK),
+      RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)
     ) %>%
-    dplyr::mutate(RESULT = as.numeric(VALUE), Latitude = as.numeric(LATITUDE), Longitude = as.numeric(LONGITUDE)) %>%
     # These columns are all renamed and so no longer needed
     dplyr::select(-c(VALUE, LONGITUDE, LATITUDE)) %>%
     dplyr::rename(UID = SAMPLE_ID, sampleDepth = SAMPLE_DEPTH_M, stationDepth = STN_DEPTH_M, QAcomment = RESULT_REMARK) %>%
@@ -246,7 +248,10 @@
     # [x] Check if we need to impute units- nope all taken care of
     # sum(is.na(df$Units)) == 0
     # If so, we will assume on a given year analytes have same units
-    dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
+    dplyr::mutate(
+      TargetUnits = tolower(TargetUnits),
+      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits)
+      ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
     # [x] Check this filter is working

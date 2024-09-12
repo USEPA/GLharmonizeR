@@ -78,7 +78,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       (Year == 2015) & (CodeName == "Cond") ~ "uscm",
       (Year == 2015) & (CodeName == "CPAR") ~ "%",
       .default = ReportedUnits
-    )
+    ),
+    # specify cpar units
+    ReportedUnits = ifelse(grepl("par", ANALYTE, ignore.case = T), "percent", ReportedUnits)
   ) %>%
   dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
   dplyr::mutate(RESULT = dplyr::case_when(
@@ -90,9 +92,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   )) %>%
   dplyr::select(-Units) %>%
   dplyr::mutate(Units = TargetUnits) %>%
-  dplyr::filter(CodeName != "Remove") %>%
   dplyr::select(-c(Finalized, Years))
-  # [x] Join to QA flag decisiosn and filter
 
 
   print("Step 3/8: Read and clean GLENDA")
@@ -150,9 +150,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     # analyte name
     "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
     # unit conversion
-    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits",
+    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits", "Explicit_Units",
     # measurement and limits
-    "RESULT", "MDL", "MRL", "PQL",
+    "RESULT", "MDL", "MRL", "PQL", "METHOD",
     # QA
     "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
   ))) %>%
@@ -251,13 +251,23 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     Unified_Flag = stringr::str_remove(Unified_Flag, "^,"),
     Unified_Flag = stringr::str_squish(Unified_Flag)
   ) %>%
+  # [ ] Summarize the na values that aren't known flags
+  # [ ] Make sure NA flag doesn't break this
   dplyr::filter(
     !is.na(RESULT) | grepl("B|N|R", Unified_Flag),
     !grepl("Remove", Retain)
   )
+  # [ ] Remove Study name fomr QAcode and QAcomment from output data
 
   # [x] recombine full dataset
-  allWQ <- dplyr::bind_rows(flagged, notflagged)
+  allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
+    dplyr::rename(Units = Explicit_Units) %>%
+    # clean up Qa codes nad comments
+    dplyr::mutate(
+      QAcode = ifelse(Study == QAcode, NA, QAcode),
+      QAcomment = ifelse(Study == QAcomment, NA, QAcomment)
+    ) %>%
+    dplyr::filter(CodeName != "Remove")
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".Rds"))

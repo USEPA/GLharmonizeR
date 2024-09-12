@@ -79,6 +79,7 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::rename(ReportedUnits = Units) %>%
     dplyr::left_join(renamingTable, by = "ANALYTE") %>%
     dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::mutate(ReportedUnits = ifelse(ANALYTE =="tp", "ugl", ReportedUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
     dplyr::select(-c(

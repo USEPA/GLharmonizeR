@@ -109,7 +109,8 @@
     # [x] this don't need reframe since I filtered to downcast
     dplyr::mutate(
       sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
-      Study = "NCCA_hydro_2010"
+      Study = "NCCA_hydro_2010",
+      UNITS = ifelse(grepl("par", ANALYTE, ignore.case = T), "percent", UNITS)
     )
   return(df)
 }
