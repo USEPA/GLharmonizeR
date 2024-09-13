@@ -31,13 +31,23 @@ noaaSites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
   dplyr::select(-c(LatDeg, LatDec, LonDeg, LonDec))
 # [x] How are CDE reported with leg and station?
 # All appearance of "Leg" and "Station" appear in the filename (as oppoosed to directory)
-write_csv(noaaSites, "noaaSiteInformation.csv")
+#write_csv(noaaSites, "noaaSiteInformation.csv")
 
 ctdDir <- file.path("~", "Environmental Protection Agency (EPA)",
   "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022")
 cnvFiles <- c(list.files(path = ctdDir, recursive = T, pattern = "*.cnv$", full.names = F), 
   list.files(path = ctdDir, recursive = T, pattern = "*.CNV$", full.names = T ))
 sampleEvents <- cnvFiles[grepl("^20.*/[[:digit:]*].*", cnvFiles, ignore.case=T)]
+
+noaaSites <- read_csv("noaaSiteInformation.csv")
+
+test <- as.data.frame(sampleEvents) %>%
+    fuzzyjoin::fuzzy_join(noaaSites,
+    by=c("sampleEvents" = "Other.names"),
+    mode='left', #use left join
+    match_fun = list(stringr::str_detect)
+  )
+
 
 # Find unique ways stations are reported in filepaths
 legs <- tools::file_path_sans_ext(basename(sampleEvents[grepl("leg", sampleEvents, ignore.case=T)])) %>%
@@ -115,6 +125,8 @@ test <- as.data.frame(sampleEvents) %>%
     DateArea1 = stringr::str_remove_all(DateArea1, "[:alpha:]"),
     Date1 = stringr::str_extract(DateArea1, "[:digit:]{1,2}-[:digit:]{1,2}-[:digit:]{2,4}"),
   )
+write_csv(test, "noaaSiteMatching.csv")
+
 
 # [ ] Join actual file names to naming table
 # [ ] parse dates from 2 directories above file
