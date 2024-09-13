@@ -20,31 +20,18 @@ df %>%
     ReportedUnits = mean(is.na(ReportedUnits)),
     ConversionFactor = mean(is.na(ConversionFactor)), 
     .by = Study) %>% 
+    print() %>%
     write_csv("generalMissingness.csv")
-
-flagged %>% count(QAcode, Unified_Flag)
 ```
 
-Study        CodeName Lat RESULT                    LongName TargetUnits ReportedUnits(these are good, pH,cpar etc)
-NCCA_hydro_2010  0    0    0                          0             0            0.36
-NCCA_hydro_2015  0    0    0.01                       0             0            0.2  
-NCCA_secchi_2015 0    0    0(0.3 w/CTB)               0             0              0    
-NCCA_WChem_2010  0    0    0                          0             0              0    
-NCCA_WChem_2015  0    0    0.06                       0             0              0    
-GLENDA           0    0.04 0.1                        0             0           0    
-CSMI_2015        0    0.09 0.1                        0             0           0.28
-SeaBird          0    0    0.1                        0             0              0.333
-CSMI_2021_WQ     0    0.06 0                          0             0              0
-CSMI_2021_CTD    0    0    0                          0             0            0.2  
-NOAAwq           0    0.04 0.2                        0             0              0.167
 
 
 
 # zeros
 ```{r}
 df %>% #test %>% 
-  #filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
-  filter(is.na(RESULT), is.na(QAcode), is.na(QAcomment)) %>%
+  filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
+  # filter(is.na(RESULT), is.na(QAcode), is.na(QAcomment)) %>%
   reframe(.by = c(Study, CodeName), 
     Years= toString(unique(lubridate::year(sampleDateTime))), 
     Uflags = toString(unique(Unified_Flag)),
@@ -53,6 +40,7 @@ df %>% #test %>%
     toString(unique(QAcode))
     ) %>%
   arrange(Study, CodeName) %>%
+  print() %>%
   write_csv("NAs_NEW.csv")
 
 df %>% 
@@ -67,6 +55,7 @@ df %>%
     count = n()
     ) %>%
   arrange(Study, CodeName, type) %>%
+  print() %>% 
   write_csv("zerosNegs.csv")
 
 ```

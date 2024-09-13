@@ -63,33 +63,40 @@
     )) %>%
     # [ ] Fix filter for region and lake
     # Great lakes get's priority over spcifying each lake
-    # dplyr::filter(NCCRreg == "Great Lakes") %>%
-    # {
-    #  if (!is.null(Lakes)) {
-    #    dplyr::filter(., WTBDY_NM %in% Lakes)
-    #  } else {
-    #    .
-    #  }
-    # } %>%
+    dplyr::filter(NCCRreg == "Great Lakes") %>%
+    {
+     if (!is.null(Lakes)) {
+       dplyr::filter(., WTBDY_NM %in% Lakes)
+     } else {
+       .
+     }
+    } %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     # [x] fill missing units as the most common non-missing units within a given study-year
     # Group by study-year, analytes
     dplyr::mutate(
+      ReportedUnits = dplyr::case_when(
+        ANALYTE == "pH" ~ "unitless",
+        ANALYTE == "Corrected PAR" ~ "percent",
+        .default = ReportedUnits
+    )) %>%
+    dplyr::mutate(
       ReportedUnits = ifelse(
-        is.na(ReportedUnits),
         # impute with the mode
-        as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
-        as.character(ReportedUnits)
+        is.na(ReportedUnits) & mean(is.na(ReportedUnits)) !=0,
+          as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
+          as.character(ReportedUnits)
       ),
-      QAcode = ifelse(is.na(ReportedUnits),
-        paste0(QAcode, "; U"),
-        QAcode
+      .by = c(Study, Year, ANALYTE)) %>%
+    dplyr::mutate(
+      QAcode = dplyr::case_when(
+        is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcode, "; U"),
+        .default = QAcode
       ),
-      QAcomment = ifelse(is.na(ReportedUnits),
-        paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
-        QAcomment
-      ),
-      .by = c(Study, Year, ANALYTE)
+      QAcomment = dplyr::case_when(
+        is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
+        .default = QAcomment
+      )
     )
   # Turn into test
   # final %>%
