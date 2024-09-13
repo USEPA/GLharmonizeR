@@ -97,7 +97,10 @@
         is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
         .default = QAcomment
       )
-    )
+    ) %>%
+    # bounding box around Lake Michigan
+    dplyr::filter(Latitude > 41.5, Latitude <  46.2, Longitude > -88, Longitude <  -85)
+
   # Turn into test
   # final %>%
   #   filter(TargetUnits != ReportedUnits) %>%

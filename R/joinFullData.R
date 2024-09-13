@@ -271,7 +271,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       QAcode = ifelse(Study == QAcode, NA, QAcode),
       QAcomment = ifelse(Study == QAcomment, NA, QAcomment)
     ) %>%
-    dplyr::filter(CodeName != "Remove")
+    dplyr::filter(CodeName != "Remove") %>%
+    # only keep measured and censored values
+    dplyr::filter(!is.na(RESULT) | !is.na(Unified_Flag))
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".Rds"))
