@@ -1,4 +1,4 @@
-noaaReadClean <- function(noaaWQ, namingFile) {
+noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -7,6 +7,7 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
     select(ANALYTE, CodeName, Units)
+  
 
   noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names = T) %>%
     dplyr::select(-c(1:5)) %>%
@@ -27,19 +28,17 @@ noaaReadClean <- function(noaaWQ, namingFile) {
       Units = stringr::str_remove(Units, "\\/")
     )
 
-
-  noaaWQsites <- openxlsx::read.xlsx(noaaWQ, sheet = "sites") %>%
-    dplyr::rename(SITE_ID = `Station:`, Latitude = Lat, Longitude = Long, stationDepth = `Depth.(m)`) %>%
-    dplyr::mutate(SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"))
-
   noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", startRow = 3) %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"),
       SITE_ID = stringr::str_remove(SITE_ID, "leg"),
       SITE_ID = stringr::str_remove(SITE_ID, "#")
-    ) %>%
-    dplyr::left_join(noaaWQsites, by = "SITE_ID") %>%
+    ) %>% 
+    dplyr::mutate(SITE_ID = ifelse(SITE_ID == "c1nobag", "c1", SITE_ID)) %>%
+    dplyr::left_join(readr::read_csv(noaaWQSites), by = c("SITE_ID" = "Other.names")) %>%
+    dplyr::select(-SITE_ID) %>%
+    dplyr::rename(SITE_ID = SITE_ID.y) %>%
     dplyr::mutate(
       dplyr::across(Surface.Temp:N, as.numeric),
       # assuming 12 noon for consistency with other datasets
@@ -62,17 +61,10 @@ noaaReadClean <- function(noaaWQ, namingFile) {
     drop_na(RESULT) %>%
     dplyr::select(-c(X14, X15), DOY) %>%
     # convert lat lon
-    tidyr::separate(col = Latitude, into = c("Latdeg", "Latmin"), sep = " ") %>%
-    tidyr::separate(col = Longitude, into = c("Londeg", "Lonmin"), sep = " ") %>%
     dplyr::mutate(
-      dplyr::across(c(Latdeg, Latmin), as.numeric),
-      dplyr::across(c(Londeg, Lonmin), as.numeric),
-      Latitude = Latdeg + Latmin / 60,
-      Longitude = Londeg + Lonmin / 60,
       sampleDepth = ifelse(ANALYTE == "Surface.Temp", 0, sampleDepth),
       sampleDepth = ifelse(ANALYTE == "secchi", NA, sampleDepth)
     ) %>%
-    dplyr::select(-c(Latdeg, Latmin, Londeg, Lonmin)) %>%
     dplyr::mutate(ANALYTE = tolower(ANALYTE)) %>%
     dplyr::left_join(noaaWQunits, by = "ANALYTE") %>%
     # rename and convert units
