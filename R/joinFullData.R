@@ -35,6 +35,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   namingFile <- filepaths["namingFile"]
   flagsFile <- filepaths["flagsFile"]
   noaaWQ <- filepaths["noaaWQ"]
+  noaaWQSites <- filepaths["noaaWQSites"]
   # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
   # [ ] water body name arguement
@@ -132,7 +133,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [x] filter "remove" analytes
 
   print("Step 6/8: Read and clean NOAA data")
-  NOAA <- noaaReadClean(noaaWQ, namingFile) %>%
+  NOAA <- noaaReadClean(noaaWQ, namingFile, noaaWQSites) %>%
     dplyr::mutate(Study = "NOAAwq")
 
   print("Step 7/8: Combine and return full data")

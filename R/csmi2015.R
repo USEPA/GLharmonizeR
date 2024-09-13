@@ -15,7 +15,7 @@
   unzip("tempCSMI2015.zip")
   file.remove("tempCSMI2015.zip")
 
-  dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery.accdb")
+  dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   # Spatial information
   stationInfo <- RODBC::sqlFetch(dbi, "L1_Stationmaster") %>%
     dplyr::select(
@@ -125,7 +125,7 @@
 
   RODBC::odbcClose(dbi)
 
-  file.remove("CSMI2015_newQuery.accdb")
+  file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   return(WQ)
 }
 
