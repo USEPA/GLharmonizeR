@@ -39,7 +39,7 @@ cnvFiles <- c(list.files(path = ctdDir, recursive = T, pattern = "*.cnv$", full.
   list.files(path = ctdDir, recursive = T, pattern = "*.CNV$", full.names = T ))
 sampleEvents <- cnvFiles[grepl("^20.*/[[:digit:]*].*", cnvFiles, ignore.case=T)]
 
-noaaSites <- read_csv("noaaSiteInformation.csv")
+noaaSites <- read_csv(filepaths["noaaWQSites"])
 
 test <- as.data.frame(sampleEvents) %>%
     fuzzyjoin::fuzzy_join(noaaSites,
@@ -47,6 +47,9 @@ test <- as.data.frame(sampleEvents) %>%
     mode='left', #use left join
     match_fun = list(stringr::str_detect)
   )
+
+write_csv(test, "noaaSiteMatching.csv")
+
 
 
 # Find unique ways stations are reported in filepaths
@@ -107,7 +110,7 @@ test <- as.data.frame(sampleEvents) %>%
     # OTHER PATTERNS NOT INCLUDING FOR NOW
     O_ID1 = stringr::str_extract(SITE_ID, 
       # dangerous Musk Lake guess(80% total)
-      "m[:digit:]{2,4}|gh[:digit:]{2,4}"
+      "m[:digit:]{2,4}|gh[:digit:]{2,4}X{1,2}"
     ),
     # Other patterns not willing to guess at
     # monthName, tb, x2, raw, numbers
@@ -118,12 +121,27 @@ test <- as.data.frame(sampleEvents) %>%
       function(x) stringr::str_replace_all(x, c("Jan" = "-01-", "Feb" = "-02-", "Mar" = "-03-", "Apr" = "-04-", "May" = "-05-", "Jun" = "-06-", "Jul" = "-07-", 
       "Aug" = "-08-", "Sep" = "-09-", "Oct" = "-10-", "Nov" = "-11-", "Dec" = "-12-"))
       ),
+    DateArea3 = stringr::str_split_i(sampleEvents, "/", 3),
     dplyr::across(dplyr::starts_with("DateArea"), 
       function(x) stringr::str_replace_all(x, c("January" = "-01-", "February" = "-02-", "March" = "-03-", "April" = "-04-", "May" = "-05-", "June" = "-06-", "July" = "-07-", 
       "August" = "-08-", "September" = "-09-", "October" = "-10-", "November" = "-11-", "December" = "-12-"))
       ),
     DateArea1 = stringr::str_remove_all(DateArea1, "[:alpha:]"),
-    Date1 = stringr::str_extract(DateArea1, "[:digit:]{1,2}-[:digit:]{1,2}-[:digit:]{2,4}"),
+    Date1.1 = stringr::str_extract(DateArea1, "[:digit:]{1,2}-[:digit:]{1,2}-[:digit:]{2,4}"),
+    Date1.2 = stringr::str_extract(DateArea1, "[:digit:]{3}-[:digit:]{2}"),
+    Date2.1 = stringr::str_extract(DateArea2, "[:digit:]{1,2}-[:digit:]{1,2}-[:digit:]{2,4}"),
+    Date3.1 = stringr::str_extract(DateArea3, "[:digit:]{1,2}-[:digit:]{1,2}-{2}"),
+
+    # Convert all dates to datetime
+    dplyr::across(dplyr::matches("Date1.1"), function(x) lubridate::parse_date_time(x, orders = c("mdy", "dmy", "ymd", "myd", "ydm", "dym"))),
+    dplyr::across(dplyr::matches("Date1.2"), function(x) lubridate::parse_date_time(x, orders = c("jy"))),
+    dplyr::across(dplyr::matches("Date2.1"), function(x) lubridate::parse_date_time(x, orders = c("mdy", "dmy", "ymd", "myd", "ydm", "dym"))),
+    dplyr::across(dplyr::matches("Date3.1"), function(x) lubridate::parse_date_time(x, orders = c("mdy", "dmy", "ymd", "myd", "ydm", "dym"))),
+    # Make sure the datees make sense
+    dplyr::across(matches("Date1.1|Date1.2|Date2.1|Date3.1"), 
+      function(x) ifelse(x > as.POSIXct("2007-01-01") & x < as.POSIXct("2023-01-01"),
+        x, NA
+        )),
   )
 write_csv(test, "noaaSiteMatching.csv")
 
@@ -141,11 +159,6 @@ test2<-test %>%
     dplyr::across(dplyr::matches("Date1|Date2|Date3"), function(x) stringr::str_replace_all(x, "-", "_")),
     # Make them date times 
     dplyr::across(dplyr::matches("Date1|Date2|Date3"), function(x) lubridate::parse_date_time(x, orders = c("dmy", "mdy", "ymd", "myd", "ydm", "dym"))),
-    # Make sure the datees make sense
-    # dplyr::across(matches("Date1|Date2"), 
-    #   function(x) ifelse(x > as.POSIXct("2007-01-01") & x < as.POSIXct("2023-01-01"),
-    #     x, NA
-    #     )),
     Date = dplyr::coalesce(Date1, Date2, Date3, date4, date5)
   )
   dplyr::filter(

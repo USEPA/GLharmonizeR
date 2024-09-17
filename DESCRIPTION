@@ -26,6 +26,7 @@ Imports:
     oce,
     httr,
     openxlsx,
+    RODBC,
     fuzzyjoin
 Suggests: 
     knitr,
