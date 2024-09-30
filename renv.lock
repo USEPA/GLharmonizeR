@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.4.1",
+    "Version": "4.4.0",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -18,6 +18,17 @@
         "R"
       ],
       "Hash": "470851b6d5d0ac559e9d01bb352b4021"
+    },
+    "RODBC": {
+      "Package": "RODBC",
+      "Version": "1.3-23",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "stats"
+      ],
+      "Hash": "544fd4ca5c8fa534604c3c0336f1a9e4"
     },
     "Rcpp": {
       "Package": "Rcpp",
