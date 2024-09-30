@@ -58,7 +58,7 @@ noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
     ) %>%
     tidyr::pivot_longer(cols = Surface.Temp:N, names_to = "ANALYTE", values_to = "RESULT") %>%
     # NA's and non-reports are the only two source of NAs in this dataset (not detection limit issues)
-    drop_na(RESULT) %>%
+    tidyr::drop_na(RESULT) %>%
     dplyr::select(-c(X14, X15), DOY) %>%
     # convert lat lon
     dplyr::mutate(
