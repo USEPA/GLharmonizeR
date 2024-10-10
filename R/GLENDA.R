@@ -16,7 +16,7 @@
 #'
 #' @return a dataframe
 .readPivotGLENDA <- function(Glenda, n_max = Inf, sampleIDs = NULL) {
-  # [ ] Make glendaData the argument for load anssemble data function
+  # [x] Make glendaData the argument for load anssemble data function
   df <- Glenda %>%
     {
       if (grepl(tools::file_ext(Glenda), ".csv", ignore.case = TRUE)) {
@@ -90,7 +90,8 @@
       # The rest already passed an initial QA screening before being entered
       # !grepl("Invalid", RESULT_REMARK, ignore.case = T),
       # RESULT_REMARK != "Known Contamination"
-    )
+    ) %>%
+    dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T))
   return(df)
 }
 
@@ -105,15 +106,15 @@
 #' this function implicitly when assembling their full water quality dataset
 #'
 #' @param df GLENDA dataframe in long format
-#' @param flagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
-#' @param imputeCoordinates deprecated, (optional) Boolean specifying whether to impute missing station coordinates,
-#' This shouldn't need to be used, since after joining sites missingness is removed
-#' @param siteCoords (optional) filepath to list of site coordinates to impute missing lats/lons
+#' @param GLENDAflagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
+#' @param imputeCoordinates (optional) Boolean specifying whether to impute missing station coordinates,
+#' @param siteCoords (optional) filepath to list of site coordinates to fill in missing lats/lons
 #' @param namingFile (optional) filepath to a file containing remappings for analyte names
+#' @param GLENDAlimitsPath (optional) filepath to a file limits for GLENDA data
 #'
 #' @return a dataframe
 .cleanGLENDA <- function(
-    df, namingFile, GLENDAflagsPath = NULL, imputeCoordinates = FALSE, GLENDAsitePath = NULL,
+    df, namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE, GLENDAsitePath = NULL,
     GLENDAlimitsPath = NULL) {
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_Map", na.strings = c("", "NA")) %>%
     tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
@@ -130,40 +131,56 @@
   # All self reported mdls are identical across all years for a gien analyte
   limitNames <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_mdl_Map")
 
+  # instead of solving just for values before 1993, fill it in for other years and solve it generally
+  fullSeasons <- expand.grid("SEASON" =  c("Spring", "Summer"), "YEAR" = 1983:2012)
   # [x] utilize Mdl from glenda sheet
   Mdls <- readr::read_rds(GLENDAlimitsPath) %>%
-    tidyr::pivot_longer(2:5, names_to = "ANALYTE", values_to = "mdl") %>%
-    dplyr::mutate(YEAR = readr::parse_number(`Survey (Units)`), mdl = as.numeric(mdl)) %>%
-    dplyr::reframe(mdl = mean(mdl, na.rm = T), .by = c(YEAR, ANALYTE)) %>%
+    tidyr::separate_wider_regex(`Survey (Units)`, patterns = c(SEASON = "^\\S+", "\\s+", YEAR = "\\S+$")) %>%
+    dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
+    # Include years that don't differentiate between seasons
+    dplyr::full_join(fullSeasons, by = c("SEASON", "YEAR")) %>%
+    tidyr::pivot_longer(3:6, names_to = "ANALYTE", values_to = "mdl") %>%
+    tidyr::separate_wider_regex(ANALYTE, pattern = c("ANALYTE" = ".*", "\\(", "ReportedUnits" = ".*", "\\)")) %>%
+    dplyr::mutate(
+      mdl = as.numeric(mdl),
+      mdl = ifelse(is.na(mdl), mean(mdl, is.na= T), mdl),
+      .by = c(YEAR, ANALYTE)
+    ) %>%
     dplyr::mutate(
       ANALYTE = stringr::str_remove(ANALYTE, "\\(.*\\)"),
-      ANALYTE = stringr::str_trim(ANALYTE)
+      ANALYTE = stringr::str_trim(ANALYTE),
+      # to match into the data
     ) %>%
     dplyr::left_join(., limitNames, by = c("ANALYTE" = "OldName")) %>%
     dplyr::select(-ANALYTE) %>%
-    dplyr::rename(CodeName = ANALYTE.y)
+    dplyr::rename(CodeName = ANALYTE.y) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
+    dplyr::select(YEAR, SEASON, CodeName, mdl)
 
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
+      SEASON = ifelse(is.na(SEASON), lubridate::month(SAMPLING_DATE, label = T), SEASON),
       # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE = dplyr::case_when(
-        TIME_ZONE == "EDT" ~ "America/Puerto_Rico",
+        TIME_ZONE == "EDT" ~ "US/Eastern",
         TIME_ZONE == "CDT" ~ "EST",
         .default = TIME_ZONE
       ),
       SAMPLING_DATE = stringr::str_remove(SAMPLING_DATE, " UTC$"),
       # Some have missing times, so impute 12 noon where necessary
-      SAMPLING_DATE = ifelse(
-        stringr::str_length(SAMPLING_DATE) < 14,
-        paste(SAMPLING_DATE, "12:00:00"),
-        SAMPLING_DATE
-      ),
       # [x] ADD A FLAG whereever we assumed it was noon
       RESULT_REMARK = ifelse(
         stringr::str_length(SAMPLING_DATE) < 14,
         paste(RESULT_REMARK, "; sample Time imputed as noon"),
         RESULT_REMARK
+      ),
+      SAMPLING_DATE = ifelse(
+        stringr::str_length(SAMPLING_DATE) < 14,
+        paste(SAMPLING_DATE, "12:00:00"),
+        SAMPLING_DATE
       ),
     ) %>%
     tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
@@ -235,13 +252,13 @@
     # If so, we will assume on a given year analytes have same units
     dplyr::mutate(
       TargetUnits = tolower(TargetUnits),
-      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits)
+      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
+      ReportedUnits = ifelse(ANALYTE == "%", "percent", ReportedUnits)
       ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
     # [x] Check this filter is working
     # this was doing the opposite of what we wanted only choosing integrated
-    dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
     dplyr::mutate(RESULT = dplyr::case_when(
       # convert from silicon to silica which has more mass
       ANALYTE == "Silicon, Elemental" ~ RESULT * 2.13918214,
@@ -257,7 +274,7 @@
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
     dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
-    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR")) %>%
+    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
     dplyr::select(-sampleDate)
 
   return(df)
