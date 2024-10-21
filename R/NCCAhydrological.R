@@ -101,6 +101,47 @@
   return(df)
 }
 
+#' Load and join NCCA 2020 hydrographic data from csv files
+#'
+#' @description
+#' `.readNCCAhydro2020` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param NCCAhydrofile2020 a string specifying the filepath of the data
+#' @return dataframe
+.readNCCAhydro2020 <- function(NCCAhydrofile2020, n_max = Inf) {
+  df <- readr::read_csv(NCCAhydrofile2020, n_max = n_max, show_col_types = FALSE) %>%
+    # the only comments mention no measurment data or typo
+    # [x] Need to remove all NARS_COMMENTs
+    dplyr::filter(CAST == "DOWN", NCCA_REG == "Great Lakes") %>%
+    dplyr::mutate(
+      # This will be NA if either are missing
+      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
+      sampleDateTime = lubridate::mdy(DATE_COL),
+      Study = "NCCA_hydro_2015"
+    ) %>%
+    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
+    tidyr::pivot_longer(c(CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::select(UID, SITE_ID,
+      Latitude = LAT_DD, Longitude = LON_DD, stationDepth, sampleDepth, QAcode = NARS_FLAG, QAcomment = NARS_COMMENT,
+      sampleDateTime, Study, ANALYTE, RESULT) %>%
+    dplyr::filter(! ANALYTE %in% c("LIGHT_AMB", "LIGHT_UW")) %>%
+    dplyr::mutate(
+      UNITS = dplyr::case_when(
+      # [x] can we make this more year specific
+      # These were take from hdyro 2015 metadata file
+      ANALYTE == "DO" ~ "mgl",
+      ANALYTE == "TEMPERATURE" ~ "c",
+      ANALYTE == "CONDUCTIVITY" ~ "uscm",
+      ANALYTE == "Corrected PAR" ~ "%",
+      ANALYTE == "TRANS" ~ "%",
+      ANALYTE == "PH" ~ "unitless",
+    ))
+
+  return(df)
+}
 
 #' Load and join secchi data for NCCA 2015 from csv files
 #'

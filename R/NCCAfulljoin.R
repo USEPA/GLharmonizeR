@@ -35,7 +35,7 @@
   # [x] Make the wqQA argument name consistent over all levels
   nccaWQ <- dplyr::bind_rows(
     .readNCCA2010(NCCAwq2010, n_max = n_max),
-    .readNCCA2015(NCCAwq2015, n_max = n_max)
+    .readNCCA2015(NCCAwq2015, NCCAsites2015, n_max = n_max)
   ) %>%
     # QC filters
     # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))

@@ -38,6 +38,7 @@
       # [x] make sure Nitrate and Nitrite are already mg/L (this is true)
       # DOCTHIS We assume sampling events that don't have certain analytes reported
       # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
+      # Note these are all NY samples with nitrate and nitrite included in addition to nitrate/nitrite but doesn't hurt to keep this code
     ) %>%
     dplyr::filter(ANALYTE != "Nitrate", ANALYTE != "Nitrite") %>%
     # All NCCA WQ samples at 0.5m
@@ -65,7 +66,22 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2015 <- function(NCCAwq2015, n_max = Inf) {
+.readNCCA2015 <- function(NCCAwq2015, NCCAsites2015, n_max = Inf) {
+  sites <- readr::read_csv(NCCAsites2015, show_col_types = FALSE) %>%
+    # cutdown number of lats and longs
+    dplyr::select(
+      UID,
+      SITE_ID,
+      # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
+      # This only applies to targetted sites, actual coordinates are unique and settles this problem
+      # No missingness, so no need to coalesce
+      Latitude = LAT_DD83,
+      Longitude = LON_DD83,
+      stationDepth = STATION_DEPTH,
+      WTBDY_NM = GREAT_LAKE
+    ) %>%
+    tidyr::drop_na()
+
   df <- readr::read_csv(NCCAwq2015,
     n_max = n_max,
     show_col_types = FALSE,
@@ -80,52 +96,53 @@
       "NARS_FLAG" = "c",
       "NARS_COMMENT" = "c",
       "RESULT" = "d",
-      "RESULT_UNITS" = "c"
+      "RESULT_UNITS" = "c",
+      "LAB_SAMPLE_ID" = "-",
+      "DATE_ANALYZED" = "-",
+      "DATE_RECEIVED" = "-",
     )
   ) %>%
     dplyr::rename(
+      siteID = SITE_ID,
       sampleDateTime = DATE_COL,
       QAcode = NARS_FLAG,
       QAcomment = NARS_COMMENT,
-      UNITS = RESULT_UNITS,
-      ANL_CODE = ANALYTE
+      reportedUnits = RESULT_UNITS,
+      sampleID = SAMPLE_ID,
+      batchID = BATCH_ID,
     ) %>%
     dplyr::mutate(
-      sampleDateTime = lubridate::dmy(sampleDateTime),
-      # Combine Nitrate adn Nitrite
-      # [x] does this create a problem (check if whenever Nitrate is missing Nitrite is missing).
-      # No. we settled that this behaves well for one or both missing
-      # XXX maybe less confusing to do pivot_wider first
-      # [x] make 2 separate mutates so the .by goes more obvsiously with the mean (if not pivoted wider)
-      # We decided not to do this actually. That it is easy enough to read and understand
-      Nitrite = mean(ifelse(ANL_CODE == "NITRITE_N", RESULT, NA), na.rm = TRUE),
-      Nitrate = mean(ifelse(ANL_CODE == "NITRATE_N", RESULT, NA), na.rm = TRUE),
-      `Nitrate/Nitrite` = Nitrate + Nitrite,
-      RESULT = dplyr::case_when(
-        ANL_CODE == "NITRATE_N" ~ `Nitrate/Nitrite`,
-        .default = RESULT
-      ),
+      sampleDateTime = lubridate::dmy(sampleDateTime)
+    ) %>%
+    tidyr::pivot_wider(id_cols = c(PUBLICATION_DATE:NCCA_REG), names_from = ANALYTE, values_from = LAB:sampleID) %>%
+    # Combine Nitrate adn Nitrite
+    dplyr::mutate(
+      # Hide result in Nitrate so don't need to make all of the other columns
+      RESULT_NITRATE_N =  RESULT_NITRITE_N + RESULT_NITRATE_N,
+    ) %>%
+    tidyr::pivot_longer(cols= LAB_PH:sampleID_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
+    dplyr::mutate(
       # Change the names
       ANL_CODE = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
         .default = ANL_CODE
       ),
-      UNITS = dplyr::case_when(
-        # Replacing units that had NA's added to their end to make things simpler
-        (ANL_CODE == "AMMONIA_N") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
-        (ANL_CODE == "Diss_NOx") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
-        (ANL_CODE == "SRP") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
-        (ANL_CODE == "PTL") & (lubridate::year(sampleDateTime) == 2015) ~ "mgL",
-        .default = UNITS
-      ),
-      .by = c(UID, SITE_ID, sampleDateTime)
-    ) %>%
-    dplyr::select(
-      -dplyr::contains("NITR")
-    ) %>%
-    # Don't need to drop Nitrate because we enter Nitrate/Nitrite in its stead
-    dplyr::filter(
-      ANL_CODE != "NITRITE_N"
+      reportedUnits = dplyr::case_when(
+        ANL_CODE == "COND" ~ "uscm", # this is specific conductance at 25C
+        ANL_CODE == "TKN" ~ "mgL",
+        ANL_CODE == "CHLORIDE" ~ "mgL",
+        ANL_CODE == "Alkalinity" ~ "mgL",
+        ANL_CODE == "SULFATE" ~ "mgL",
+        ANL_CODE == "PH" ~ "unitless",
+        ANL_CODE == "SILICA" ~ "mgL", # Do we need to convert?
+        ANL_CODE == "Diss_NOx" ~ "mgL", # Original: mg N/L Might need to convert this
+        ANL_CODE == "SRP" ~ "mgL", # Original: mg P/L Might need to convert
+        ANL_CODE == "CHLA" ~ "ugL",
+        ANL_CODE == "AMMONIA_N" ~ "mgL", # Original: mg N/L Might need to convert
+        ANL_CODE == "PTL" ~ "mgL",
+        ANL_CODE == "DIN" ~ "mgL",
+        ANL_CODE == "NTL" ~ "mgL"
+        )
     ) %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
@@ -144,7 +161,30 @@
       QAcode = stringr::str_replace_all(QAcode, ";", ","),
       QAcode = stringr::str_remove_all(QAcode, " "),
       QAcode = ifelse(QAcode == "NA", NA, QAcode)
-    )
+    ) %>%
+    dplyr::select(
+      UID,
+      SITE_ID = siteID,
+      sampleDateTime,
+      NCCA_REG,
+      ANL_CODE,
+      LAB,
+      ANALYTE,
+      LRL,
+      MDL,
+      METHOD,
+      QAcode, QAcomment,
+      RESULT,
+      reportedUnits,
+      sampleDepth, 
+      Study
+    ) %>%
+    dplyr::left_join(sites) %>%
+    # Do this for the joining
+    dplyr::mutate(
+      ANALYTE = ANL_CODE,
+      METHOD = ifelse(is.na(METHOD), Study, METHOD),
+      )
 
   return(df)
 }
@@ -164,7 +204,7 @@
   sites <- readr::read_csv(NCCAsites2020, show_col_types = FALSE) %>%
     # keeping enough to add station depth information for a given sampling event (respecting visit number)
     dplyr::select(
-      UNIQUE_ID,
+      UID,
       STATION_DEPTH,
       # keeping for potential filtering
       EPA_REG, GREAT_LAKE, LAKE_REG, NCCA_REG, NPS_PARK
@@ -212,7 +252,7 @@
       ANL_CODE = ifelse(ANL_CODE == "NITRATE_NITRITE_N", "Diss_NOx", ANL_CODE),
       # Assert reported units
       ReportedUnits = dplyr::case_when(
-        ANL_CODE == "COND" ~ "uscm",
+        ANL_CODE == "COND" ~ "uscm", # [ ] is this specific conductance at 25C
         ANL_CODE == "TKN" ~ "mgL",
         ANL_CODE == "CHLORIDE" ~ "mgL",
         ANL_CODE == "Alkalinity" ~ "mgL",
@@ -228,7 +268,12 @@
     ),
       sampleDepth = 0.5,
       Study = "NCCA_WChem_2020"
-    )
+    ) %>%
+    dplyr::left_join(sites) %>%
+    # Do this for later on joining
+    dplyr::mutate(
+      ANALYTE = ANL_CODE,
+      )
 
   return(df)
 }
