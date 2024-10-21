@@ -106,7 +106,6 @@
 #' this function implicitly when assembling their full water quality dataset
 #'
 #' @param df GLENDA dataframe in long format
-#' @param GLENDAflagsPath (optional) filepath to the Result remarks descriptions. Default is NULL.
 #' @param imputeCoordinates (optional) Boolean specifying whether to impute missing station coordinates,
 #' @param siteCoords (optional) filepath to list of site coordinates to fill in missing lats/lons
 #' @param namingFile (optional) filepath to a file containing remappings for analyte names
