@@ -20,6 +20,7 @@
 #' @return dataframe
 .LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+                          namingFile, 
                           Lakes = c("Lake Michigan"), n_max = Inf) {
   # [ ] Did we QC all of the great lakes already???
   sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
@@ -38,13 +39,15 @@
   ) %>%
     # QC filters
     # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
-    dplyr::mutate(
-      SAMPYEAR = lubridate::year(sampleDateTime) # XXX This might break when NCCA updates their data with new UID's
-    ) %>%
-    dplyr::mutate(UID = paste0(Study, "-", as.character(UID))) %>%
-    dplyr::mutate(Year = lubridate::year(sampleDateTime))
+    dplyr::mutate(UID = paste0(Study, "-", as.character(UID)))
 
 
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
     dplyr::left_join(., sites, by = "SITE_ID") %>%
@@ -81,14 +84,6 @@
         .default = ReportedUnits
     )) %>%
     dplyr::mutate(
-      ReportedUnits = ifelse(
-        # impute with the mode
-        is.na(ReportedUnits) & mean(is.na(ReportedUnits)) !=0,
-          as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
-          as.character(ReportedUnits)
-      ),
-      .by = c(Study, Year, ANALYTE)) %>%
-    dplyr::mutate(
       QAcode = dplyr::case_when(
         is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcode, "; U"),
         .default = QAcode
@@ -97,7 +92,40 @@
         is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
         .default = QAcomment
       )
-    )
+    ) %>%
+    dplyr::mutate(
+      ReportedUnits = ifelse(
+        # impute with the mode
+        is.na(ReportedUnits) & mean(is.na(ReportedUnits)) !=0,
+          as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
+          as.character(ReportedUnits)
+      ),
+      .by = c(Study, Year, ANALYTE)) %>%
+  # rename
+  dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
+    by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na"
+  ) %>%
+  # unit conversions
+  dplyr::left_join(key, by = "CodeName") %>%
+  # standardize units
+  dplyr::mutate(
+    ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+    ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+    ReportedUnits = tolower(ReportedUnits),
+    # specify cpar units
+    ReportedUnits = ifelse(grepl("par", ANALYTE, ignore.case = T), "percent", ReportedUnits)
+  ) %>%
+  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+  dplyr::mutate(RESULT = dplyr::case_when(
+    ReportedUnits == TargetUnits ~ RESULT,
+    ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
+    is.na(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
+    is.nan(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
+    .default = RESULT
+  )) %>%
+  dplyr::select(-Units) %>%
+  dplyr::mutate(Units = TargetUnits, SAMPLE_ID = as.character(SAMPLE_ID)) %>%
+  dplyr::select(-c(Finalized, Years))
 
   # Turn into test
   # final %>%
@@ -109,12 +137,3 @@
   #   count(Study, ANALYTE, ANL_CODE, METHOD)
   return(final)
 }
-
-
-# list of measures without units
-# - Secchi - assumed m
-# - Temp  - assumed c
-# - Cond  - assumed uscm
-# - DO - assume  mgl
-# - pH - no units is fine
-# - CPAR - always %

@@ -43,6 +43,7 @@ noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
       dplyr::across(Surface.Temp:N, as.numeric),
       # assuming 12 noon for consistency with other datasets
       Time = "12:00",
+      QAcomment = "time imputed as noon",
       Study= "NOAAwq",
       UID = paste(Study, sep = "-", dplyr::row_number())
     ) %>%
@@ -53,7 +54,6 @@ noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
     dplyr::mutate(
       # fill in secchi for every sampling event and depth
       secchi = mean(secchi, na.rm = T),
-      surfaceTemp = mean(Surface.Temp, na.rm = T),
       .by = c(sampleDateTime, SITE_ID),
     ) %>%
     tidyr::pivot_longer(cols = Surface.Temp:N, names_to = "ANALYTE", values_to = "RESULT") %>%
@@ -76,8 +76,7 @@ noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
     dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
     dplyr::select(-c(
       Lepak.input, X5
-    )) %>%
-    dplyr::filter(ANALYTE!= "surface.temp")
+    )) 
 
   return(noaaWQdata)
 }

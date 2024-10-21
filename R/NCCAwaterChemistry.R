@@ -148,3 +148,87 @@
 
   return(df)
 }
+
+#' Read in all NCCA water quality from 2020
+#'
+#' @description
+#' `.readNCCA2020` returns water quality data measured during the NCCA study in 2020
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param NCCAwq2020 a string specifying the directory of the data
+#' @param NCCAsites2020 a string specifying the directory of the data
+#' @return dataframe
+.readNCCA2020 <- function(NCCAwq2020, NCCAsites2020, n_max = Inf) {
+  sites <- readr::read_csv(NCCAsites2020, show_col_types = FALSE) %>%
+    # keeping enough to add station depth information for a given sampling event (respecting visit number)
+    dplyr::select(
+      UNIQUE_ID,
+      STATION_DEPTH,
+      # keeping for potential filtering
+      EPA_REG, GREAT_LAKE, LAKE_REG, NCCA_REG, NPS_PARK
+    )  %>%
+    distinct()
+
+  # data has siteID, lat/lon, chem info, date, just need stationDepth from sites file
+  df <- readr::read_csv(NCCAwq2020,
+    n_max = n_max,
+    show_col_types = FALSE,
+    col_types = readr::cols(
+      "UID" = "d",
+      "SITE_ID" = "c",
+      "DATE_COL" = readr::col_datetime(format = "%m/%d/%Y"),
+      "ANALYTE" = "c",
+      "RL" = "d",
+      "MDL" = "d",
+      "MATRIX" = "c",
+      "LAB" = "c",
+      "NARS_FLAG" = "c",
+      "NARS_COMMENT" = "c",
+      "RESULT" = "d",
+      "RESULT_UNITS" = "c",
+      # drop nonspecified columns
+      .default = "-"
+    )
+  ) %>%
+    dplyr::rename(
+      sampleDateTime = DATE_COL,
+      QAcode = NARS_FLAG,
+      QAcomment = NARS_COMMENT,
+      UNITS = RESULT_UNITS,
+    ) %>%
+    tidyr::pivot_wider(id_cols = UID:sampleDateTime, names_from = ANALYTE, values_from = LAB:QAcomment) %>%
+    # Combine Nitrate adn Nitrite
+    dplyr::mutate(
+      RESULT_NITRATE_NITRITE_N = ifelse(is.na(RESULT_NITRATE_NITRITE_N), RESULT_NITRITE_N + RESULT_NITRATE_N, RESULT_NITRATE_NITRITE_N),
+    ) %>%
+    tidyr::pivot_longer(cols= LAB_PTL:QAcomment_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANALYTE"), names_repair = "unique") %>%
+    dplyr::select(-ANALYTE...7) %>%
+    dplyr::rename(ANL_CODE = ANALYTE...4) %>%
+    # Filter out nitrate and nitrite separately
+    dplyr::filter(! ANL_CODE %in% c("NITRATE_N", "NITRITE_N")) %>%
+    dplyr::mutate(
+      ANL_CODE = ifelse(ANL_CODE == "NITRATE_NITRITE_N", "Diss_NOx", ANL_CODE),
+      # Assert reported units
+      ReportedUnits = dplyr::case_when(
+        ANL_CODE == "COND" ~ "uscm",
+        ANL_CODE == "TKN" ~ "mgL",
+        ANL_CODE == "CHLORIDE" ~ "mgL",
+        ANL_CODE == "Alkalinity" ~ "mgL",
+        ANL_CODE == "SULFATE" ~ "mgL",
+        ANL_CODE == "PH" ~ "unitless",
+        ANL_CODE == "SILICA" ~ "mgL",
+        ANL_CODE == "Diss_NOx" ~ "mgL", # Original: mg N/L Might need to convert this
+        ANL_CODE == "SRP" ~ "mgL", # Original: mg P/L Might need to convert
+        ANL_CODE == "CHLA" ~ "ugL",
+        ANL_CODE == "AMMONIA_N" ~ "mgL", # Original: mg N/L Might need to convert
+        ANL_CODE == "PTL" ~ "mgL",
+        ANL_CODE == "DIN" ~ "mgL"
+    ),
+      sampleDepth = 0.5,
+      Study = "NCCA_WChem_2020"
+    )
+
+  return(df)
+}

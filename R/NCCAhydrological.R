@@ -1,3 +1,107 @@
+
+#' Load and join NCCA 2010 hydrographic data from csv files
+#'
+#' @description
+#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param filepath a string specifying the filepath of the data
+#'
+#' @return dataframe
+.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
+  df <- NCCAhydrofiles2010 %>%
+    purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
+    # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
+    # observed in great lakes so don't need to worry about it)
+    dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
+    dplyr::rename(
+      ANALYTE = PARAMETER_NAME,
+      sampleDepth = SDEPTH,
+      stationDepth = `STATION_DEPTH(m)`,
+      QAcode = QA_CODE,
+      QAcomment = QA_COMMENT
+    ) %>%
+    dplyr::select(-PARAMETER) %>% 
+    dplyr::mutate(
+      UNITS = ifelse(ANALYTE == "pH", "unitless", UNITS),
+      UNITS = ifelse(ANALYTE == "Mean secchi", "m", UNITS),
+      # turbidity is removed anyway
+      UNITS = ifelse(ANALYTE == "Turbidity", "unitless", UNITS),
+      sampleDepth = ifelse(sampleDepth == -9, NA, sampleDepth)
+    ) %>%
+    dplyr::mutate(
+      UNITS  = rev(names(table(UNITS)))[[1]],
+      .by = ANALYTE
+    ) %>%
+    dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%  
+    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
+    # fill in mean secchi in same rows where other results appear
+    dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
+    # remove where sechhi used to appear
+    drop_na(sampleDepth) %>%
+    # [x] filter out where either ambientPAR or underPAR check if this does what we think
+    dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
+    dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
+    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`)) %>%
+    tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
+    dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
+    dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
+    dplyr::mutate(
+    #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
+      Study = "NCCA_hydro_2010",
+      UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS)
+    )
+
+  return(df)
+}
+
+
+
+#' Load and join NCCA 2015 hydrographic data from csv files
+#'
+#' @description
+#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param NCCAhydrofile2015 a string specifying the filepath of the data
+#' @return dataframe
+.readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
+  df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
+    # the only comments mention no measurment data or typo
+    # [x] Need to remove all NARS_COMMENTs
+    dplyr::filter(CAST == "DOWNCAST") %>%
+    dplyr::mutate(
+      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
+      sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
+      Study = "NCCA_hydro_2015"
+    ) %>%
+    dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>%
+    dplyr::select(
+      -c(LIGHT_AMB, LIGHT_UW)
+    ) %>%
+    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
+    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::select(-DATE_COL) %>%
+    dplyr::mutate(
+      UNITS = dplyr::case_when(
+      # [x] can we make this more year specific
+      # These were take from hdyro 2015 metadata file
+      ANALYTE == "DO" ~ "mgl",
+      ANALYTE == "TEMPERATURE" ~ "c",
+      ANALYTE == "CONDUCTIVITY" ~ "uscm",
+      ANALYTE == "Corrected PAR" ~ "%",
+      ANALYTE == "TRANS" ~ "%",
+      ANALYTE == "PH" ~ "unitless",
+    ))
+
+  return(df)
+}
+
+
 #' Load and join secchi data for NCCA 2015 from csv files
 #'
 #' @description
@@ -32,7 +136,8 @@
       DATE_COL = unique(DATE_COL),
       stationDepth = mean(STATION_DEPTH, na.rm = T),
 
-      # Mean of everything but the estimated value (because we think this is estimated by Kd)
+      # MEAN_SECCHI_EEPTH is the estimated column (from Kd)
+      # So we find the actual mean Mean of of the different casts manually
       RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm = T),
       # Compress all comments and note clear to bottom to be combined
       # [x] change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
@@ -54,99 +159,12 @@
     ) %>%
     dplyr::mutate(
       Study = "NCCA_secchi_2015",
-    )
-  return(df)
-}
-
-#' Load and join secchi data for NCCA 2010 hydrographic data from csv files
-#'
-#' @description
-#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
-#'
-#' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
-#' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
-#'
-#' @return dataframe
-.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
-  df <- NCCAhydrofiles2010 %>%
-    purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
-    # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
-    # observed in great lakes so don't need to worry about it)
-    dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
-    dplyr::rename(
-      ANALYTE = PARAMETER_NAME,
-      sampleDepth = SDEPTH,
-      stationDepth = `STATION_DEPTH(m)`,
-      QAcode = QA_CODE,
-      QAcomment = QA_COMMENT
-    ) %>%
-    dplyr::mutate(
-      # This is unaffected by being grouped
-      DATE_COL = lubridate::mdy(DATE_COL),
-      # Calculate CPAR for each UID at each depth
-      ambientPAR = mean(ifelse(ANALYTE == "Ambient PAR", RESULT, NA), na.rm = TRUE),
-      underPAR = mean(ifelse(ANALYTE == "Underwater PAR", RESULT, NA), na.rm = TRUE),
-      CPAR = underPAR / ambientPAR,
-      RESULT = dplyr::case_when(
-        ANALYTE == "Ambient PAR" ~ CPAR,
-        .default = RESULT
-      ),
-      # Change the names to CPAR
-      ANALYTE = dplyr::case_when(
-        ANALYTE == "Ambient PAR" ~ "Corrected PAR",
-        .default = ANALYTE
-      ),
-      .by = c(UID, sampleDepth, stationDepth)
-    ) %>%
-    # [x] filter out where either ambientPAR or underPAR check if this does what we think
-    dplyr::filter((!is.na(ambientPAR)) | (!is.na(underPAR)) | grepl("secchi", ANALYTE, ignore.case = T)) %>%
-    # Don't need to drop Ambient PAR because we enter CPAR in its stead
-    dplyr::filter(
-      ANALYTE != "Underwater PAR"
-    ) %>%
-    # [x] this don't need reframe since I filtered to downcast
-    dplyr::mutate(
-      sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
-      Study = "NCCA_hydro_2010",
-      UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS)
+      UNITS = "m"
     )
   return(df)
 }
 
 
-
-#' Load and join secchi data for NCCA 2015 hydrographic data from csv files
-#'
-#' @description
-#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
-#'
-#' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
-#' this function implicitly when assembling their full water quality dataset
-#' @param NCCAhydrofile2015 a string specifying the filepath of the data
-#' @return dataframe
-.readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
-  df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
-    # the only comments mention no measurment data or typo
-    # [x] Need to remove all NARS_COMMENTs
-    dplyr::filter(CAST == "DOWNCAST") %>%
-    dplyr::mutate(
-      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
-      Study = "NCCA_hydro_2015"
-    ) %>%
-    dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>%
-    dplyr::select(
-      -c(LIGHT_AMB, LIGHT_UW)
-    ) %>%
-    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
-    tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
-    dplyr::select(-DATE_COL)
-
-  return(df)
-}
 
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015
 #'
