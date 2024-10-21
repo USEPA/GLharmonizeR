@@ -1,10 +1,10 @@
-#' Load and join all WQ data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA
+#' Load and join all data
 #'
 #' @description
-#' `.LoadJoinAll` returns a dataframe data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA'
+#' `.LoadJoinAll` returns a dataframe data from from CSMI, GLENDA, NOAA, and NCCA'
 #'
 #' @details
-#' This is a hidden function that should not generally be used by users.
+#' This is the main function that users will interact with to load and assemble data.
 #'
 #' @param out (optional) filepath to save the dataset to
 #' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster
@@ -16,13 +16,15 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
   NCCAhydrofile2015 <- filepaths["NCCAhydrofile2015"]
+  NCCAhydrofile2020 <- filepaths["NCCAhydrofile2020"]
   NCCAsecchifile2015 <- filepaths["NCCAsecchifile2015"]
   NCCAsites2010 <- filepaths["NCCAsites2010"]
   NCCAsites2015 <- filepaths["NCCAsites2015"]
-  NCCAsites2022 <- filepaths["NCCAsites2022"]
+  NCCAsites2020 <- filepaths["NCCAsites2020"]
   NCCAwq2010 <- filepaths["NCCAwq2010"]
   NCCAqa2010 <- filepaths["NCCAqa2010"]
   NCCAwq2015 <- filepaths["NCCAwq2015"]
+  NCCAwq2020 <- filepaths["NCCAwq2020"]
   NCCAwqQA <- filepaths["NCCAwqQA"]
   Glenda <- filepaths["Glenda"]
   GLENDAlimitsPath <- filepaths["GLENDAlimitsPath"]
@@ -56,44 +58,10 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
     NCCAwq2015, NCCAhydrofiles2010,
     NCCAhydrofile2015, NCCAsecchifile2015,
+    namingFile,
     Lakes = c("Lake Michigan"),
     n_max = n_max
-  ) %>%
-  # rename
-  dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
-    by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na"
-  ) %>%
-  # unit conversions
-  dplyr::left_join(key, by = "CodeName") %>%
-  # standardize units
-  dplyr::mutate(
-    ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-    ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
-    ReportedUnits = tolower(ReportedUnits),
-    ReportedUnits = dplyr::case_when(
-      # [x] can we make this more year specific
-      # These were take from hdyro 2015 metadata file
-      (Year == 2015) & (CodeName == "DO") ~ "mgl",
-      (Year == 2015) & (CodeName == "Secchi") ~ "m",
-      (Year == 2015) & (CodeName == "Temp") ~ "c",
-      (Year == 2015) & (CodeName == "Cond") ~ "uscm",
-      (Year == 2015) & (CodeName == "CPAR") ~ "%",
-      .default = ReportedUnits
-    ),
-    # specify cpar units
-    ReportedUnits = ifelse(grepl("par", ANALYTE, ignore.case = T), "percent", ReportedUnits)
-  ) %>%
-  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-  dplyr::mutate(RESULT = dplyr::case_when(
-    ReportedUnits == TargetUnits ~ RESULT,
-    ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
-    is.na(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
-    is.nan(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
-    .default = RESULT
-  )) %>%
-  dplyr::select(-Units) %>%
-  dplyr::mutate(Units = TargetUnits, SAMPLE_ID = as.character(SAMPLE_ID)) %>%
-  dplyr::select(-c(Finalized, Years))
+  )
 
 
   print("Step 3/8: Read and clean GLENDA")
