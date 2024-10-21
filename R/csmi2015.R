@@ -94,10 +94,11 @@
         )
       )
     ) %>%
-    # [ ] some csmi samples say 2012
+    # [x] some csmi samples say 2012
     dplyr::rename(
       UNITS = WQUnits,
-      METHOD = AnalMethod
+      METHOD = AnalMethod,
+      LAB = Analyst
     ) %>%
     dplyr::mutate(
       Study = "CSMI_2015",
@@ -116,7 +117,6 @@
         UNITS == "oC" ~ "C",
         UNITS == "--" ~ NA,
         UNITS == "uS/cm" ~ "uscm",
-        UNITS == "percent" ~ "%",
       )
       # [ ] what happend to ph log scale?
       # [ ] Did pH get removed?
