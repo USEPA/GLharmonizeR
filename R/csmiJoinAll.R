@@ -13,65 +13,79 @@
 #' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021
 .LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf) {
   # Load file to map analyte names to standard names
+  dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA"))
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
+
+  mdls2015 <- RODBC::sqlFetch(dbi, "Metadata_WQanalytes") %>%
+    dplyr::select(ANALYTE = WQParam, ReportedUnits = WQUnits, mdl = DetectLimit, LAB = Analyst) %>%
+    dplyr::mutate(
+      Study = "CSMI_2015",
+      ANALYTE = stringr::str_remove(ANALYTE, "_.*$"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "[+-=]")
+      ) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(
+      mdl = as.numeric(mdl),
+      mdl = ifelse(!is.na(ConversionFactor), mdl*ConversionFactor, mdl),
+      ) %>%
+    dplyr::select(ANALYTE, CodeName, mdl) %>%
+    dplyr::mutate(Study = "CSMI_2015")
+
+  # Water chemistry  copied from
+  # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
+  # Contact is Annie Fosso
+  mdls2021 <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
+    # The detection limit file contains MDLs and the values used to impute results <MDL.
+    openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
+    dplyr::select(15:28) %>%
+    dplyr::slice(1) %>%
+    tidyr::pivot_longer(dplyr::everything(), values_to = "mdl", names_to = "ANALYTE") %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_extract(ANALYTE, "^[:alnum:]*"),
+      ANALYTE = ifelse(ANALYTE == "chl", "Chla", ANALYTE)
+      ) %>%
+    dplyr::left_join(renamingTable) %>%
+    dplyr::left_join(key) %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
+    dplyr::select(ANALYTE, UNITS = TargetUnits, mdl) %>%
+    distinct()
+
+
+
   CSMI <- dplyr::bind_rows(
     # We aren't including 2010 at this point
     # .LoadCSMI2010(csmi2010, n_max = n_max),
     # [x] 2015 has a lot of missing in VALUE column
     # This is just becuase the way the original data is stored
-    .LoadCSMI2015(csmi2015),
-    .LoadCSMI2021(csmi2021)
-  ) %>%
-    dplyr::mutate(
-      FRACTION = NA,
-      FRACTION = as.character(FRACTION)
-      ) %>%
-    # XXX this is for csmi 2010, since it's not included, leaving it commented out
-    # dplyr::mutate(FRACTION = dplyr::case_when(
-    #   FRACTION == "F" ~ "Filtrate",
-    #   FRACTION == "U" ~ "Total/Bulk",
-    #   FRACTION == "A" ~ "Filtrate",
-    #   FRACTION == "M" ~ "Filtrate",
-    #   FRACTION == "D" ~ "Filtrate",
-    #   FRACTION == "V" ~ "Total/Bulk",
-    #   FRACTION == "PCN" ~ "Residue",
-    #   FRACTION == "Not applicable" ~ NA,
-    #   .default = FRACTION
-    # )) %>%
-    # remove ion charges and units
-    dplyr::mutate(
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove(ANALYTE, "_.*"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "\\+"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "="), ANALYTE),
-      ANALYTE = ifelse(grepl("CSMI_2021", Study, ignore.case = T) & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
-      sampleDate = lubridate::date(sampleDate),
-      # This only contains information about where along the water column
-      # But we already have that with depth
-      ANL_CODE = NA
+    .LoadCSMI2015(csmi2015, namingFile) %>% 
+      dplyr::rename(ReportedUnits = UNITS) %>%
+      dplyr::left_join(key) %>%
+      dplyr::left_join(conversions) %>%
+      dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
+      dplyr::left_join(mdls2015),
+    .LoadCSMI2021(csmi2021, namingFile) %>% 
+      dplyr::rename(ReportedUnits = UNITS) %>%
+      dplyr::left_join(key) %>%
+      dplyr::left_join(conversions) %>%
+      dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
+      dplyr::left_join(mdls2021)
     ) %>%
-    # Join CSMI to new names
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE"), na_matches = "na") %>%
-    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::filter(CodeName != "Remove") %>%
     dplyr::mutate(
-      ReportedUnits = stringr::str_squish(tolower(stringr::str_remove(ReportedUnits, "/")))
+      QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+      QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+      RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
     ) %>%
-    dplyr::left_join(key, by = "CodeName") %>%
-    # Simplify unit strings
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(
-      ReportedUnits = ifelse(stringr::str_detect(ANALYTE, "^CPAR$|^CPARCorrectedIrradiance$"), "percent", ReportedUnits),
-      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
-    ) %>%
-    # To account for pH and CPAR being unitless
-    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
-      RESULT * ConversionFactor
-    )) %>%
     dplyr::mutate(Units = TargetUnits) %>%
     dplyr::mutate(
       UID = as.character(UID),
@@ -79,7 +93,12 @@
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
       UID = paste0("CSMI-", UID)
-    )
+    ) %>%
+    dplyr::select(
+      UID,
+      Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
+      CodeName, LongName, Explicit_Units, mdl, QAcomment, QAcode, Units)
+  file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   return(CSMI)
 }
 # Turn into test

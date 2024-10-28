@@ -1,3 +1,21 @@
+    # XXX this is for csmi 2010, since it's not included, leaving it commented out
+    # dplyr::mutate(
+    #   FRACTION = NA,
+    #   FRACTION = as.character(FRACTION)
+    #   ) %>%
+    # dplyr::mutate(FRACTION = dplyr::case_when(
+    #   FRACTION == "F" ~ "Filtrate",
+    #   FRACTION == "U" ~ "Total/Bulk",
+    #   FRACTION == "A" ~ "Filtrate",
+    #   FRACTION == "M" ~ "Filtrate",
+    #   FRACTION == "D" ~ "Filtrate",
+    #   FRACTION == "V" ~ "Total/Bulk",
+    #   FRACTION == "PCN" ~ "Residue",
+    #   FRACTION == "Not applicable" ~ NA,
+    #   .default = FRACTION
+    # )) %>%
+
+
 # Should probably check that these data are not redundant with 2010 NCCA data
 
 

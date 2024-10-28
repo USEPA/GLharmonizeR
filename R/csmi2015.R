@@ -9,7 +9,9 @@
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @return dataframe of the fully joined water quality data from CSMI 2015
-.LoadCSMI2015 <- function(csmi2015) {
+.LoadCSMI2015 <- function(csmi2015, namingFile) {
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
+      dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
   # Establish connection to the database
   download.file(csmi2015, destfile = "tempCSMI2015.zip")
   unzip("tempCSMI2015.zip")
@@ -71,17 +73,10 @@
     ) %>%
     dplyr::rename(sampleDepth = sampleDepth.x)
 
-
   WQ <- dplyr::bind_rows(chem, ctd) %>%
-    dplyr::left_join(RODBC::sqlFetch(dbi, "Metadata_WQanalytes"), by = c("ANALYTE" = "WQParam")) %>%
     # Sample event names, WQdepth_m
     # actual coordinates
     # [x] Check if measure is below DL, replace with NA and put a flag
-    dplyr::mutate(
-      mdl = as.numeric(DetectLimit),
-      QAcomment = ifelse(RESULT <= mdl, "Below mdl", NA),
-      QAcode = ifelse(RESULT <= mdl, "MDL", NA)
-    ) %>%
     dplyr::filter(!grepl("_cmp", sampleType)) %>%
     dplyr::select(-sampleType) %>%
     # [x] combine date and time
@@ -94,38 +89,16 @@
         )
       )
     ) %>%
+    tidyr::separate_wider_delim(ANALYTE, delim = "_", names= c("ANALYTE", "UNITS"), too_many = "merge", too_few = "align_start") %>%
     # [x] some csmi samples say 2012
-    dplyr::rename(
-      UNITS = WQUnits,
-      METHOD = AnalMethod,
-      LAB = Analyst
-    ) %>%
     dplyr::mutate(
       Study = "CSMI_2015",
-      Year = 2015
+      Year = 2015,
+      ANALYTE = stringr::str_extract(ANALYTE, "[:alnum:]*")
     ) %>%
-    dplyr::select(-c(DetectLimit, BDLcorrection, Analyst)) %>%
-    # simplify unit names
-
-    # [x] Check if the units have an issue since they don't exactly match the analytes 3 book (pH, temptr)
-    dplyr::mutate(
-      UNITS = dplyr::case_when(
-        UNITS == "ug N/L" ~ "ugl",
-        UNITS == "ug P/L" ~ "ugl",
-        UNITS == "ug/L" ~ "ugl",
-        UNITS == "mg/L" ~ "mgl",
-        UNITS == "oC" ~ "C",
-        UNITS == "--" ~ NA,
-        UNITS == "uS/cm" ~ "uscm",
-      )
-      # [ ] what happend to ph log scale?
-      # [ ] Did pH get removed?
-    )
-  # Note that conversions are done for all CSMI files together
-
+    dplyr::left_join(renamingTable)
   RODBC::odbcClose(dbi)
 
-  file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   return(WQ)
 }
 

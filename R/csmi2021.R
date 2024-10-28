@@ -8,7 +8,7 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @param csmi2021 a string specifying the directory to CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI 2021
-.LoadCSMI2021 <- function(csmi2021) {
+.LoadCSMI2021 <- function(csmi2021, namingFile) {
   # CTD
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
@@ -18,6 +18,9 @@
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
   ##
+  
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
+      dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
 
 
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
@@ -52,92 +55,44 @@
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", "\\.\\.", "UNITS" = ".*\\..*"), too_few = "align_start") %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
-    )
+      UNITS = ifelse(grepl("^CPAR", ANALYTE, ignore.case=FALSE), "percent", UNITS), 
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")
+    ) %>%
+    dplyr::left_join(renamingTable)
 
-  # Water chemistry  copied from
-  # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
-  # Contact is Annie Fosso
-  DL <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
-    # The detection limit file contains MDLs and the values used to impute results <MDL.
-    openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
-    dplyr::select(16:28) %>%
-    dplyr::slice(2) %>%
-    tidyr::pivot_longer(everything(), values_to = "mdl", names_to = "ANALYTE") %>%
-    dplyr::mutate(
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
-      ANALYTE = stringr::str_remove(ANALYTE, "\\..*$"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "=")
-      )
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
-    # tidyr::pivot_longer(15:29, names_to = "ANALYTE", values_to = "RESULT") %>%
     # [x] parse the time column along with date
-    # split time and tz, infer timezones as needed, rejoin, convert to UTC
     dplyr::mutate(
-      Date = as.POSIXct(Date * 86400, origin = "1900-01-01", tz = "UTC"),
-      time = ifelse(grepl("no time", `time`, ignore.case = T) | is.na(time), "12:00", time),
+      Date = as.POSIXct(Date * 86400, origin = "1899-12-30", tz = "UTC"),
       # [x] flag it if we need to assume it's noon
       QAcomment = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "Assumed sample at noon", NA),
-      time = stringr::str_remove_all(time, "[:space:]")
-    ) %>%
-    # Deal with times separated by /
-    tidyr::separate_wider_regex(time, patterns = c("time1" = ".*", "/", "time2" = ".*"), too_few = "align_start", cols_remove = TRUE) %>%
-    # convert times to decimals to average them
-    dplyr::mutate(
-      time1 = ifelse(
-        grepl(":", time1),
-        format(as.POSIXct(paste(Sys.Date(), time1)), "%d"),
-        time1
-      ),
-      time2 = ifelse(
-        grepl(":", time2),
-        format(as.POSIXct(paste(Sys.Date(), time2)), "%d"),
-        time2
-      ),
-      time1 = as.numeric(time1),
-      time2 = as.numeric(time2),
-      time = dplyr::case_when(
-        (!is.na(time1)) & (!is.na(time2)) ~ (time1 + time2) / 2,
-        is.na(time1) & is.na(time2) ~ 0.5,
-        (!is.na(time1)) & is.na(time2) ~ time1,
-        (!is.na(time2)) & is.na(time1) ~ time2
-      ),
-      time = time - round(time),
-      time = format(as.POSIXct(Sys.Date() + time), "%H:%m"),
-      # Make sure dec times are less that 1
-      # XXX some of the 15:00 times were converted to 5 as decimals
-      # infer tz
-      tz = ifelse(is.na(tz), "EST", tz),
-      tz = sub("\\(", "", tz),
-      tz = sub("\\)", "", tz),
+      time = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "12:00", time),
+      time = stringr::str_remove_all(time, "[:space:]"),
+      # one date is reported funkily so we report the average
+      time = ifelse(time == "3:45/4:29", "4:07", time)
     ) %>%
     tidyr::unite("sampleDateTime", Date, time, sep = " ") %>%
-    # XXX Gave up on tz's for now being within 1 hour is close enough
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(sampleDateTime)
-    ) %>%
+    dplyr::mutate(sampleDateTime = lubridate::ymd_hm(sampleDateTime)) %>%
     dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
     dplyr::select(-c(
       Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`,
-      Station, tz, time1, time2
+      Station, tz
     )) %>%
-    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, 1:nrow(.))) %>%
+    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, "-", `STIS#`)) %>%
     tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
     # NA's and non-reports are the only NA's in this dataset
     tidyr::drop_na(RESULT) %>%
     dplyr::mutate(
-      ANALYTE = stringr::str_remove_all(ANALYTE, "-"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\+"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "[-|\\+|=]"),
     ) %>%
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = "^[:alpha:]*", "\\.", ".g.*L$" ), too_few = "align_start") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     dplyr::rename(SITE_ID = Site) %>%
     dplyr::bind_rows(., CTD) %>%
-    dplyr::left_join(DL, by = "ANALYTE") %>%
     dplyr::mutate(
       Year = 2021,
     ) %>%
@@ -149,20 +104,13 @@
       # [x] Then do max depth if there are still missing - flag it if this needs to be done
       Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude),
       Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
-      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth),
+      QAcomment = ifelse(is.na(stationDepth), paste(QAcomment, "station Depth estimated as the maximum sample Depth"), QAcomment),
       stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm = T), stationDepth),
       .by = SITE_ID
     ) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(SITE_ID, "_"),
       ANALYTE = stringr::str_remove_all(ANALYTE, "[^[:alpha:]]")
-    ) %>%
-    # remove unusable measures
-    dplyr::filter(
-      !ANALYTE %in% c(
-        "Fluorescence", "Conductivity", "BeamAttenuation", "BeamTransmission", "SPAR", "PARIrradiance", "Density", "TimeElapsed", "PressureDigiquartz", "Bottles",
-        "Altimeter", "DescentRate"
-      )
     )
 
   # grab additional site data from zooplankton files
