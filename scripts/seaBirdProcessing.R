@@ -2,6 +2,18 @@ library(devtools)
 library(tidyverse)
 library(oce)
 load_all()
+
+filepaths <- .getFilePaths()
+seaBird <- filepaths["seaBird"]
+n_max <- Inf
+key <- openxlsx::read.xlsx(filepaths["namingFile"], sheet = "Key") %>%
+  dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+  dplyr::rename(TargetUnits = Units)
+
+conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+  dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet = "SeaBird_Map", na.strings = c("", "NA"))
+
 teamsFolder <- file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General")
 seaBird <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"),
   pattern = , ".cnv$", full.names=T) 
@@ -29,7 +41,11 @@ seaBirdDf <- seaBird %>%
     STATION_ID = stringr::str_remove_all(STATION_ID, ".BIN"),
     STATION_ID = stringr::str_remove_all(STATION_ID, ".cnv"),
     STATION_ID = stringr::str_remove_all(STATION_ID, ".bin"),
-    UID = paste0(STATION_ID, "_", lubridate::date(sampleDateTime))
+    UID = paste0(STATION_ID, "_", lubridate::date(sampleDateTime)),
+    UNITS = dplyr::case_when(
+      ANALYTE == "cpar" ~ "percent",
+      ANALYTE == "pH" ~ "unitless"
+    )
   )
 
 seaBirdDf <- seaBirdDf %>%
@@ -39,7 +55,17 @@ seaBirdDf <- seaBirdDf %>%
   filter(!grepl("DERIVE", STATION_ID, ignore.case = T)) %>%
   # Not sure what these are 
   filter(!grepl("(911)", STATION_ID, ignore.case = T)) %>%
-  drop_na(RESULT)
+  drop_na(RESULT) %>%
+  dplyr::rename(ReportedUnits = UNITS) %>%
+  dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
+  dplyr::mutate(
+    ReportedUnits = tolower(ReportedUnits),
+    ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
+  ) %>%
+  dplyr::left_join(key, by = "CodeName") %>%
+  dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
+  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+  dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
 
 
 # Save the cleaned seabird Files
@@ -50,4 +76,6 @@ saveRDS(seaBirdDf, "../GL_Data/GLENDA/seabird.Rds")
 seaBirdDf %>% 
   distinct(STATION_ID) %>%
   print(n=399)
+seaBirdDf %>% 
+  distinct(CodeName)
 
