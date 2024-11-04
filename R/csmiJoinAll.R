@@ -22,11 +22,11 @@
       .readCleanCSMI2021(csmi2021, namingFile)
     ) %>%
     dplyr::filter(CodeName != "Remove") %>%
-    dplyr::mutate(
-      QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
-      QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
-      RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
-    ) %>%
+    # dplyr::mutate(
+    #   QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+    #   QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+    #   RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
+    # ) %>%
     dplyr::mutate(Units = TargetUnits) %>%
     dplyr::mutate(
       UID = as.character(UID),
@@ -38,7 +38,7 @@
     dplyr::select(
       UID,
       Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
-      CodeName, LongName, Explicit_Units, mdl, QAcomment, QAcode, Units) %>%
+      CodeName, LongName, Explicit_Units, mdl, QAcomment, Units, RESULT) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
   return(CSMI)
 }

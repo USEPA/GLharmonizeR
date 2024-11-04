@@ -15,6 +15,8 @@
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
+      dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
   mdls <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
     openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
@@ -31,7 +33,7 @@
     dplyr::left_join(conversions) %>%
     dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
     dplyr::select(ANALYTE, UNITS = TargetUnits, mdl) %>%
-    distinct()
+    dplyr::distinct()
   # CTD
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
@@ -42,8 +44,6 @@
   ## There are already processed, formatted ready to use files Should we use that?
   ##
   
-  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
-      dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
 
 
   CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%

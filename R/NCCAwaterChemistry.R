@@ -262,7 +262,7 @@
       # keeping for potential filtering
       EPA_REG, GREAT_LAKE, LAKE_REG, NCCA_REG, NPS_PARK
     )  %>%
-    distinct()
+    dplyr::distinct()
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%

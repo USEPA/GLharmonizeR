@@ -6,7 +6,7 @@
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
-    select(ANALYTE, CodeName, Units)
+    dplyr::select(ANALYTE, CodeName, Units)
   
 
   noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names = T) %>%

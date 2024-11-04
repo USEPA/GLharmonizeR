@@ -1,10 +1,4 @@
-#' Load and join all data
-#'
-#' @description
-#' `.LoadJoinAll` returns a dataframe from CSMI, GLENDA, NOAA, and NCCA
-#'
-#' @details
-#' This is the main function that users will interact with to load and assemble data.
+
 #'
 #' @param out (optional) filepath to save the dataset to
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
@@ -135,7 +129,10 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
-  notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment)) %>% distinct()
+  notflagged <- allWQ %>% 
+    dplyr::filter((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study))) %>%
+    dplyr::distinct()
+
   # [x] join flag explanations
   flags <- openxlsx::read.xlsx(flagsFile) %>%
     # Fill in missing for fuzzy join to work
@@ -146,7 +143,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
   flagged <- allWQ %>%
-    dplyr::filter(!is.na(QAcode) | !is.na(QAcomment)) %>%
+    dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study)))) %>%
     dplyr::mutate(
       QAcode = stringr::str_remove_all(QAcode, "^NA;"),
       QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
@@ -154,7 +151,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       QAcode = ifelse(is.na(QAcode), Study, QAcode),
       QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     ) %>%
-    distinct() %>%
+    dplyr::distinct() %>%
     fuzzyjoin::fuzzy_join(flags,
     by=c("Study", 'QAcode', "QAcomment"),
     mode='left', #use left join
@@ -185,16 +182,17 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
       ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT, 
       MDL, PQL, RL, LAB
-     ))  %>%
+    ))  %>%
      # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
   dplyr::mutate(
-    RESULT = dplyr::case_when(
-      grepl("N", Unified_Flag) ~ NA,
+    RESULT2 = dplyr::case_when(
+      is.na(Unified_Flag) ~ RESULT,
+      grepl("N;|N$", Unified_Flag) ~ NA,
       # These next two are set in deliberate order set priority to the more complex match
-      grepl("E", Unified_Flag) ~ RESULT,
-      grepl("R", Unified_Flag) ~ NA,
-      grepl("B", Unified_Flag) ~ NA,
+      grepl("E;|E$", Unified_Flag) ~ RESULT,
+      grepl("R;|R$", Unified_Flag) ~ NA,
+      grepl("B;|B$", Unified_Flag) ~ NA,
       .default = RESULT
     ),
     # Cleaning up unified flags
@@ -204,8 +202,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     Unified_Flag = stringr::str_squish(Unified_Flag)
   ) %>%
   # [x] Make sure NA flag doesn't break this - this is exclusively flagged stuff so should work
-  dplyr::filter(!grepl("Remove", Retain))
-  #dplyr::filter(!is.na(RESULT) | grepl("B|N|R", Unified_Flag)) %>%
+  dplyr::filter(!grepl("Remove", Retain) | is.na(Retain) | is.na(Unified_Flag))
 
   # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
@@ -217,7 +214,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
       TargetUnits, ConversionFactor, Conversion_Note=Conversion, Retain_InternalUse=Retain,
       Action_InternalUse=Action) %>%
-      arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
+    dplyr::arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
 
 
 

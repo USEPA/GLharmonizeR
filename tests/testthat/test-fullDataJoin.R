@@ -8,8 +8,7 @@
 # - Missing values inserted appropriately
 test_that("all data files can be found, read, cleaned, and joined. Expected column names and
           datatypes are present.", {
-  options(
-    readr.show_col_types = FALSE, readr.num_columns = 0, readr.show_progress = FALSE,
+  options( readr.show_col_types = FALSE, readr.num_columns = 0, readr.show_progress = FALSE,
     readxl.show_progress = FALSE
   )
   df <- assembleData(.test = T, out = "fullData", binaryOut = TRUE)
