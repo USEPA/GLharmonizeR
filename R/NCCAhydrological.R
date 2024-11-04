@@ -2,7 +2,7 @@
 #' Load and join NCCA 2010 hydrographic data from csv files
 #'
 #' @description
-#' `.readNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#' `.loadNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -10,7 +10,23 @@
 #' @param filepath a string specifying the filepath of the data
 #'
 #' @return dataframe
-.readNCCAhydro2010 <- function(NCCAhydrofiles2010, n_max = n_max) {
+.loadNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max) {
+  sites <- .loadNCCASite2010(NCCAsites2010)
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
+    # remove nas from table to remove ambiguities on joinging
+    dplyr::mutate(
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      Methods = ifelse(is.na(Methods), Study, Methods)
+    )
+
+
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
     # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
@@ -36,23 +52,39 @@
       .by = ANALYTE
     ) %>%
     dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%  
-    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
+    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT, values_fill = list("RESULT" = 9999999, NA)) %>%
     # fill in mean secchi in same rows where other results appear
     dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
     # remove where sechhi used to appear
-    drop_na(sampleDepth) %>%
+    tidyr::drop_na(sampleDepth) %>%
     # [x] filter out where either ambientPAR or underPAR check if this does what we think
     dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
     dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
     dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`)) %>%
     tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
+    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported
+    dplyr::filter(RESULT != 9999999) %>%
     dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
     dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010",
       UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS)
-    )
+    ) %>%
+    # add station info
+    dplyr::left_join(sites, by = "SITE_ID") %>%
+    dplyr::mutate(stationDepth = dplyr::coalesce(stationDepth.x, stationDepth.y)) %>%
+    dplyr::select(-c(stationDepth.x, stationDepth.y)) %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_trim(ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)),
+    ) %>%
+    # convert units
+    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
+    dplyr::filter(CodeName != "Remove")
 
   return(df)
 }
@@ -62,14 +94,29 @@
 #' Load and join NCCA 2015 hydrographic data from csv files
 #'
 #' @description
-#' `.readNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#' `.loadNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAhydrofile2015 a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro2015 <- function(NCCAhydrofile2015, n_max = Inf) {
+.loadNCCAhydro2015 <- function(NCCAhydrofile2015, NCCAsites2015, namingFile, n_max = Inf) {
+  sites <- .loadNCCASite2015(NCCAsites2015)
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
+    # remove nas from table to remove ambiguities on joinging
+    dplyr::mutate(
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      Methods = ifelse(is.na(Methods), Study, Methods)
+    )
+
   df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
     # the only comments mention no measurment data or typo
     # [x] Need to remove all NARS_COMMENTs
@@ -96,22 +143,31 @@
       ANALYTE == "Corrected PAR" ~ "%",
       ANALYTE == "TRANS" ~ "%",
       ANALYTE == "PH" ~ "unitless",
-    ))
+    )) %>%
+    dplyr::left_join(renamingTable) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(key) %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
+
+# rename, change units, remove CodeName
   return(df)
 }
 
 #' Load and join NCCA 2020 hydrographic data from csv files
 #'
 #' @description
-#' `.readNCCAhydro2020` returns a dataframe of all of the hydrographic data relating to NCCA 2010
+#' `.loadNCCAhydro2020` returns a dataframe of all of the hydrographic data relating to NCCA 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAhydrofile2020 a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro2020 <- function(NCCAhydrofile2020, n_max = Inf) {
+.loadNCCAhydro2020 <- function(NCCAhydrofile2020, NCCAsites2020, namingFile, n_max = Inf) {
+  sites <- .loadNCCASite2020(NCCAsites2020)
   df <- readr::read_csv(NCCAhydrofile2020, n_max = n_max, show_col_types = FALSE) %>%
     # the only comments mention no measurment data or typo
     # [x] Need to remove all NARS_COMMENTs
@@ -138,7 +194,8 @@
       ANALYTE == "Corrected PAR" ~ "%",
       ANALYTE == "TRANS" ~ "%",
       ANALYTE == "PH" ~ "unitless",
-    ))
+    )) %>%
+    dplyr::filter(CodeName != "Remove")
 
   return(df)
 }
@@ -146,14 +203,15 @@
 #' Load and join secchi data for NCCA 2015 from csv files
 #'
 #' @description
-#' `.readNCCASecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015
+#' `.loadNCCAsecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe of the fully joined secchi data from NCCA 2015
-.readNCCASecchi2015 <- function(NCCAsecchifile2015, n_max = Inf) {
+.loadNCCAsecchi2015 <- function(NCCAsecchifile2015, NCCAsites2015, namingFile, n_max = Inf) {
+  sites <- .loadNCCASite2015(NCCAsites2015)
   df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max, show_col_types = FALSE) %>%
     dplyr::filter(
       # Kept estimated and based on trans
@@ -210,19 +268,21 @@
 #' Load and join hydrographic and secchi data for NCCA 2010 and 2015
 #'
 #' @description
-#' `.readNCCAhydro` returns a dataframe of all of the hydrographic data relating to NCCA 2010 and 2015
+#' `.loadNCCAhydro` returns a dataframe of all of the hydrographic data relating to NCCA 2010 and 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param filepath a string specifying the filepath of the data
 #' @return dataframe
-.readNCCAhydro <- function(
-    NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
+.loadNCCAhydro <- function(
+    NCCAhydrofiles2010, NCCAsites2010,
+    NCCAhydrofile2015, NCCAsites2015,
+    NCCAsecchifile2015, namingFile,
     n_max = Inf) {
   dplyr::bind_rows(
-    .readNCCAhydro2010(NCCAhydrofiles2010, n_max = n_max),
-    .readNCCAhydro2015(NCCAhydrofile2015, n_max = n_max),
-    .readNCCASecchi2015(NCCAsecchifile2015, n_max = n_max)
+    .loadNCCAhydro2010(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max),
+    .loadNCCAhydro2015(NCCAhydrofile2015, NCCAsites2015, namingFile, n_max = n_max),
+    .loadNCCAsecchi2015(NCCAsecchifile2015, NCCAsites2015, namingFile, n_max = n_max)
   )
 }

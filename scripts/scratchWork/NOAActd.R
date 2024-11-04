@@ -267,7 +267,7 @@ test %>%
 # If good enough
 # [ ] join lat lon via station name
 purrr::possibly()
-readOce <- function(x) oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAA", bin = TRUE, downcast = TRUE)
+readOce <- function(x) .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAA", bin = TRUE, downcast = TRUE)
 safeReadOce <- purrr::possibly(readOce, quiet = T)
 
 

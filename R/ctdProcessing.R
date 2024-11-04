@@ -1,28 +1,13 @@
-# Check to see if names are same across all seabird files
-.getSeaBirdNames <- function(file) {
-  try(oce::read.oce(file) |>
-    _@data |>
-    names())
-}
+# This function isn't explicitly used in the package. Instead, it was used to
+# preprocess CTD data (specifically data stored on SeaBird). The processing script 
+# is scripts/seaBirdProcessing.R 
 
-.getSeaBirdMeta <- function(file) {
-  data <- oce::read.oce(file)
-  meta <- data.frame("latitude" = NA, "longitude" = NA, "station" = NA, "startTime" = NA, "waterDepth" = NA)
-  try(meta$latitude <- data@metadata$latitude)
-  try(meta$longitude <- data@metadata$longitude)
-  try(meta$station <- data@metadata$station)
-  try(meta$startTime <- data@metadata$startTime)
-  try(meta$waterDepth <- data@metadata$waterDepth)
-  meta
-}
-# NAMES <- sapply(seaBirdFiles, FUN = .getSeaBirdNames)
-# table(unlist(NAMES))
-# # They are not the same
+
 
 
 # Convert conductance with the following (suggested by James Gerads)
 # [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
-oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
+.oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
   # load data as oce object
   # get Date, Lat, Lon, stationDepth # Station Name
   meta <- data.frame(
@@ -62,7 +47,7 @@ oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
   df <- df %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
-    dplyr::select(dplyr::one_of("depth", "temperature", "cpar", "oxygen", "specificConductance"))
+    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH")))
 
 
   # possible names

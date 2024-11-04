@@ -1,14 +1,37 @@
 #' Load and join data for CSMI 2021 from csv excel files
 #'
 #' @description
-#' `.LoadCSMI2021` returns a dataframe of all of the joined water quality data relating to CSMI 2021
+#' `.readCleanCSMI2021` returns a dataframe of all of the joined water quality data relating to CSMI 2021
 #'
 #' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
+#m' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param csmi2021 a string specifying the directory to CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI 2021
-.LoadCSMI2021 <- function(csmi2021, namingFile) {
+.readCleanCSMI2021 <- function(csmi2021, namingFile) {
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  
+  mdls <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
+    # The detection limit file contains MDLs and the values used to impute results <MDL.
+    openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
+    dplyr::select(15:28) %>%
+    dplyr::slice(1) %>%
+    tidyr::pivot_longer(dplyr::everything(), values_to = "mdl", names_to = "ANALYTE") %>%
+    dplyr::mutate(
+      ANALYTE = stringr::str_extract(ANALYTE, "^[:alnum:]*"),
+      ANALYTE = ifelse(ANALYTE == "chl", "Chla", ANALYTE)
+      ) %>%
+    dplyr::left_join(renamingTable) %>%
+    dplyr::left_join(key) %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
+    dplyr::select(ANALYTE, UNITS = TargetUnits, mdl) %>%
+    distinct()
   # CTD
   # \Lake Michigan ML - General\Raw_data\CSMI\2021\2020 LM CSMI LEII CTD combined_Fluoro_LISST_12.13.21.xlsx
   # Contact is James Gerads
@@ -57,11 +80,11 @@
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
       UNITS = ifelse(grepl("^CPAR", ANALYTE, ignore.case=FALSE), "percent", UNITS), 
       ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")
-    ) %>%
-    dplyr::left_join(renamingTable)
+    )
 
 
-  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
+  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% 
+    openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
@@ -93,6 +116,7 @@
     # figured out parsing before joining with CTD is WAAAAAAY easier
     dplyr::rename(SITE_ID = Site) %>%
     dplyr::bind_rows(., CTD) %>%
+    dplyr::left_join(renamingTable) %>%
     dplyr::mutate(
       Year = 2021,
     ) %>%
@@ -110,7 +134,7 @@
     ) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(SITE_ID, "_"),
-      ANALYTE = stringr::str_remove_all(ANALYTE, "[^[:alpha:]]")
+      ANALYTE = stringr::str_extract(ANALYTE, "^[:alpha:]*")
     )
 
   # grab additional site data from zooplankton files
@@ -135,7 +159,12 @@
       Longitude = dplyr::coalesce(Longitude, Longitude2),
       Latitude = dplyr::coalesce(Latitude, Latitude2)
     ) %>%
-    dplyr::select(-c(Latitude2, Longitude2))
+    dplyr::select(-c(Latitude2, Longitude2)) %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
+    dplyr::left_join(mdls)
 
   # return the joined data
   return(WQ)

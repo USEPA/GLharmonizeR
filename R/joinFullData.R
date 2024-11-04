@@ -1,13 +1,13 @@
 #' Load and join all data
 #'
 #' @description
-#' `.LoadJoinAll` returns a dataframe data from from CSMI, GLENDA, NOAA, and NCCA'
+#' `.LoadJoinAll` returns a dataframe from CSMI, GLENDA, NOAA, and NCCA
 #'
 #' @details
 #' This is the main function that users will interact with to load and assemble data.
 #'
 #' @param out (optional) filepath to save the dataset to
-#' @param .test (optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster
+#' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?
 #' @export
 #' @return full, harmonized dataset
@@ -38,80 +38,61 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   flagsFile <- filepaths["flagsFile"]
   noaaWQ <- filepaths["noaaWQ"]
   noaaWQSites <- filepaths["noaaWQSites"]
-  # [ ] make arguement for source ("ALl", "GLENDA", "CSMI", "NCCA", "NOAA")
+  # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
-  # [ ] water body name arguement
+  # [ ] water body name argument
   n_max <- ifelse(.test, 50, Inf)
   # [x] report sample DateTime not just date
-  print("Step 1/8: Load naming and unit conversion files")
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-
-  seaBirdrenamingTable <- openxlsx::read.xlsx(namingFile, sheet = "SeaBird_Map", na.strings = c("", "NA"))
-
-  print("Step 2/8: Read and clean NCCA")
-  ncca <- .LoadNCCAfull(
+  print("Step 1/7: Read and clean NCCA")
+  ncca <- .loadNCCA(
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
     NCCAwq2015, NCCAhydrofiles2010,
     NCCAhydrofile2015, NCCAsecchifile2015,
     namingFile,
-    Lakes = c("Lake Michigan"),
+    Lakes = NULL,
     n_max = n_max
-  )
-
-
-  print("Step 3/8: Read and clean GLENDA")
-  GLENDA <- .readPivotGLENDA(Glenda, n_max = n_max) %>%
-    .cleanGLENDA(.,
-      namingFile = namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE,
-      GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
-    ) %>% 
-    dplyr::mutate(YEAR = as.numeric(YEAR))
-
-
-  print("Step 4/8: Read preprocessed Seabird files associated with GLENDA")
-  seaBirdDf <- readr::read_rds(seaBird) %>%
-    dplyr::rename(ReportedUnits = UNITS) %>%
-    dplyr::left_join(seaBirdrenamingTable, by = c("Study", "ANALYTE")) %>%
-    dplyr::mutate(
-      ReportedUnits = tolower(ReportedUnits),
-      ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
-    ) %>%
-    dplyr::left_join(key, by = "CodeName") %>%
-    dplyr::mutate(TargetUnits = tolower(TargetUnits)) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::filter(!grepl("remove", CodeName, ignore.case = T))
-
-  GLENDA <- dplyr::bind_rows(GLENDA, seaBirdDf) %>%
-    mutate(
-      # This is mostly intended to fill in missing values for seabird
-      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm=T), stationDepth)
-    )
-
-
-  print("Step 5/8: Read and clean CSMI data")
-  CSMI <- .LoadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max) %>%
-    # Years is in the date, and ANL_CODE is all NA
-    dplyr::select(-c(Years, ANL_CODE, Finalized)) %>%
-    dplyr::filter(!grepl("remove", ANALYTE, ignore.case = T))
-  # [x] filter "remove" analytes
-
-  print("Step 6/8: Read and clean NOAA data")
-  NOAA <- noaaReadClean(noaaWQ, namingFile, noaaWQSites) %>%
-    dplyr::mutate(Study = "NOAAwq")
-
-  print("Step 7/8: Combine and return full data")
-  allWQ <- dplyr::bind_rows(
-    ncca, GLENDA, CSMI, NOAA
   ) %>%
+  dplyr::select(-Finalized)
+
+  print("Step 2/7: Read preprocessed Seabird files associated with GLENDA")
+  seaBirdDf <- readr::read_rds(seaBird) %>%
+    # since pH aren't being converted, need to set the explicit units
+    dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
+
+  print("Step 3/7: Read and clean GLENDA")
+  GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
+    .cleanGLENDA(.,
+      namingFile = namingFile, imputeCoordinates = TRUE,
+      GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
+    ) %>%
+    dplyr::bind_rows(seaBirdDf) %>%
+    dplyr::mutate(
+      # This is mostly intended to fill in missing values for seabird
+      QAcomment = dplyr::case_when(
+        is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ paste0(QAcomment, "Station depth imputed from another site visit", sep = "; "),
+        is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ paste0(QAcomment, "Station depth imputed from maximum sample depth", sep = "; "),
+        .default = QAcomment),
+      stationDepth = dplyr::case_when(
+        is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ mean(stationDepth, na.rm=TRUE),
+        is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
+        .default = stationDepth),
+      .by = STATION_ID
+    ) %>%
+    dplyr::select(-Finalized)
+
+
+  print("Step 4/7: Read and clean CSMI data")
+  CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
+
+  print("Step 5/7: Read and clean NOAA data")
+  NOAA <- .loadNOAAwq(noaaWQ, namingFile, noaaWQSites)
+
+  print("Step 6/7: Combine and return full data")
+  allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
   dplyr::mutate(
     SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
   ) %>%
-  dplyr::select(dplyr::any_of(c(
+  dplyr::select(
     # time and space
     "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
     # analyte name
@@ -121,8 +102,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     # measurement and limits
     "RESULT", "MDL", "MRL", "PQL", "METHOD",
     # QA
-    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations"), "Decision", "Action", "FLAG"
-  ))) %>%
+    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations")
+  ) %>%
   # catching some where units were inferred
   dplyr::mutate(
     QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
@@ -137,20 +118,22 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     # If MDL is missing, 
     QAcode = dplyr::case_when(
       is.na(MDL) ~ QAcode,
-      RESULT > MDL ~ QAcode, 
+      RESULT >= MDL ~ QAcode, 
       RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
+      RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
+      RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
       .default = QAcode
       ),
     QAcomment = dplyr::case_when(
       is.na(MDL) ~ QAcomment,
-      RESULT > MDL ~ QAcomment, 
+      RESULT >= MDL ~ QAcomment, 
       RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
       .default = QAcomment
       )
   ) %>%
   dplyr::select(-c(MRL, LRL))
 
-  print("Step 8/8 joining QC flags and suggestions to dataset")
+  print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
   notflagged <- allWQ %>% dplyr::filter(is.na(QAcode) & is.na(QAcomment)) %>% distinct()
   # [x] join flag explanations
@@ -177,17 +160,14 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     mode='left', #use left join
     match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
   ) %>%
-    dplyr::rename(
-      # fuzzy matching appends x and y onto matching columns
-      Study = Study.x, QAcode = QAcode.x, QAcomment = QAcomment.x
-    ) %>%
     dplyr::mutate(
       # grab values in the mapping file in case we filled out by hand
-      QAcode = dplyr::coalesce(QAcode, QAcode.y),
-      QAcomment = dplyr::coalesce(QAcomment, QAcomment.y),
+      Study = dplyr::coalesce(Study.x, Study.y),
+      QAcode = dplyr::coalesce(QAcode.x, QAcode.y),
+      QAcomment = dplyr::coalesce(QAcomment.x, QAcomment.y),
     ) %>%
     dplyr::select(
-      -c(Study.y, QAcode.y)
+      -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
     ) %>%
   # Compress instances that were matched multiple times into sinlge observation
   # for QA comments and codes
@@ -223,25 +203,23 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     Unified_Flag = stringr::str_remove(Unified_Flag, "^,"),
     Unified_Flag = stringr::str_squish(Unified_Flag)
   ) %>%
-  # [ ] Summarize the na values that aren't known flags
-  # [ ] Make sure NA flag doesn't break this
-  dplyr::filter(
-    !is.na(RESULT) | grepl("B|N|R", Unified_Flag),
-    !grepl("Remove", Retain)
-  )
-  # [ ] Remove Study name fomr QAcode and QAcomment from output data
+  # [x] Make sure NA flag doesn't break this - this is exclusively flagged stuff so should work
+  dplyr::filter(!grepl("Remove", Retain))
+  #dplyr::filter(!is.na(RESULT) | grepl("B|N|R", Unified_Flag)) %>%
 
-  # [x] recombine full dataset
+  # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
-    dplyr::rename(Units = Explicit_Units) %>%
-    # clean up Qa codes nad comments
-    dplyr::mutate(
-      QAcode = ifelse(Study == QAcode, NA, QAcode),
-      QAcomment = ifelse(Study == QAcomment, NA, QAcomment)
-    ) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    # only keep measured and censored values
-    dplyr::filter(!is.na(RESULT) | !is.na(Unified_Flag))
+    dplyr::mutate(Units = Explicit_Units) %>%
+    dplyr::select(
+      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDateTime, sampleDepth,
+      CodeName, LongName, RESULT, Units, MDL, PQL, RL, Unified_Flag, Unified_Comment, 
+      Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment, 
+      Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
+      TargetUnits, ConversionFactor, Conversion_Note=Conversion, Retain_InternalUse=Retain,
+      Action_InternalUse=Action) %>%
+      arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
+
+
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".Rds"))

@@ -3,13 +3,18 @@
 #' Load and join data for CSMI 2015 from access database
 #'
 #' @description
-#' `.LoadCSMI2015` returns a dataframe of all of the joined water quality data relating to CSMI 2015
+#' `.readCleanCSMI2015` returns a dataframe of all of the joined water quality data relating to CSMI 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @return dataframe of the fully joined water quality data from CSMI 2015
-.LoadCSMI2015 <- function(csmi2015, namingFile) {
+.readCleanCSMI2015 <- function(csmi2015, namingFile) {
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
       dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
   # Establish connection to the database
@@ -39,6 +44,24 @@
 
   sampleInfo <- dplyr::left_join(stisInfo, eventInfo, by = "SampleEventKey") %>%
     dplyr::left_join(stationInfo, by = "SITE_ID")
+  
+  mdls <- RODBC::sqlFetch(dbi, "Metadata_WQanalytes") %>%
+    dplyr::select(ANALYTE = WQParam, ReportedUnits = WQUnits, mdl = DetectLimit, LAB = Analyst) %>%
+    dplyr::mutate(
+      Study = "CSMI_2015",
+      ANALYTE = stringr::str_remove(ANALYTE, "_.*$"),
+      ANALYTE = stringr::str_remove_all(ANALYTE, "[+-=]")
+      ) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(
+      mdl = as.numeric(mdl),
+      mdl = ifelse(!is.na(ConversionFactor), mdl*ConversionFactor, mdl),
+      ) %>%
+    dplyr::select(ANALYTE, CodeName, mdl) %>%
+    dplyr::mutate(Study = "CSMI_2015")
   
   # impute missing coordinates from target coordinates if possible
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
@@ -96,8 +119,15 @@
       Year = 2015,
       ANALYTE = stringr::str_extract(ANALYTE, "[:alnum:]*")
     ) %>%
-    dplyr::left_join(renamingTable)
+    dplyr::left_join(renamingTable) %>%
+    dplyr::rename(ReportedUnits = UNITS) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions) %>%
+    dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
+    dplyr::left_join(mdls)
   RODBC::odbcClose(dbi)
+  file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
+  unlink("CSMI2015_newQuery", recursive = TRUE)
 
   return(WQ)
 }

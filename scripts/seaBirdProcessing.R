@@ -25,7 +25,7 @@ if (test) {
 }
 seaBirdDf <- seaBird %>%
   purrr::map(\(x)
-    oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE) %>% 
+    .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "SeaBird", bin = TRUE, downcast = TRUE) %>% 
       mutate(
         UID=x,
         # This only works for normal names like MIXX

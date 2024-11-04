@@ -1,7 +1,7 @@
 #' Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data
 #'
 #' @description
-#' `.LoadNCCAfull` returns water quality data along with spatial data from the
+#' `.loadNCCA` returns water quality data along with spatial data from the
 #'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
 #'
 #' @details
@@ -18,55 +18,34 @@
 #' @param namingFile filepath to Analytes3.xlsx which conatains names and conversions
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
-.LoadNCCAfull <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
+.loadNCCA <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
                           namingFile, 
-                          Lakes = c("Lake Michigan"), n_max = Inf) {
-  # [ ] Did we QC all of the great lakes already???
-  sites <- .readNCCASites(NCCAsites2010, NCCAsites2015) %>%
-    dplyr::distinct(SITE_ID, .keep_all = T)
-
-  NCCAhydro <- .readNCCAhydro(NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-    n_max = n_max
-  ) %>%
+                          Lakes = NULL, n_max = Inf) {
+  NCCAhydro <- .loadNCCAhydro(
+    NCCAhydrofiles2010, NCCAsites2010,
+    NCCAhydrofile2015, NCCAsites2015,
+    NCCAsecchifile2015, namingFile,
+    n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
 
   # Read NCCA Water chemistry files
   # [x] Make the wqQA argument name consistent over all levels
   nccaWQ <- dplyr::bind_rows(
-    .readNCCA2010(NCCAwq2010, n_max = n_max),
-    .readNCCA2015(NCCAwq2015, NCCAsites2015, n_max = n_max)
+    .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = n_max),
+    .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = n_max)
   ) %>%
     # QC filters
     # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
     dplyr::mutate(UID = paste0(Study, "-", as.character(UID)))
 
 
-  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
 
-  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
-    dplyr::left_join(., sites, by = "SITE_ID") %>%
-    # Cleaning up a column naming mistake
-    # [x] Make sure these still work after the upstream changes
-    dplyr::mutate(
-      stationDepth = dplyr::coalesce(stationDepth.y, stationDepth.x),
-      sampleDateTime = dplyr::coalesce(sampleDateTime, DATE_COL),
-      Year = lubridate::year(sampleDateTime),
-      # [x] store the originally reported Units
-      OriginalUnits = UNITS
-    ) %>%
-    dplyr::select(-c(
-      stationDepth.x, stationDepth.y,
-      DATE_COL # QAconsiderations,
-    )) %>%
-    # [ ] Fix filter for region and lake
+    # [x] Fix filter for region and lake
     # Great lakes get's priority over spcifying each lake
-    dplyr::filter(NCCRreg == "Great Lakes") %>%
+    #dplyr::filter(NCCA_REG == "Great Lakes") %>%
     {
      if (!is.null(Lakes)) {
        dplyr::filter(., WTBDY_NM %in% Lakes)
@@ -74,15 +53,6 @@
        .
      }
     } %>%
-    dplyr::rename(ReportedUnits = UNITS) %>%
-    # [x] fill missing units as the most common non-missing units within a given study-year
-    # Group by study-year, analytes
-    dplyr::mutate(
-      ReportedUnits = dplyr::case_when(
-        ANALYTE == "pH" ~ "unitless",
-        ANALYTE == "Corrected PAR" ~ "percent",
-        .default = ReportedUnits
-    )) %>%
     dplyr::mutate(
       QAcode = dplyr::case_when(
         is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcode, "; U"),
@@ -92,40 +62,7 @@
         is.na(ReportedUnits) & !grepl("hydro", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
         .default = QAcomment
       )
-    ) %>%
-    dplyr::mutate(
-      ReportedUnits = ifelse(
-        # impute with the mode
-        is.na(ReportedUnits) & mean(is.na(ReportedUnits)) !=0,
-          as.character(names(sort(table(ReportedUnits), decreasing = T, na.last = T))[1]),
-          as.character(ReportedUnits)
-      ),
-      .by = c(Study, Year, ANALYTE)) %>%
-  # rename
-  dplyr::left_join(openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")),
-    by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods"), na_matches = "na"
-  ) %>%
-  # unit conversions
-  dplyr::left_join(key, by = "CodeName") %>%
-  # standardize units
-  dplyr::mutate(
-    ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-    ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
-    ReportedUnits = tolower(ReportedUnits),
-    # specify cpar units
-    ReportedUnits = ifelse(grepl("par", ANALYTE, ignore.case = T), "percent", ReportedUnits)
-  ) %>%
-  dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-  dplyr::mutate(RESULT = dplyr::case_when(
-    ReportedUnits == TargetUnits ~ RESULT,
-    ReportedUnits != TargetUnits ~ RESULT * ConversionFactor,
-    is.na(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
-    is.nan(ConversionFactor) ~ RESULT, # Catches unitless meausures (pH, Cpar, etc)
-    .default = RESULT
-  )) %>%
-  dplyr::select(-Units) %>%
-  dplyr::mutate(Units = TargetUnits, SAMPLE_ID = as.character(SAMPLE_ID)) %>%
-  dplyr::select(-c(Finalized, Years))
+    )
 
   # Turn into test
   # final %>%

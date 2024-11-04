@@ -1,14 +1,14 @@
 #' Read in NCCA site data
 #'
 #' @description
-#' `.readNCCASite2010` returns spatial data relating to study sites
+#' `.loadNCCASite2010` returns spatial data relating to study sites
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAsites2010 a string specifying the filepath of the data, This is usually a url
 #' @return dataframe
-.readNCCASite2010 <- function(NCCAsites2010) {
+.loadNCCASite2010 <- function(NCCAsites2010) {
   # all depths are reported in meters
   sites <- readr::read_csv(NCCAsites2010, show_col_types = FALSE) %>%
     dplyr::filter(NCCR_REG == "Great Lakes") %>%
@@ -33,14 +33,14 @@
 #' Read in NCCA site data
 #'
 #' @description
-#' `.readNCCASite2015` returns spatial data relating to study sites
+#' `.loadNCCASite2015` returns spatial data relating to study sites
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAsites2015 a string specifying the directory of the data
 #' @return dataframe
-.readNCCASite2015 <- function(NCCAsites2015) {
+.loadNCCASite2015 <- function(NCCAsites2015) {
   # all depths are reported in meters
   sites <- readr::read_csv(NCCAsites2015, show_col_types = FALSE) %>%
     # cutdown number of lats and longs
@@ -57,24 +57,4 @@
     tidyr::drop_na()
   
   return(sites)
-}
-
-
-
-
-#' Read in all NCCA site data
-#'
-#' @description
-#' `.readNCCASites` returns spatial data relating to study sites
-#'
-#' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
-#' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the directory of the data
-#' @return dataframe
-.readNCCASites <- function(NCCAsites2010, NCCAsites2015) {
-  df <- .readNCCASite2010(NCCAsites2010)
-  df2 <- .readNCCASite2015(NCCAsites2015)
-
-  return(dplyr::bind_rows(df, df2) %>% dplyr::distinct())
 }

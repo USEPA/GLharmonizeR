@@ -1,4 +1,4 @@
-noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
+.loadNOAAwq <- function(noaaWQ, namingFile, noaaWQSites) {
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -72,12 +72,8 @@ noaaReadClean <- function(noaaWQ, namingFile, noaaWQSites) {
     dplyr::left_join(renamingTable, by = "ANALYTE") %>%
     dplyr::left_join(key, by = "CodeName") %>%
     dplyr::mutate(ReportedUnits = ifelse(ANALYTE =="tp", "ugl", ReportedUnits)) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT, RESULT * ConversionFactor)) %>%
-    dplyr::select(-c(
-      Lepak.input, X5
-    )) 
-
+    dplyr::mutate(Study = "NOAAwq") %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
   return(noaaWQdata)
 }
 

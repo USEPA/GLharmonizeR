@@ -22,7 +22,7 @@
 #' Load and join data for CSMI 2010 from csv excel files
 #'
 #' @description
-#' `.LoadCSMI2010` returns a dataframe of all of the joined water quality data relating to CSMI 2010
+#' `.readCleanCSMI2010` returns a dataframe of all of the joined water quality data relating to CSMI 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -30,7 +30,7 @@
 #' @importFrom magrittr "%>%"
 #' @param csmi2010 a string specifying the directory path of the access database
 #' @return dataframe of the fully joined water quality data from CSMI 2010
-.LoadCSMI2010 <- function(csmi2010, n_max = Inf) {
+.readCleanCSMI2010 <- function(csmi2010, n_max = Inf) {
   df <- openxlsx::read.xlsx(file.path(csmi2010, "GL2010db.xlsx"), sheet = 1, rows = 1:n_max) %>%
     dplyr::slice(9:dplyr::n()) %>%
     # Move spatial information to front to simplify table conversion

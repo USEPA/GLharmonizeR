@@ -1,30 +1,48 @@
 #' Read in all NCCA water quality from 2010
 #'
 #' @description
-#' `.readNCCA2010` returns water quality data measured during the NCCA study in 2010
+#' `.loadNCCAwq2010` returns water quality data measured during the NCCA study in 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAwq2010 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2010 <- function(NCCAwq2010, n_max = Inf) {
-  df <-NCCAwq2010 %>%
-    purrr::map_dfr(readr::read_csv,
-      n_max = n_max,
-      show_col_types = FALSE,
-      col_types = readr::cols(
-        # DONE Load MDL, MRL, PQL
-        "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
-        "LAB_SAMPLE_ID" = "-",
-        "SAMPLE_ID" = "-",
-        "BATCH_ID" = "-",
-        "DATE_ANALYZED" = "-",
-        "HOLDING_TIME" = "-",
-        "MDL" = "d",
-        "MRL" = "d",
-        "PQL" = "d",
-      )
+.loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
+  sites <- .loadNCCASite2010(NCCAsites2010) %>%
+    dplyr::mutate(SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$"))
+
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
+    # remove nas from table to remove ambiguities on joinging
+    dplyr::mutate(
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      Methods = ifelse(is.na(Methods), Study, Methods)
+    )
+
+  df <- readr::read_csv(
+    NCCAwq2010,
+    n_max = n_max,
+    show_col_types = FALSE,
+    col_types = readr::cols(
+      # DONE Load MDL, MRL, PQL
+      "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
+      "LAB_SAMPLE_ID" = "-",
+      "SAMPLE_ID" = "-",
+      "BATCH_ID" = "-",
+      "DATE_ANALYZED" = "-",
+      "HOLDING_TIME" = "-",
+      "MDL" = "d",
+      "MRL" = "d",
+      "PQL" = "d",
+    )
     ) %>%
     dplyr::rename(
       ANL_CODE = PARAMETER,
@@ -43,30 +61,45 @@
     dplyr::filter(ANALYTE != "Nitrate", ANALYTE != "Nitrite") %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
-      sampleDepth = 0.5
-    ) %>%
-    dplyr::mutate(
+      sampleDepth = 0.5,
       # [x] add this to Analytes3
       Study = "NCCA_WChem_2010",
       # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH"))
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      METHOD = ifelse(is.na(METHOD), Study, METHOD),
     ) %>%
     dplyr::rename(
-      QAcode = QACODE
-    )
+      QAcode = QACODE,
+      ReportedUnits = UNITS
+    ) %>% 
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    dplyr::mutate(
+      RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
+      SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$")
+      ) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(sites) %>%
+    # NOTE None of the states with missing lat/lons border lake michigan
+    # this will be a problem when we expand to more great lakes
+    tidyr::drop_na(Latitude)
+
   return(df)
 }
 
 #' Read in all NCCA water quality from 2015
 #'
 #' @description
-#' `.readNCCA2015` returns water quality data measured during the NCCA study in 2015
+#' `.loadNCCAwq2015` returns water quality data measured during the NCCA study in 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2015 <- function(NCCAwq2015, NCCAsites2015, n_max = Inf) {
+.loadNCCAwq2015 <- function(NCCAwq2015, NCCAsites2015, namingFile, n_max = Inf) {
   sites <- readr::read_csv(NCCAsites2015, show_col_types = FALSE) %>%
     # cutdown number of lats and longs
     dplyr::select(
@@ -81,6 +114,21 @@
       WTBDY_NM = GREAT_LAKE
     ) %>%
     tidyr::drop_na()
+
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
+    # remove nas from table to remove ambiguities on joinging
+    dplyr::mutate(
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      Methods = ifelse(is.na(Methods), Study, Methods)
+    )
 
   df <- readr::read_csv(NCCAwq2015,
     n_max = n_max,
@@ -120,7 +168,9 @@
       # Hide result in Nitrate so don't need to make all of the other columns
       RESULT_NITRATE_N =  RESULT_NITRITE_N + RESULT_NITRATE_N,
     ) %>%
-    tidyr::pivot_longer(cols= LAB_PH:sampleID_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
+    tidyr::pivot_longer(cols= LAB_PH:sampleID_CHLA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
+    # if no result or comment, this is created bay the pivot_wider and needs to be remvoed
+    dplyr::filter(!is.na(RESULT) | !is.na(QAcode) | !is.na(QAcomment)) %>%
     dplyr::mutate(
       # Change the names
       ANL_CODE = dplyr::case_when(
@@ -147,10 +197,8 @@
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDepth = 0.5,
-      Study = "NCCA_WChem_2015"
-    ) %>%
+      Study = "NCCA_WChem_2015",
     # cleaning up flags ending with empty characters
-    dplyr::mutate(
       QAcode = stringr::str_replace(QAcode, ",", ";"),
       QAcode = stringr::str_remove(QAcode, ";$"),
       QAcomment = stringr::str_remove(QAcomment, ";$"),
@@ -176,7 +224,7 @@
       QAcode, QAcomment,
       RESULT,
       reportedUnits,
-      sampleDepth, 
+      sampleDepth,
       Study
     ) %>%
     dplyr::left_join(sites) %>%
@@ -184,7 +232,12 @@
     dplyr::mutate(
       ANALYTE = ANL_CODE,
       METHOD = ifelse(is.na(METHOD), Study, METHOD),
-      )
+    ) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
+    dplyr::left_join(key) %>%
+    dplyr::left_join(conversions, by = c("reportedUnits" =  "ReportedUnits", "TargetUnits")) %>%
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
+    dplyr::filter(CodeName != "Remove")
 
   return(df)
 }
@@ -192,7 +245,7 @@
 #' Read in all NCCA water quality from 2020
 #'
 #' @description
-#' `.readNCCA2020` returns water quality data measured during the NCCA study in 2020
+#' `.loadNCCAwq2020` returns water quality data measured during the NCCA study in 2020
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -200,7 +253,7 @@
 #' @param NCCAwq2020 a string specifying the directory of the data
 #' @param NCCAsites2020 a string specifying the directory of the data
 #' @return dataframe
-.readNCCA2020 <- function(NCCAwq2020, NCCAsites2020, n_max = Inf) {
+.loadNCCAwq2020 <- function(NCCAwq2020, NCCAsites2020, namingFile, n_max = Inf) {
   sites <- readr::read_csv(NCCAsites2020, show_col_types = FALSE) %>%
     # keeping enough to add station depth information for a given sampling event (respecting visit number)
     dplyr::select(
@@ -210,6 +263,21 @@
       EPA_REG, GREAT_LAKE, LAKE_REG, NCCA_REG, NPS_PARK
     )  %>%
     distinct()
+
+  key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
+    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
+    dplyr::rename(TargetUnits = Units)
+
+  conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
+    # remove nas from table to remove ambiguities on joinging
+    dplyr::mutate(
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
+      Methods = ifelse(is.na(Methods), Study, Methods)
+    )
+
 
   # data has siteID, lat/lon, chem info, date, just need stationDepth from sites file
   df <- readr::read_csv(NCCAwq2020,
@@ -273,7 +341,10 @@
     # Do this for later on joining
     dplyr::mutate(
       ANALYTE = ANL_CODE,
-      )
+    ) %>%
+    dplyr::filter(CodeName != "Remove")
+    
+    # [ ] TODO converrt units
 
   return(df)
 }

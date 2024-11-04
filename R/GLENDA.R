@@ -4,7 +4,7 @@
 #' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
 #'
 #' @details
-#' `.readPivotGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
+#' `.readFormatGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset. This function contains some
 #' of the filtering functions in order to easily be compatible with the testing schema because
 #' when we filtered later on, we lost too many sample ids that would be included in the test data.
@@ -15,8 +15,9 @@
 #' @param sampleIDs a list of sampleIDs to keep in the final dataset
 #'
 #' @return a dataframe
-.readPivotGLENDA <- function(Glenda, n_max = Inf, sampleIDs = NULL) {
+.readFormatGLENDA <- function(Glenda, n_max = Inf, sampleIDs = NULL) {
   # [x] Make glendaData the argument for load anssemble data function
+  imputeCoordinates <- TRUE
   df <- Glenda %>%
     {
       if (grepl(tools::file_ext(Glenda), ".csv", ignore.case = TRUE)) {
@@ -113,7 +114,7 @@
 #'
 #' @return a dataframe
 .cleanGLENDA <- function(
-    df, namingFile, GLENDAflagsPath = NULL, imputeCoordinates = TRUE, GLENDAsitePath = NULL,
+    df, namingFile, imputeCoordinates = TRUE, GLENDAsitePath = NULL,
     GLENDAlimitsPath = NULL) {
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_Map", na.strings = c("", "NA")) %>%
     tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
@@ -126,6 +127,18 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+
+  internalMDL <- df %>%
+    dplyr::filter(grepl("^<", VALUE)) %>%
+    dplyr::distinct(YEAR, ANALYTE, VALUE) %>%
+    dplyr::left_join(renamingTable) %>% 
+    dplyr::distinct(YEAR, ANALYTE, VALUE) %>%
+    dplyr::mutate(
+      internalMDL = readr::parse_number(VALUE),
+      YEAR = as.numeric(YEAR)
+    )
+  # [ ] unit conversions for the above internal mdls before joining into mdl df
+  # [ ] Double check that renaming is working properly for the mdl
 
   # All self reported mdls are identical across all years for a gien analyte
   limitNames <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_mdl_Map")
@@ -142,7 +155,6 @@
     tidyr::separate_wider_regex(ANALYTE, pattern = c("ANALYTE" = ".*", "\\(", "ReportedUnits" = ".*", "\\)")) %>%
     dplyr::mutate(
       mdl = as.numeric(mdl),
-      mdl = ifelse(is.na(mdl), mean(mdl, is.na= T), mdl),
       .by = c(YEAR, ANALYTE)
     ) %>%
     dplyr::mutate(
@@ -153,9 +165,17 @@
     dplyr::left_join(., limitNames, by = c("ANALYTE" = "OldName")) %>%
     dplyr::select(-ANALYTE) %>%
     dplyr::rename(CodeName = ANALYTE.y) %>%
+    # Make units match what is expected
+    dplyr::mutate(
+      ReportedUnits = tolower(stringr::str_remove(ReportedUnits," .*/")),
+      ReportedUnits = ifelse(ReportedUnits == "mgl", "mgl", "ugl")
+      ) %>%
     dplyr::left_join(key) %>%
     dplyr::left_join(conversions) %>%
-    dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
+    dplyr::mutate(
+      mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl),
+      mdl = ifelse(CodeName == "Diss_SiO2", mdl * 2.13918214, mdl)
+      ) %>%
     dplyr::select(YEAR, SEASON, CodeName, mdl)
 
   df <- df %>%
@@ -164,7 +184,7 @@
       SEASON = ifelse(is.na(SEASON), lubridate::month(SAMPLING_DATE, label = T), SEASON),
       # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE = dplyr::case_when(
-        TIME_ZONE == "EDT" ~ "US/Eastern",
+        TIME_ZONE == "EDT" ~ "Canada/Newfoundland",
         TIME_ZONE == "CDT" ~ "EST",
         .default = TIME_ZONE
       ),
@@ -173,7 +193,7 @@
       # [x] ADD A FLAG whereever we assumed it was noon
       RESULT_REMARK = ifelse(
         stringr::str_length(SAMPLING_DATE) < 14,
-        paste(RESULT_REMARK, "; sample Time imputed as noon"),
+        paste0(RESULT_REMARK, "; sample time imputed as noon"),
         RESULT_REMARK
       ),
       SAMPLING_DATE = ifelse(
@@ -187,14 +207,6 @@
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
     dplyr::select(-Number) %>%
-    # Adding verbose remark descriptions is purely optional
-    {
-      if (!is.null(GLENDAflagsPath)) {
-        dplyr::left_join(., openxlsx::read.xlsx(GLENDAflagsPath), by = c("RESULT_REMARK" = "NAME"))
-      } else {
-        .
-      }
-    } %>%
     {
       if (!is.null(GLENDAsitePath)) {
         # grab the missing sites from that file
@@ -246,6 +258,7 @@
       ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
     ) %>%
     dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     # [x] Check if we need to impute units- nope all taken care of
     # sum(is.na(df$Units)) == 0
     # If so, we will assume on a given year analytes have same units
@@ -267,14 +280,18 @@
       .default = RESULT
     )) %>%
     # add in the detection limits
-    # [x] Add in the limits
+    dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
+    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
+    dplyr::left_join(., internalMDL, by = c("ANALYTE", "YEAR")) %>%
+    dplyr::mutate(mdl = dplyr::coalesce(mdl, internalMDL)) %>%
+    dplyr::select(-c(sampleDate, internalMDL))
+
+    # [x] Add self reported  detection limits
     # [x] Extract the < values for all datas, join it back to the pdf extracted RL's
     # [x] Join them all together then join back to the data
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
-    dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
-    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
-    dplyr::select(-sampleDate)
+
 
   return(df)
 }
