@@ -14,9 +14,13 @@
     "latitude" = data@metadata$latitude,
     "longitude" = data@metadata$longitude,
     "sampleDateTime" = data@metadata$date,
+    "sampleDateTime2" = data@metadata$startTime,
     "waterDepth" = data@metadata$waterDepth,
     "station" = data@metadata$filename
-  )
+  ) %>%
+  # start time more likely to have time of day too
+  mutate(sampleDateTime = coalesce(sampleDateTime2, sampleDateTime)) %>%
+  select(-sampleDateTime2)
   units <- data@metadata$units
 
 
@@ -47,11 +51,11 @@
   df <- df %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
-    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH")))
+    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH", "conductivity", "par")))
 
 
   # possible names
-  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH")
+  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH", "par")
 
   if (bin) {
     # Bin data

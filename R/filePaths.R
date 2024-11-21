@@ -37,6 +37,7 @@
     
     # %% NOAA
     "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26.xlsx",
+    "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD.Rds",
     "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformation.csv"
   )
 

@@ -14,14 +14,17 @@ df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
 # Missing Checks
 ```{r}
 df %>%
-  reframe(CodeName = mean(is.na(CodeName)), Lat = mean(is.na(Latitude)),
-   RESULT = mean(is.nan(RESULT)),
-    LongName = mean(is.na(LongName)), TargetUnits = mean(is.na(TargetUnits)),
-    ReportedUnits = mean(is.na(ReportedUnits)),
-    ConversionFactor = mean(is.na(ConversionFactor)), 
-    .by = Study) %>% 
-    print() %>%
-    write_csv("generalMissingness.csv")
+  reframe(
+    # missingness across key columns
+    across(c(CodeName, Latitude, RESULT, LongName, TargetUnits, ReportedUnits, ConversionFactor), function(x) mean(is.na(x))),
+    .by = Study) %>%
+    saveRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds"))
+df %>%
+  reframe(
+    # mean and SD of numeric columns
+    across(c(Latitude, RESULT), list(mean, sd), .names ="{.col}.{.fn}", na.rm = T),
+    .by = c(Study, CodeName)) %>%
+    saveRDS(stringr::str_glue("tests/testthat/fixtures/dataSummary{Sys.Date()}.Rds"))
 ```
 
 

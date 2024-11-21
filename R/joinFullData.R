@@ -31,6 +31,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   namingFile <- filepaths["namingFile"]
   flagsFile <- filepaths["flagsFile"]
   noaaWQ <- filepaths["noaaWQ"]
+  noaaCTD <- filepaths["noaaCTD"]
   noaaWQSites <- filepaths["noaaWQSites"]
   # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
@@ -80,7 +81,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 5/7: Read and clean NOAA data")
   NOAA <- .loadNOAAwq(noaaWQ, namingFile, noaaWQSites)
-
+  noaaCTD <- readr::read_rds(noaaCTD)
+  NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
   dplyr::mutate(
