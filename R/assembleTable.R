@@ -14,12 +14,15 @@
 #' the measuerment from Uniform(0, mdl), NULL doesn't perform imputation. If MDL isn't provided then the same process is followed for the PQL.
 #' @param timeBinning (optional) default=hours, which specifies the time scale to average over. For more 
 #' @param depthCuts (optional) default=NULL, depths to define the bottom of an averaging window
+#' @param startDate (optional) default=2000-01-01, filter data to dates greater than specified
+#' @param endDate (optional) default=2050-01-01, filter data to dates greater than specified
 #' 
 #' infromation see round_date() in lubridate package
 #' for the output dataset
 #'
 #' @return a dataframe of wide format
-imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning = "hours", depthCuts = NULL){
+imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning = "hours", depthCuts = NULL, 
+  startDate = "2000-01-01", endDate = "2050-01-01"){
   # [x] Removed duplicates - have user input for Lat/Lon res for now
   if (imputeMethod == "halfMDL"){
     imputeFunction = function(mdl) mdl/2
@@ -36,6 +39,11 @@ imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning 
       Lng = round(Longitude, digits = latlonDigits),
       sampleDateTime = lubridate::round_date(sampleDateTime, unit = timeBinning),
     ) %>%
+    dplyr::filter(
+      dplyr::between(sampleDateTime, 
+      lubridate::ymd(startDate),
+      lubridate::ymd(endDate)
+    )) %>%
     {if (!is.null(depthCuts)){
       dplyr::mutate(.,
         sampleDepth = cut(sampleDepth, breaks= depthCuts)

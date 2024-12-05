@@ -8,8 +8,9 @@ library(tidyverse)
 library(fuzzyjoin)
 devtools::load_all()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
-#processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "hours", depthCuts = NULL)
 #df <- readRDS("fullData.Rds")
+processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "months", depthCuts = c(-0.1, 5, max(df$sampleDepth, na.rm=T)), 
+  startDate= "2000-01-01", endDate= "2050-01-01")
 ```
 
 # Missing Checks
