@@ -13,6 +13,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NCCAhydrofile2020 <- filepaths["NCCAhydrofile2020"]
   NCCAsecchifile2015 <- filepaths["NCCAsecchifile2015"]
   NCCAsites2010 <- filepaths["NCCAsites2010"]
+  NCCAsites2010not <- filepaths["NCCAsites2010not"]
   NCCAsites2015 <- filepaths["NCCAsites2015"]
   NCCAsites2020 <- filepaths["NCCAsites2020"]
   NCCAwq2010 <- filepaths["NCCAwq2010"]
@@ -44,10 +45,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     NCCAwq2015, NCCAhydrofiles2010,
     NCCAhydrofile2015, NCCAsecchifile2015,
     namingFile,
-    Lakes = NULL,
+    Lakes = c("Lake Michigan"),
     n_max = n_max
-  ) %>%
-  dplyr::select(-Finalized)
+  )
 
   print("Step 2/7: Read preprocessed Seabird files associated with GLENDA")
   seaBirdDf <- readr::read_rds(seaBird) %>%
@@ -83,6 +83,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NOAA <- .loadNOAAwq(noaaWQ, namingFile, noaaWQSites)
   noaaCTD <- readr::read_rds(noaaCTD)
   NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
+
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
   dplyr::mutate(

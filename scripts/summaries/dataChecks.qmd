@@ -16,14 +16,18 @@ df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
 df %>%
   reframe(
     # missingness across key columns
-    across(c(CodeName, Latitude, RESULT, LongName, TargetUnits, ReportedUnits, ConversionFactor), function(x) mean(is.na(x))),
-    .by = Study) %>%
+    across(c(CodeName, Latitude, RESULT, LongName, Units, MDL), function(x) mean(is.na(x))),
+    .by = Study)  %>%
+    arrange(Study) %>%
     saveRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds"))
+readRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds")) %>% View()
+
 df %>%
   reframe(
     # mean and SD of numeric columns
-    across(c(Latitude, RESULT), list(mean, sd), .names ="{.col}.{.fn}", na.rm = T),
+    across(c(Latitude, Longitude, RESULT), list(mean, sd), .names ="{.col}.{.fn}", na.rm = T),
     .by = c(Study, CodeName)) %>%
+    arrange(Study, CodeName) %>%  #View()
     saveRDS(stringr::str_glue("tests/testthat/fixtures/dataSummary{Sys.Date()}.Rds"))
 ```
 
@@ -240,7 +244,7 @@ rounded5 <- rounded %>%
   ) 
 
 write_csv(rounded2, "2digitStationOverlap.csv")
-write_csv(rounded3, "3digitStationOverlap.csv")
+write_csv(rounded3, "3digitStationOverlap.csv") # this matches the NCCA protocol resolution 
 write_csv(rounded4, "4digitStationOverlap.csv")
 write_csv(rounded5, "5digitStationOverlap.csv")
 ```
@@ -290,10 +294,43 @@ stations %>%
 
 ```
 
-# Duplicates
+# Duplicates and pivoting
 ```{r duplicates}
 
 removedDup <- df %>%  # 185374 partial observations
+  drop_na(sampleDateTime, Latitude, CodeName, sampleDepth) %>%
+  dplyr::mutate(
+    Lat4 = round(Latitude, digits=4),
+    Lon4 = round(Longitude, digits=4),
+  ) %>%
+  reframe(count = n(), Study = toString(unique(Study)), .by= c(Lat4, Lon4, sampleDateTime, CodeName, sampleDepth))
+
+test <- removedDup %>%
+  filter(count >1) %>%
+  arrange(Lat4, Lon4, sampleDepth, sampleDateTime)
+
+test %>%
+  View()
+removedDup <- df %>%  # removes 10% 
+  drop_na(sampleDateTime, Latitude, CodeName, sampleDepth) %>%
+  dplyr::mutate(
+    Lat = round(Latitude, digits=3),
+    Lng = round(Longitude, digits=3),
+  ) %>%
+  reframe(
+    Result = mean(RESULT, na.rm =T), 
+    Study = toString(unique(Study)),
+    Unified_Flag = toString(unique(Unified_Flag)),
+    Unified_Comment = toString(unique(Unified_Comment)),
+    Study = toString(unique(Study)),
+    .by= c(Lat, Lng, sampleDateTime, CodeName, sampleDepth))
+
+
+tabledData <- removedDup %>%
+  pivot_wider(id_cols = c(Lat, Lng, sampleDateTime, sampleDepth), names_from = CodeName, values_from = Result)
+
+
+
   dplyr::distinct() %>% 
   # [ ] Round to that decimal place and do exact match
   # [ ] Include study as another column

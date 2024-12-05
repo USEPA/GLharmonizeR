@@ -52,7 +52,6 @@ noaaCTDdf <- noaaFiles %>%
     Study = "NOAActd",
     UID = paste0(SITE_ID, "_", lubridate::date(sampleDateTime))
     ) %>%
-  select(-c(Latitude.ctd, Longitude.ctd, sampleDateTime.ctd, stationDepth.ctd)) %>%
   left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
   rename(ReportedUnits = UNITS)  %>%
   mutate(ReportedUnits = tolower(ReportedUnits)) %>%
@@ -60,14 +59,31 @@ noaaCTDdf <- noaaFiles %>%
   left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
   mutate(
     RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
-  dplyr::select(Study, UID, SITE_ID, sampleDateTime, stationDepth, Latitude, Longitude, sampleDepth, CodeName, RESULT, Units = Explicit_Units, Category)
-# [ ] Impute TOD if needed , also flag it
+  dplyr::select(Study, UID, SITE_ID, sampleDateTime, stationDepth, Latitude, Longitude, sampleDepth, CodeName, RESULT, Units = Explicit_Units, Category, ANALYTE_Orig_Name = ANALYTE, ConversionFactor, LongName) %>%
+  filter(ANALYTE_Orig_Name != "par")
 
 # Save the cleaned seabird Files
 saveRDS(noaaCTDdf, "../GL_Data/NOAA/noaaCTD.Rds")
+
+noaaCTDdf %>%
+# Check which names might not be getting matched
+  filter(is.na(CodeName), ANALYTE_Orig_Name != "par") %>%
+  distinct(ANALYTE_Orig_Name)
+
 
 noaaCTDdf %>%
   ggplot(aes(x = date(sampleDateTime))) +
   geom_histogram()
 
 read.oce(noaaFiles$cnvFiles[[7]])
+
+
+
+test <- oce::read.oce(file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)",
+ "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022",
+  "2022 CTD files", "Laurentian", "LTER", "7-18-22", "M15.XMLCON"))
+
+
+noaaCTDdf %>% 
+  filter(hour(sampleDateTime) == 12, minute(sampleDateTime) == 0) %>%
+  distinct(sampleDateTime.ctd, sampleDateTime)
