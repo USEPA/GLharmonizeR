@@ -14,6 +14,7 @@
 
     # Sites
     "NCCAsites2010" = "https://www.epa.gov/sites/default/files/2016-06/assessed_ncca2010_siteinfo.revised.06212016.csv",
+    "NCCAsites2010not" = "https://www.epa.gov/sites/default/files/2016-06/not_assessed_ncca2010_siteinfo.revised.06212016.csv",
     "NCCAsites2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_site_information_great_lakes-data.csv",
     "NCCAsites2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20-siteinfo-great-lakes-data_revision-1_0.csv",
 

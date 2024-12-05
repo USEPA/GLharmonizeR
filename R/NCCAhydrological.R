@@ -11,7 +11,12 @@
 #'
 #' @return dataframe
 .loadNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max) {
-  sites <- .loadNCCASite2010(NCCAsites2010)
+  sites <- .loadNCCASite2010(NCCAsites2010) %>%
+    dplyr::mutate(
+      SITE_ID = stringr::str_remove(SITE_ID, "^NCCA[:alpha:]{0,2}10-"),
+      SITE_ID = stringr::str_remove(SITE_ID, "^GLBA10-"),
+      #SITE_ID = stringr::str_replace(SITE_ID, "-GLBA10-", "-"),
+      )
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -69,8 +74,13 @@
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010",
-      UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS)
+      UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS),
+      # make site ids look like site id file
+      SITE_ID = stringr::str_remove_all(SITE_ID, "NCCA10-"),
+      SITE_ID = stringr::str_remove_all(SITE_ID, "NCCAGL10-"),
+      SITE_ID = stringr::str_remove_all(SITE_ID, "GLBA10-"),
     ) %>%
+
     # add station info
     dplyr::left_join(sites, by = "SITE_ID") %>%
     dplyr::mutate(stationDepth = dplyr::coalesce(stationDepth.x, stationDepth.y)) %>%
@@ -258,8 +268,12 @@
     ) %>%
     dplyr::mutate(
       Study = "NCCA_secchi_2015",
-      UNITS = "m"
-    )
+      Units = "m",
+      ANALYTE = "Secchi",
+      CodeName = "Secchi",
+      LongName = "Secchi"
+    ) %>%
+    dplyr::left_join(sites)
   return(df)
 }
 
