@@ -43,22 +43,20 @@ imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL){
     # get yera for imputing
     dplyr::mutate(Year = lubridate::year(sampleDateTime)) %>%
     dplyr::mutate(
-      # [x] impute using DLs
+      # impute using DLs
       # https://19january2017snapshot.epa.gov/sites/production/files/2015-06/documents/whatthel.pdf
       # MDL < PQL couldn't fin how to incorporate RL
       # NOTE keep those reported as below MDL because their estimate is still likely better
       Result = dplyr::case_when(
         !is.na(Result) ~ Result,
-        grepl("N", Unified_Flag) & !is.na(MDL) ~ imputeFunction(MDL),
-        grepl("N", Unified_Flag) & is.na(MDL) & !is.na(PQL) ~ imputeFunction(PQL),
-        grepl("N", Unified_Flag) & is.na(MDL) & is.na(PQL) ~ imputeFunction(min(Result)),
+        grepl("N", Unified_Flag) & (!is.na(MDL) | !is.na(PQL) | sum(!is.na(Result)) > 1) ~ imputeFunction(min(MDL, PQL, Result, na.rm=T)),
         .default = Result
       ),
       # make sure to manage different mdls over studies, times, and analytes
       .by = c(Study, Year, CodeName)
     )
 
-  # [ ] pivot into wide format
+  # pivot into wide format
   tabledData <- removedDup %>%
     pivot_wider(id_cols = c(Lat, Lng, sampleDateTime, sampleDepth), names_from = CodeName, values_from = Result)
   return(tabledData)
