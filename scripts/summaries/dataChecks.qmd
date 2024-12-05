@@ -8,6 +8,7 @@ library(tidyverse)
 library(fuzzyjoin)
 devtools::load_all()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+#processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "hours", depthCuts = NULL)
 #df <- readRDS("fullData.Rds")
 ```
 

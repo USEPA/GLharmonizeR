@@ -12,9 +12,14 @@
 #' @param latlonDigits (optional) default=4. number of digits to round Lat and Lons to,
 #' @param imputeMethod (optional) default=NULL, one of 'halfMDL' which imputes missing values as exactly mdl/2, 'uniform' which samples 
 #' the measuerment from Uniform(0, mdl), NULL doesn't perform imputation. If MDL isn't provided then the same process is followed for the PQL.
+#' @param timeBinning (optional) default=hours, which specifies the time scale to average over. For more 
+#' @param depthCuts (optional) default=NULL, depths to define the bottom of an averaging window
+#' 
+#' infromation see round_date() in lubridate package
+#' for the output dataset
 #'
 #' @return a dataframe of wide format
-imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL){
+imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning = "hours", depthCuts = NULL){
   # [x] Removed duplicates - have user input for Lat/Lon res for now
   if (imputeMethod == "halfMDL"){
     imputeFunction = function(mdl) mdl/2
@@ -29,7 +34,13 @@ imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL){
     dplyr::mutate(
       Lat = round(Latitude, digits = latlonDigits),
       Lng = round(Longitude, digits = latlonDigits),
+      sampleDateTime = lubridate::round_date(sampleDateTime, unit = timeBinning),
     ) %>%
+    {if (!is.null(depthCuts)){
+      dplyr::mutate(.,
+        sampleDepth = cut(sampleDepth, breaks= depthCuts)
+      )
+    } else .}  %>%
     dplyr::reframe(
       Result = mean(RESULT, na.rm =T), 
       MDL = mean(MDL, na.rm =T), 
