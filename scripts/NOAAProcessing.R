@@ -45,8 +45,8 @@ noaaCTDdf <- noaaFiles %>%
   tidyr::unnest(data) %>%
   # prioritize ctd machine information
   mutate(
-    Latitude = coalesce(Latitude.ctd, Latitude),
-    Longitude = coalesce(Longitude.ctd, Longitude),
+    Latitude = coalesce(Latitude, Latitude.ctd, ),
+    Longitude = coalesce(Longitude, Longitude.ctd),
     sampleDateTime = coalesce(sampleDateTime.ctd, sampleDateTime),
     stationDepth = coalesce(stationDepth.ctd, stationDepth),
     Study = "NOAActd",
@@ -65,25 +65,26 @@ noaaCTDdf <- noaaFiles %>%
 # Save the cleaned seabird Files
 saveRDS(noaaCTDdf, "../GL_Data/NOAA/noaaCTD.Rds")
 
-noaaCTDdf %>%
-# Check which names might not be getting matched
-  filter(is.na(CodeName), ANALYTE_Orig_Name != "par") %>%
-  distinct(ANALYTE_Orig_Name)
-
-
-noaaCTDdf %>%
-  ggplot(aes(x = date(sampleDateTime))) +
-  geom_histogram()
-
-read.oce(noaaFiles$cnvFiles[[7]])
-
-
-
-test <- oce::read.oce(file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)",
- "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022",
-  "2022 CTD files", "Laurentian", "LTER", "7-18-22", "M15.XMLCON"))
-
-
-noaaCTDdf %>% 
-  filter(hour(sampleDateTime) == 12, minute(sampleDateTime) == 0) %>%
-  distinct(sampleDateTime.ctd, sampleDateTime)
+# noaaCTDdf %>%
+# # Check which names might not be getting matched
+#   filter(is.na(CodeName), ANALYTE_Orig_Name != "par") %>%
+#   distinct(ANALYTE_Orig_Name)
+# 
+# 
+# noaaCTDdf %>%
+#   ggplot(aes(x = date(sampleDateTime))) +
+#   geom_histogram()
+# 
+# read.oce(noaaFiles$cnvFiles[[7]])
+# 
+# 
+# 
+# test <- oce::read.oce(file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)",
+#  "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022",
+#   "2022 CTD files", "Laurentian", "LTER", "7-18-22", "M15.XMLCON"))
+# 
+# 
+# noaaCTDdf %>% 
+#   filter(hour(sampleDateTime) == 12, minute(sampleDateTime) == 0) %>%
+#   distinct(sampleDateTime.ctd, sampleDateTime)
+# 

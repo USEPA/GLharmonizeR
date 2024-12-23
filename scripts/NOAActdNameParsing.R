@@ -7,10 +7,15 @@ noaaWQSites <- filepaths["noaaWQSites"]
 namingFile <- filepaths["namingFile"]
 noaaSites <- read_csv(filepaths["noaaWQSites"])
 
-ctdFiles <- file.path("~", "Environmental Protection Agency (EPA)",
-  "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022") %>%
-  c(list.files(path = ., recursive = T, pattern = "*.cnv$", full.names = F, ignore.case =T)) %>%
+ctdFiles <- list.files(
+  path = file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General",
+   "Raw_data", "NOAA", "CTD 2007-2022"), recursive = T, pattern = "*.cnv$", full.names = F, ignore.case =T) %>%
   .[grepl("^20.*/[[:digit:]*].*", ., ignore.case=T)]
+sum(grepl("21700", ctdFiles, ignore.case = T))
+ctdFiles[grepl("21700", ctdFiles, ignore.case = T)]
+
+
+
 
 # Missing 16%
 parsedSites <- as.data.frame(cnvFiles) %>%

@@ -1,0 +1,287 @@
+---
+title: Exploring autocorrelations
+format:
+  html:
+    embed-resources: true
+execute-dir: project
+---
+
+```{r setup}
+# following https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf
+library(tidyverse)
+library(spacetime)
+library(lattice)
+ggplot2::theme_set(theme_minimal(base_size= 12))
+df <- readRDS("../fulldata.Rds") %>%
+  mutate(Longitude = ifelse(Longitude < 0, Longitude, Longitude)) %>%
+  filter(
+    Longitude > -88,
+    Longitude < -85,
+    Latitude > 41.5,
+    Latitude < 46.2,
+    sampleDepth <= 6,
+    CodeName == "Chla",
+    !is.na(RESULT),
+    ) %>%
+  filter(
+    Latitude < 46,
+    Study != "NCCA_WChem_2015" | (Latitude < 44.5)
+  )
+```
+
+
+# Marginal distribution
+```{r}
+df %>%
+  ggplot(aes(x = RESULT)) +
+  geom_histogram() +
+  scale_x_log10() +
+  xlab("CHLA")
+```
+- note log scale
+
+# Space
+```{r selectingSpaceData}
+# [x] Find densest 2 week period for through space correlation 
+# [ ] Don't restrict to a single year for time-correlation
+# [ ] Still make GLENDA acf
+# [ ] only acf not cross acfs
+# [ ] are teh < mdls from glenda being handled well?
+spaceDf <- df %>% 
+  # this was picked by inspecting histogram through time so could be improved upon
+  #filter(year(sampleDateTime) == 2015, month(sampleDateTime) == 7) %>%
+  filter(sampleDateTime > ymd("2015-07-06"), sampleDateTime < ymd("2015-08-06")) %>%
+  # make it a single observation over time
+  reframe(
+    .by = c(SITE_ID, Latitude, Longitude, Study), 
+    across(c("RESULT"), .fns = function(x) mean(x, na.rm = T))
+    ) %>%
+  distinct(Latitude, Longitude, .keep_all = T)
+  # remove northwest and northeast bays
+```
+
+```{r spatialSelectViz}
+#| fig-width: 6
+#| out-width: "100%"
+#| fig-align: "center"
+
+lakes <- sf::read_sf("../ne_50m_lakes.shp")
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= spaceDf, aes(x = Longitude, y = Latitude, col = Study), size = 4,  alpha = 0.5)
+```
+:::
+- Removed points in northern bays
+
+## spatial correlation
+```{r}
+#| fig-width: 6 
+#| fig-height: 6 
+#| out-width: "100%"
+#| fig-align: "center"
+
+stations <- sp::SpatialPointsDataFrame(spaceDf %>% select(Latitude, Longitude), data= spaceDf %>% select(-c(Latitude, Longitude)))
+v <- gstat::variogram(log(RESULT)~1, stations)
+metricVgm <- gstat::vgm(NA,"Exp",NA,NA)
+metricVgm <- gstat::fit.variogram(v, metricVgm)
+plot(v, metricVgm, cex = 5, pch = 20, identify =T, keep= T)
+metricVgm %>% 
+  gt::gt() %>%
+  gt::tab_header("Full")
+```
+- Estimated start seed
+- log transform = good semivar
+  - Pausing other plotting efforts
+
+### spatial correlation West/Center/East
+- E/W defined by 87.0 cutoff
+- Center = GLENDA
+```{r WspatialCor}
+stations <- sp::SpatialPointsDataFrame(
+  spaceDf %>% filter(Longitude < -87.0, Study != "GLENDA") %>% select(Latitude, Longitude),
+  data= spaceDf %>% filter(Longitude < -87.0, Study != "GLENDA")%>% select(-c(Latitude, Longitude)))
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= spaceDf %>%filter(Longitude < -87.0, Study != "GLENDA"), aes(x = Longitude, y = Latitude, col = Study), size = 4,  alpha = 0.5)
+
+
+v <- gstat::variogram(log(RESULT)~1, stations)
+metricVgm <- gstat::vgm(NA,"Exp",NA,NA)
+metricVgm <- gstat::fit.variogram(v, metricVgm)
+plot(v, metricVgm, cex = 5, pch = 20, identify =T, keep= T)
+title("Western")
+metricVgm %>% 
+  gt::gt() %>%
+  gt::tab_header("Western")
+```
+
+```{r EspatialCor}
+stations <- sp::SpatialPointsDataFrame(
+  spaceDf %>% filter(Longitude > -87.0, Study != "GLENDA") %>% select(Latitude, Longitude),
+  data= spaceDf %>% filter(Longitude > -87.0, Study != "GLENDA")%>% select(-c(Latitude, Longitude)))
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= spaceDf %>%filter(Longitude > -87.0, Study != "GLENDA"), aes(x = Longitude, y = Latitude, col = Study), size = 4,  alpha = 0.5)
+v <- gstat::variogram(log(RESULT)~1, stations)
+metricVgm <- gstat::vgm(NA,"Exp",NA,NA)
+metricVgm <- gstat::fit.variogram(v, metricVgm)
+plot(v, metricVgm, cex = 5, pch = 20, identify =T, keep= T)
+title("Eastern")
+metricVgm %>% 
+  gt::gt() %>%
+  gt::tab_header("Eastern")
+```
+
+```{r EspatialCor}
+stations <- sp::SpatialPointsDataFrame(
+  spaceDf %>% filter(Study == "GLENDA") %>% select(Latitude, Longitude),
+  data= spaceDf %>% filter(Study == "GLENDA")%>% select(-c(Latitude, Longitude)))
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= spaceDf %>%filter(Study == "GLENDA"), aes(x = Longitude, y = Latitude, col = Study), size = 4,  alpha = 0.5)
+v <- gstat::variogram(log(RESULT)~1, stations)
+metricVgm <- gstat::vgm(NA,"Exp",NA,NA)
+metricVgm <- gstat::fit.variogram(v, metricVgm)
+#plot(v, metricVgm, cex = 5, pch = 20, identify =T, keep= T)
+plot(v, cex = 5, pch = 20, identify =T, keep= T)
+title("Center")
+metricVgm %>% 
+  gt::gt() %>%
+  gt::tab_header("Center")
+```
+
+```{r biCoastalSpaceCor}
+stations <- sp::SpatialPointsDataFrame(
+  spaceDf %>% filter(Study != "GLENDA") %>% select(Latitude, Longitude),
+  data= spaceDf %>% filter(Study != "GLENDA")%>% select(-c(Latitude, Longitude)))
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= spaceDf %>%filter(Study != "GLENDA"), aes(x = Longitude, y = Latitude, col = Study), size = 4,  alpha = 0.5)
+v <- gstat::variogram(log(RESULT)~1, stations)
+metricVgm <- gstat::vgm(NA,"Exp",NA,NA)
+metricVgm <- gstat::fit.variogram(v, metricVgm)
+#plot(v, metricVgm, cex = 5, pch = 20, identify =T, keep= T)
+plot(v, cex = 5, pch = 20, identify =T, keep= T)
+title("Bicoastal")
+metricVgm %>% 
+  gt::gt() %>%
+  gt::tab_header("Bicoastal")
+```
+
+
+
+# Time
+
+## selection 
+::::{.columns}
+:::{.column width="30%"}
+
+```{r offshoreSelect}
+#| fig-width: 8 
+#| out-width: "100%"
+#| fig-align: "center"
+
+timeDf <- df %>%
+  mutate(sampleDate = round_date(sampleDateTime, "weeks")) %>%
+  filter(sampleDate > ymd("2010-01-01")) %>%
+  mutate(count = n(), .by = c(Study, SITE_ID)) %>%
+  filter(count == max(count, na.rm =T), .by = c(Study)) %>%
+  filter(count > 10) %>% 
+  drop_na(SITE_ID) %>%
+  reframe(RESULT = log(mean(RESULT, na.rm = T)), .by = c(SITE_ID, sampleDate, Study, Latitude, Longitude))
+
+lakes <- sf::read_sf("../ne_50m_lakes.shp")
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= timeDf, aes(x = -Longitude, y = Latitude, col = Study), size = 6,  alpha = 0.5)
+```
+:::
+
+:::{.column width="70%"}
+```{r}
+#| fig-height: 8 
+#| out-width: "100%"
+#| fig-align: "center"
+
+timeDf %>% 
+  ggplot(aes(x= sampleDate))  +
+  geom_dotplot(method = "histodot") +
+  facet_wrap(~Study, scales= "free", nrow=3)
+```
+:::
+- selected samples vs time
+- nearshore and midlake
+::::
+
+
+
+## Autocorrelations
+```{r}
+fullTimeDf <- expand.grid(SITE_ID = unique(timeDf$SITE_ID), 
+  sampleDate = seq(min(timeDf$sampleDate), max(timeDf$sampleDate), "days")) %>%
+  full_join(timeDf) %>%
+  mutate(
+    Study = unique(na.omit(Study)),
+    Latitude = mean(Latitude, na.rm = T), Longitude = mean(Longitude, na.rm = T), .by = SITE_ID)
+
+timeStations <- fullTimeDf %>%
+  distinct(SITE_ID, Latitude, Longitude)
+
+timeStations <- sp::SpatialPointsDataFrame(timeStations %>% distinct(Latitude, Longitude), 
+  data= timeStations %>% select(-c(Latitude, Longitude)))
+
+plots <- data.frame("Site", "acf", "lag")
+for (site in unique(fullTimeDf$SITE_ID)){
+  #print(site)
+  timeStations <- fullTimeDf %>%
+    distinct(SITE_ID, Latitude, Longitude) %>%
+    filter(SITE_ID == site)
+  timeStations <- sp::SpatialPointsDataFrame(
+    timeStations %>%  distinct(Latitude, Longitude), 
+    data= timeStations %>%filter(SITE_ID == site) %>% select(-c(Latitude, Longitude)))
+  data = STFDF(
+    timeStations,
+    fullTimeDf %>% distinct(sampleDate) %>% arrange(sampleDate) %>% pull(sampleDate),
+    fullTimeDf %>% filter(SITE_ID == site) %>% select(RESULT))
+ test <- acf(as(data, "xts"), na.action = na.pass, plot=F)
+ testDf <- data.frame(
+  "lag" = test$lag / 360 / 24,
+  "acf" = test$acf,
+  "Site" = site
+ )
+  plots <- bind_rows(plots, testDf)
+}
+```
+
+```{r acf}
+plots %>%
+  mutate(Study = case_when(
+    Site == "alpha" ~ "NOAA",
+    Site == "MI18M" ~ "GLENDA",
+    Site == "Fra_18" ~ "CSMI",
+     )) %>%
+  drop_na(Site, Study) %>%
+  ggplot(aes(x= lag, xend = lag, yend = acf)) +
+  geom_segment(y=0, lwd = 4) +
+  facet_wrap(~Study, scale = "free", nrow=3, ncol=1) +
+  xlab("Lag (days)")
+```
+- verified that lag is in days
