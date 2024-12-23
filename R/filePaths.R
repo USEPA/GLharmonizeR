@@ -38,8 +38,9 @@
     
     # %% NOAA
     "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26.xlsx",
+    "noaaWQ2" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/Additionalnutrients_NOAA.xlsx",
     "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD.Rds",
-    "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformation.csv"
+    "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformationUpdated.xlsx"
   )
 
   return(filepaths)

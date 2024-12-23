@@ -23,6 +23,8 @@
 #' @return a dataframe of wide format
 imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning = "hours", depthCuts = NULL, 
   startDate = "2000-01-01", endDate = "2050-01-01"){
+  # [ ] break imputating censored data, pivoting wide, and imputing missing values into different functions
+  # [ ] impute secchi depth as a separate function
   # [x] Removed duplicates - have user input for Lat/Lon res for now
   if (imputeMethod == "halfMDL"){
     imputeFunction = function(mdl) mdl/2
@@ -64,10 +66,14 @@ imputeNwiden <- function(df, latlonDigits = 4, imputeMethod = NULL, timeBinning 
     dplyr::mutate(
       # impute using DLs
       # https://19january2017snapshot.epa.gov/sites/production/files/2015-06/documents/whatthel.pdf
-      # MDL < PQL couldn't fin how to incorporate RL
+      # MDL < PQL 
+      # [ ] find how to incorporate RL
       # NOTE keep those reported as below MDL because their estimate is still likely better
       Result = dplyr::case_when(
         !is.na(Result) ~ Result,
+        # NOTE that taking the min of results would also include estimated values where they exist
+        # Follow up- this means that values aren't consistently imputed when comparing those that are 
+        # reported as estimates and what this program imputes
         grepl("N", Unified_Flag) & (!is.na(MDL) | !is.na(PQL) | sum(!is.na(Result)) > 1) ~ imputeFunction(min(MDL, PQL, Result, na.rm=T)),
         .default = Result
       ),

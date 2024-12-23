@@ -32,6 +32,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   namingFile <- filepaths["namingFile"]
   flagsFile <- filepaths["flagsFile"]
   noaaWQ <- filepaths["noaaWQ"]
+  noaaWQ2 <- filepaths["noaaWQ2"]
   noaaCTD <- filepaths["noaaCTD"]
   noaaWQSites <- filepaths["noaaWQSites"]
   # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
