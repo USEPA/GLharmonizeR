@@ -36,7 +36,7 @@ parsedSites <- as.data.frame(ctdFiles) %>%
       #|stad|leg_c1|leg_d1|leg_e1"
     SITE_ID3 = stringr::str_extract(SITE_ID, 
       # desired station names (78% total)
-      "station*[abcd]1*|sta_*[abcd]1*"),
+      "station*[abcd]1*|sta_*[abcd]1*|raw0[0-9]*"),
       #|stad|leg_c1|leg_d1|leg_e1"
     SITE_ID4 = stringr::str_extract(SITE_ID,
       # slight alterations (79% total)
