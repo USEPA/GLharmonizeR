@@ -5,7 +5,7 @@ filepaths <- .getFilePaths()
 noaaWQ <- filepaths["noaaWQ"]
 noaaWQSites <- filepaths["noaaWQSites"]
 namingFile <- filepaths["namingFile"]
-noaaSites <- read_csv(filepaths["noaaWQSites"])
+noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 
 ctdFiles <- list.files(
   path = file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General",
@@ -18,10 +18,10 @@ ctdFiles[grepl("21700", ctdFiles, ignore.case = T)]
 
 
 # Missing 16%
-parsedSites <- as.data.frame(cnvFiles) %>%
+parsedSites <- as.data.frame(ctdFiles) %>%
   mutate(
     # clean up site id from filepath
-    SITE_ID = tolower(basename(sampleEvents)),
+    SITE_ID = tolower(basename(ctdFiles)),
     SITE_ID = stringr::str_remove_all(SITE_ID, ".cnv|.bin"),
     SITE_ID = stringr::str_remove_all(SITE_ID, "\\s*"),
     # these first 5 took care of all names explicitly in WQ data
@@ -55,17 +55,17 @@ parsedSites <- as.data.frame(cnvFiles) %>%
     siteID = coalesce(SITE_ID1, SITE_ID2, SITE_ID3, SITE_ID4, SITE_ID5, SITE_ID6)
   )
 
-unknownSites <- parsedSites %>% filter(is.na(siteID)) %>% select(cnvFiles, SITE_ID)
-parsedSites <- parsedSites %>% drop_na(siteID) %>% select(cnvFiles, siteID)
+unknownSites <- parsedSites %>% filter(is.na(siteID)) %>% select(ctdFiles, SITE_ID)
+parsedSites <- parsedSites %>% drop_na(siteID) %>% select(ctdFiles, siteID)
 
 
 
 parsedDates <- parsedSites %>%
   mutate(
-    DateArea1 = stringr::str_split_i(cnvFiles, "/", 2),
-    DateArea2 = tools::file_path_sans_ext(stringr::str_split_i(cnvFiles, "/", -1)),
-    DateArea3 = stringr::str_split_i(cnvFiles, "/", 3),
-    DateArea4 = stringr::str_split_i(cnvFiles, "/", 4),
+    DateArea1 = stringr::str_split_i(ctdFiles, "/", 2),
+    DateArea2 = tools::file_path_sans_ext(stringr::str_split_i(ctdFiles, "/", -1)),
+    DateArea3 = stringr::str_split_i(ctdFiles, "/", 3),
+    DateArea4 = stringr::str_split_i(ctdFiles, "/", 4),
     dplyr::across(dplyr::starts_with("DateArea"), 
       function(x) stringr::str_replace_all(tolower(x), 
       c("january" = "-01-", "february" = "-02-", "march" = "-03-", "april" = "-04-", "may" = "-05-", "june" = "-06-",
@@ -132,19 +132,19 @@ test2 <- test%>%
     date2 = lubridate::parse_date_time(newDateArea, orders = c("%m-%d-%y")),
     sampleDateTime = coalesce(date1, date2)
   ) %>%
-  select(cnvFiles, siteID, sampleDateTime)
+  select(ctdFiles, siteID, sampleDateTime)
 
 totalParsedDates <- test %>% 
-  select(cnvFiles, siteID, sampleDateTime) %>%
+  select(ctdFiles, siteID, sampleDateTime) %>%
   # drop because dealt with in test2
   drop_na(sampleDateTime) %>%
   bind_rows(test2) %>%
   left_join(noaaSites, by = c("siteID" = "Other.names")) %>% 
-  right_join(as.data.frame(cnvFiles), by = "cnvFiles")
+  right_join(as.data.frame(ctdFiles), by = "ctdFiles") %>%
+  filter(Keep == "T") %>%
+  select(-c(Keep, Justification))
 
-
-
-write_csv(totalParsedDates, "../GL_Data/NOAA/ctdFileMetaData.csv")
+saveRDS(totalParsedDates, "../GL_Data/NOAA/ctdFileMetaData.Rds")
 
 totalParsedDates %>% 
   filter(is.na(SITE_ID)) %>%

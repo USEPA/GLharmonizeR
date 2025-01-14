@@ -1,3 +1,5 @@
+# Remember need to be on VPN to process this data
+
 library(devtools)
 library(tidyverse)
 library(oce)
@@ -7,16 +9,16 @@ filepaths <- .getFilePaths()
 noaaWQ <- filepaths["noaaWQ"]
 noaaWQSites <- filepaths["noaaWQSites"]
 namingFile <- filepaths["namingFile"]
-noaaSites <- read_csv(filepaths["noaaWQSites"])
+#noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 n_max <- Inf
 
-noaaFiles <- read_csv("https://github.com/kvitense/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.csv") %>%
+noaaFiles <- readRDS(url("https://github.com/kvitense/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.Rds", "rb")) %>%
   # remove files where we don't know the station
   drop_na(SITE_ID) %>%
-  select(cnvFiles, SITE_ID, sampleDateTime, stationDepth, Latitude, Longitude) %>%
+  select(ctdFiles, SITE_ID, sampleDateTime, stationDepth, Latitude, Longitude) %>%
   mutate(
-    cnvFiles = file.path("~", "Environmental Protection Agency (EPA)",
-      "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022", cnvFiles))
+    ctdFiles = file.path("/Users", "ccoffman", "Environmental Protection Agency (EPA)",
+      "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022", ctdFiles))
 
 key <- openxlsx::read.xlsx(filepaths["namingFile"], sheet = "Key") %>%
   dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -33,7 +35,7 @@ renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
 
 noaaCTDdf <- noaaFiles %>%
   mutate(
-    data = purrr::map(cnvFiles, \(x)
+    data = purrr::map(ctdFiles, \(x)
       # oce throws error if salinity can't be calculated
       tryCatch({
         .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAActd", bin = TRUE, downcast = TRUE) %>% 
@@ -45,7 +47,7 @@ noaaCTDdf <- noaaFiles %>%
   tidyr::unnest(data) %>%
   # prioritize ctd machine information
   mutate(
-    Latitude = coalesce(Latitude, Latitude.ctd, ),
+    Latitude = coalesce(Latitude, Latitude.ctd),
     Longitude = coalesce(Longitude, Longitude.ctd),
     sampleDateTime = coalesce(sampleDateTime.ctd, sampleDateTime),
     stationDepth = coalesce(stationDepth.ctd, stationDepth),

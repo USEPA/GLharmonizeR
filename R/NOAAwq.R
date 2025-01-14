@@ -1,4 +1,4 @@
-.loadNOAAwq <- function(noaaWQ, namingFile, noaaWQSites) {
+.loadNOAAwq <- function(noaaWQ, noaaWQ2, namingFile, noaaWQSites) {
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -18,26 +18,10 @@
     dplyr::select(-c(DOY, Station)) %>%
     dplyr::rename(sampleDepth = Depth) %>%
     tidyr::pivot_longer(cols = SRP.ugl:SiO2.mgl, names_to = "ANALYTE", values_to = "RESULT") %>%
-    tidyr::separate(ANALYTE, into = c("ANALYTE", "UNITS"), sep = "\\.")
-
-  noaaWQunits <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022", rows = 2:3, check.names = T) %>%
-    dplyr::select(-c(1:5)) %>%
-    t() %>%
-    as.data.frame() %>%
-    dplyr::rename(ANALYTE = `1`) %>%
-    dplyr::mutate(
-      Units = rownames(.),
-      ANALYTE = tolower(ANALYTE),
-      Units = stringr::str_remove_all(Units, "\\.*"),
-      Units = stringr::str_remove_all(Units, "[:digit:]")
-    ) %>%
-    dplyr::filter(
-      !grepl("NA", ANALYTE),
-      ANALYTE != "depth",
-    ) %>%
-    dplyr::mutate(
-      Units = stringr::str_remove(Units, "\\/")
-    )
+    tidyr::separate(ANALYTE, into = c("ANALYTE", "UNITS"), sep = "\\.") %>%
+    dplyr::left_join(
+      openxlsx::read.xlsx(noaaWQSites, sheet = "siteNameMapping") %>% dplyr::filter(Keep == "T"),
+      by = c("SITE_ID" = "Other.names"))
 
   noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022") %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth.m) %>%
@@ -72,6 +56,8 @@
       .by = c(sampleDateTime, SITE_ID),
     ) %>%
     tidyr::pivot_longer(cols = SurfaceTemp.C:N.mgl, names_to = "ANALYTE", values_to = "RESULT") %>%
+    # add in SRP and Silica
+    dplyr::bind_rows(newNOAA) %>%
     # NA's and non-reports are the only two source of NAs in this dataset (not detection limit issues)
     tidyr::drop_na(RESULT) %>%
     tidyr::separate(ANALYTE, into = c("ANALYTE", "ReportedUnits"), sep = "\\.") %>%
@@ -91,7 +77,17 @@
     dplyr::mutate(Study = "NOAAwq") %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     # zeros are not non detects, they just weren't measured
-    dplyr::filter(RESULT != 0)
+    dplyr::filter(RESULT != 0) %>%
+    # add newly reported Mdls for TP and PP
+    dplyr::mutate(
+      MDL = dplyr::case_when(
+        # units match what is desired already 
+        # these were given by Steve Pothoven
+        CodeName == "Tot_P" ~ 0.2,
+        CodeName == "Part_P" ~ 0.05,
+        .default = NA
+      )
+    )
   return(noaaWQdata)
 }
 

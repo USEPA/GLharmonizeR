@@ -81,7 +81,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
 
   print("Step 5/7: Read and clean NOAA data")
-  NOAA <- .loadNOAAwq(noaaWQ, namingFile, noaaWQSites)
+  NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
   noaaCTD <- readr::read_rds(noaaCTD)
   NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
 
