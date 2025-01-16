@@ -1,7 +1,7 @@
-#' Read in all NCCA water quality from 2010
+#' Read in all NCCA water chemistry from 2010
 #'
 #' @description
-#' `.loadNCCAwq2010` returns water quality data measured during the NCCA study in 2010
+#' `.loadNCCAwq2010` returns water chemistry data measured during the NCCA study in 2010
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -9,8 +9,9 @@
 #' @param NCCAwq2010 a string specifying the directory of the data
 #' @return dataframe
 .loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
-  sites <- .loadNCCASite2010(NCCAsites2010) %>%
-    dplyr::mutate(SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$"))
+  sites <- .loadNCCASite2010(NCCAsites2010) #%>%
+    # dplyr::mutate(SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$"))
+  # Do not alter the SITE_ID to avoid confusion
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -20,11 +21,12 @@
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
-    # remove nas from table to remove ambiguities on joinging
+    # remove nas from table to remove ambiguities on joining
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      Methods = ifelse(is.na(Methods), Study, Methods)
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
+      # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
+      # The methods in NCCA_Map are a result of not originally filtering the dataset to GL
     )
 
   df <- readr::read_csv(
@@ -32,7 +34,6 @@
     n_max = n_max,
     show_col_types = FALSE,
     col_types = readr::cols(
-      # DONE Load MDL, MRL, PQL
       "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
       "LAB_SAMPLE_ID" = "-",
       "SAMPLE_ID" = "-",
@@ -40,25 +41,17 @@
       "DATE_ANALYZED" = "-",
       "HOLDING_TIME" = "-",
       "MDL" = "d",
-      "MRL" = "d",
-      "PQL" = "d",
+      "MRL" = "d"
+      # "PQL" = "d", # No PQLs for GL
     )
     ) %>%
+    # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
+    dplyr::filter(grepl("GL",SITE_ID)) %>% 
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
       sampleDateTime = DATE_COL
     ) %>%
-    dplyr::mutate(
-      # Combine Nitrate  Nitrite
-      METHOD = as.character(METHOD),
-      .by = c(UID, SITE_ID, sampleDateTime)
-      # [x] make sure Nitrate and Nitrite are already mg/L (this is true)
-      # DOCTHIS We assume sampling events that don't have certain analytes reported
-      # DOCTHIS remove the observation when either one is missing  Also for Nitrate / Nitrite
-      # Note these are all NY samples with nitrate and nitrite included in addition to nitrate/nitrite but doesn't hurt to keep this code
-    ) %>%
-    dplyr::filter(ANALYTE != "Nitrate", ANALYTE != "Nitrite") %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDepth = 0.5,
@@ -66,33 +59,35 @@
       Study = "NCCA_WChem_2010",
       # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH"))
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      METHOD = ifelse(is.na(METHOD), Study, METHOD),
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)
     ) %>%
     dplyr::rename(
       QAcode = QACODE,
       ReportedUnits = UNITS
     ) %>% 
+    # Note that methods are all NA for GL sites but leaving as-is for generality
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
-    dplyr::left_join(key) %>%
+    dplyr::left_join(key, by = join_by(CodeName)) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::mutate(
+      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+      # ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
+      ReportedUnits = tolower(ReportedUnits)) %>% 
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(
       RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
-      SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$")
+      MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
+      MRL = ifelse(!is.na(ConversionFactor), MRL * ConversionFactor, MRL)
       ) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    dplyr::left_join(sites) %>%
-    # NOTE None of the states with missing lat/lons border lake michigan
-    # this will be a problem when we expand to more great lakes
-    tidyr::drop_na(Latitude)
+    dplyr::left_join(sites) 
 
   return(df)
 }
 
-#' Read in all NCCA water quality from 2015
+#' Read in all NCCA water chemistry from 2015
 #'
 #' @description
-#' `.loadNCCAwq2015` returns water quality data measured during the NCCA study in 2015
+#' `.loadNCCAwq2015` returns water chemistry data measured during the NCCA study in 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
@@ -105,9 +100,6 @@
     dplyr::select(
       UID,
       SITE_ID,
-      # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
-      # This only applies to targetted sites, actual coordinates are unique and settles this problem
-      # No missingness, so no need to coalesce
       Latitude = LAT_DD83,
       Longitude = LON_DD83,
       stationDepth = STATION_DEPTH,
@@ -123,11 +115,11 @@
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
-    # remove nas from table to remove ambiguities on joinging
+    # remove nas from table to remove ambiguities on joining
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      Methods = ifelse(is.na(Methods), Study, Methods)
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
+      # Methods = ifelse(is.na(Methods), Study, Methods) # Removing to see if still works - prefer to not fill in Methods if not available (keep as NA - don't seem to need it, joins fine.
     )
 
   df <- readr::read_csv(NCCAwq2015,
@@ -155,40 +147,42 @@
       sampleDateTime = DATE_COL,
       QAcode = NARS_FLAG,
       QAcomment = NARS_COMMENT,
-      reportedUnits = RESULT_UNITS,
+      ReportedUnits = RESULT_UNITS,
       sampleID = SAMPLE_ID,
       batchID = BATCH_ID,
     ) %>%
+    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>% 
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime)
     ) %>%
-    tidyr::pivot_wider(id_cols = c(PUBLICATION_DATE:NCCA_REG), names_from = ANALYTE, values_from = LAB:sampleID) %>%
-    # Combine Nitrate adn Nitrite
+    tidyr::pivot_wider(id_cols = c(UID:sampleDateTime), names_from = ANALYTE, values_from = LAB:sampleID) %>% # 4705 rows
+    # Combine Nitrate and Nitrite
     dplyr::mutate(
       # Hide result in Nitrate so don't need to make all of the other columns
       RESULT_NITRATE_N =  RESULT_NITRITE_N + RESULT_NITRATE_N,
     ) %>%
-    tidyr::pivot_longer(cols= LAB_PH:sampleID_CHLA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
-    # if no result or comment, this is created bay the pivot_wider and needs to be remvoed
-    dplyr::filter(!is.na(RESULT) | !is.na(QAcode) | !is.na(QAcomment)) %>%
+    tidyr::pivot_longer(cols= LAB_PH:sampleID_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
+    # if no result or comment, this is created by the pivot_wider and needs to be removed
+    dplyr::filter(!is.na(RESULT) | !is.na(QAcode) | !is.na(QAcomment)) %>% # 4680 rows
+    # End up with 25 fewer rows than began with -- can't figure out why
     dplyr::mutate(
       # Change the names
       ANL_CODE = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
         .default = ANL_CODE
       ),
-      reportedUnits = dplyr::case_when(
+      ReportedUnits = dplyr::case_when(
         ANL_CODE == "COND" ~ "uscm", # this is specific conductance at 25C
         ANL_CODE == "TKN" ~ "mgL",
         ANL_CODE == "CHLORIDE" ~ "mgL",
         ANL_CODE == "Alkalinity" ~ "mgL",
         ANL_CODE == "SULFATE" ~ "mgL",
         ANL_CODE == "PH" ~ "unitless",
-        ANL_CODE == "SILICA" ~ "mgL", # Do we need to convert?
-        ANL_CODE == "Diss_NOx" ~ "mgL", # Original: mg N/L Might need to convert this
-        ANL_CODE == "SRP" ~ "mgL", # Original: mg P/L Might need to convert
+        ANL_CODE == "SILICA" ~ "mgL", 
+        ANL_CODE == "Diss_NOx" ~ "mgL", 
+        ANL_CODE == "SRP" ~ "mgL", 
         ANL_CODE == "CHLA" ~ "ugL",
-        ANL_CODE == "AMMONIA_N" ~ "mgL", # Original: mg N/L Might need to convert
+        ANL_CODE == "AMMONIA_N" ~ "mgL", 
         ANL_CODE == "PTL" ~ "mgL",
         ANL_CODE == "DIN" ~ "mgL",
         ANL_CODE == "NTL" ~ "mgL"
@@ -214,7 +208,6 @@
       UID,
       SITE_ID = siteID,
       sampleDateTime,
-      NCCA_REG,
       ANL_CODE,
       LAB,
       ANALYTE,
@@ -223,7 +216,7 @@
       METHOD,
       QAcode, QAcomment,
       RESULT,
-      reportedUnits,
+      ReportedUnits,
       sampleDepth,
       Study
     ) %>%
@@ -231,21 +224,31 @@
     # Do this for the joining
     dplyr::mutate(
       ANALYTE = ANL_CODE,
-      METHOD = ifelse(is.na(METHOD), Study, METHOD),
+      # METHOD = ifelse(is.na(METHOD), Study, METHOD),
     ) %>%
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
-    dplyr::left_join(key) %>%
-    dplyr::left_join(conversions, by = c("reportedUnits" =  "ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
-    dplyr::filter(CodeName != "Remove")
+    dplyr::filter(CodeName != "Remove") %>% 
+    dplyr::left_join(key, by = join_by(CodeName)) %>%
+    dplyr::mutate(
+      ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
+    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
+                  MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
+                  LRL = ifelse(!is.na(ConversionFactor), LRL * ConversionFactor, LRL))
 
   return(df)
 }
 
-#' Read in all NCCA water quality from 2020
+
+
+##### NOTE KV HAS NOT REVIEWED THE 2020 WATER CHEMISTRY FUNCTION BELOW ####
+
+
+
+#' Read in all NCCA water chemistry from 2020
 #'
 #' @description
-#' `.loadNCCAwq2020` returns water quality data measured during the NCCA study in 2020
+#' `.loadNCCAwq2020` returns water chemistry data measured during the NCCA study in 2020
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
