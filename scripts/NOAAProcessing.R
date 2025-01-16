@@ -33,16 +33,21 @@ renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
 
 #### Need to add to NOAA renaming table
 # noaa ctd doesn't have spar so no cpar
-oce::read.oce(noaaFiles$ctdFiles[7])
+#oce::read.oce(noaaFiles$ctdFiles[180])
 noaaCTDdf <- noaaFiles %>%
   mutate(
     data = purrr::map(ctdFiles, \(x)
+      tryCatch({
       .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAActd", bin = TRUE, downcast = TRUE) %>% 
         # take the station information froma the filepath
-        rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth), #},
+        rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth)},
+      error = function (e) {
+        message(paste("Error reading file", basename(x)))
+        NULL
+      }),
         .progress = TRUE)
   ) %>%
-  tidyr::unnest(data) %>%
+  tidyr::unnest(cols = data) %>%
   # prioritize ctd machine information
   mutate(
     Latitude = coalesce(Latitude, Latitude.ctd),
