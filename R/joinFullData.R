@@ -98,7 +98,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     # unit conversion
     "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits", "Explicit_Units",
     # measurement and limits
-    "RESULT", "MDL", "MRL", "PQL", "METHOD",
+    "RESULT", "MDL", "MRL", "METHOD",
     # QA
     "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations")
   ) %>%
