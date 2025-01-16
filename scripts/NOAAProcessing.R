@@ -4,6 +4,7 @@ library(devtools)
 library(tidyverse)
 library(oce)
 load_all()
+options(insertCalculatedDataCTD=TRUE)
 
 filepaths <- .getFilePaths()
 noaaWQ <- filepaths["noaaWQ"]
@@ -30,19 +31,16 @@ renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
     filter(Study == "NOAActd") %>%
     distinct(Study, ANALYTE, CodeName)
 
-#### Need to add to NOAA renaming table 
+#### Need to add to NOAA renaming table
 # noaa ctd doesn't have spar so no cpar
-
+oce::read.oce(noaaFiles$ctdFiles[7])
 noaaCTDdf <- noaaFiles %>%
   mutate(
     data = purrr::map(ctdFiles, \(x)
-      # oce throws error if salinity can't be calculated
-      tryCatch({
-        .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAActd", bin = TRUE, downcast = TRUE) %>% 
-          # take the station information froma the filepath
-          rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth)},
-        error = function(cond) {message(conditionMessage(cond))}
-        ), .progress = TRUE)
+      .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAActd", bin = TRUE, downcast = TRUE) %>% 
+        # take the station information froma the filepath
+        rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth), #},
+        .progress = TRUE)
   ) %>%
   tidyr::unnest(data) %>%
   # prioritize ctd machine information
