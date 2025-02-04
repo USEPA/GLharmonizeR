@@ -9,6 +9,10 @@
 #' @param csmi2021 a string specifying the directory to CSMI 2021 data
 #' @return dataframe of the fully joined water quality data from CSMI 2021
 .readCleanCSMI2021 <- function(csmi2021, namingFile) {
+  # [ ] try to keep the spatial variability by respecting which datasets to pair together for lat/lng
+  # [ ] Check if there are 2 reports of PAR EPA measurements
+    # - take the setdifference (removing Nikki's)
+
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -42,11 +46,7 @@
   ## bin averaged over 1 meter depth intervals
   ## -9.99E-29 is NA
   ## There are already processed, formatted ready to use files Should we use that?
-  ##
-  
-
-
-  CTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
+  epaCTD <- file.path(csmi2021, "2020%20LM%20CSMI%20LEII%20CTD%20combined_Fluoro_LISST_12.13.21.xlsx") %>%
     openxlsx::read.xlsx(
       sheet = "Lake Michigan 2020 CSMI Data", startRow = 2, na.strings = c("", "-9.99e-29"),
       check.names = TRUE
@@ -54,34 +54,183 @@
     dplyr::rename(Site = X2, sampleDateTime = X3) %>%
     dplyr::mutate(
       sampleDateTime = as.POSIXct(sampleDateTime * 86400, origin = "1900-01-01", tz = "UTC"),
-      sampleDateTime = lubridate::ymd_h(paste(sampleDateTime, "12"))) %>%
+      sampleDateTime = lubridate::ymd_h(paste(sampleDateTime, "12")),
+      sampleDate = lubridate::floor_date(sampleDateTime, "days")) %>%
     # don't select bio samples, scans
-    dplyr::select(2:5, 7,9,14, 21, 22, 23) %>%
-    dplyr::mutate(
-      Study = "CSMI_2021_CTD",
-      # add UID before pivoting
-      UID = paste0(Study, "-", 1:nrow(.))
-    ) %>%
+    dplyr::select(2:5, 7,9,14, 21, 22, 23, sampleDate) %>%
+    dplyr::select(-sampleDateTime) %>%
+    dplyr::rename(cpar = CPAR.Corrected.Irradiance....) %>%
+    dplyr::mutate(cpar = cpar /100) %>%
     tidyr::pivot_longer(
-      cols = c(4:8),
+      cols = 3:7,
       names_to = "ANALYTE",
       values_to = "RESULT"
-    ) %>%
-    dplyr::rename(
-      sampleDepth = Depth..fresh.water..m.,
-      Latitude = Latitude..deg.,
-      Longitude = Longitude..deg.,
-      SITE_ID = Site
-    ) %>%
-    # [x] Need to include pH 
+    ) %>% 
+    # [x] Need to include pH
     # [x] Don't rename, instead think about a regex pivot to also grab the units
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", "\\.\\.", "UNITS" = ".*\\..*"), too_few = "align_start") %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
       UNITS = ifelse(grepl("^CPAR", ANALYTE, ignore.case=FALSE), "percent", UNITS), 
-      ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")
+      ANALYTE = stringr::str_remove_all(ANALYTE, "\\."),
+      sampleDateTime = lubridate::ymd_hm(paste(sampleDate, "12:00")),
+      Study = "CSMI_2021_CTD"
+    ) %>%
+    dplyr::rename(SITE_ID = Site, sampleDepth = Depth..fresh.water..m., Latitude = Latitude..deg., Longitude = Longitude..deg.) %>%
+    dplyr::select(-sampleDate)
+
+  usgsCTDsites <- file.path(csmi2021, "CTD_OP_2021_LM_CSMI.xlsx") %>%
+    openxlsx::read.xlsx(
+      sheet = "Sheet2",
+      check.names = TRUE
+    ) %>%
+    dplyr::distinct(SITE_ID = TRANSECT, Latitude = BEG_LATITUDE_DD, Longitude = BEG_LONGITUDE_DD, siteDepth = beg_depth)
+
+
+  
+  usgsCTD <-file.path(csmi2021, "2021%20July%20Lake%20Michigan%20CSMI%20CTD%20for%20EPA.csv")%>%
+    readr::read_csv() %>%
+    tidyr::pivot_longer(
+      6:13,
+      names_to = c("ANALYTE", "UNITS"),
+      names_pattern = "(^[^_]+)_(.*)$",
+      values_to = "RESULT"
+    ) %>%
+    dplyr::mutate(
+      sampleDate = lubridate::dmy(Date),
+      UNITS = tolower(stringr::str_remove_all(UNITS, "_")),
+      Study = "CSMI_2021_CTD"
+    ) %>%
+    tidyr::unite(UID, Transect, Serial, remove = FALSE) %>%
+    dplyr::select(
+      Site = Transect,
+      sampleDepth = Depth_m,
+      sampleDate, UID, ANALYTE, UNITS, RESULT, Study
     )
 
+
+  # bin starting at 0.5m every 1m so 0.5-1.5 ...
+  usgsPAR <- file.path(csmi2021, "USGS_sites_for_percentPAR-forKelseyV.xlsx") %>%
+    openxlsx::read.xlsx(
+      sheet = "UpdatedData",
+      check.names = TRUE
+    ) %>% # no missingness
+    dplyr::mutate(
+      Date = lubridate::ymd_hms(Date),
+      Date = lubridate::floor_date(Date, "days"),
+      hours = round(time_converted * 24),
+      sampleDateTime = lubridate::ymd_h(paste(Date, hours)),
+      cpar = dc.pc.PAR / 100,
+      # rebinned with evertyhing +/- 0.5 going to nearest whole number
+      sampleDepth = round(as.numeric(Depth_m)),
+      Site = stringr::str_remove(tolower(Transect), "_")
+    ) %>%
+    dplyr::filter(sampleDepth != 0) %>%
+    dplyr::reframe(cpar = mean(cpar, na.rm = T), .by = c(Site, sampleDateTime, sampleDepth)) %>%
+    # still no missingness
+    dplyr::mutate(
+      # for joining to CTD
+      sampleDate = lubridate::floor_date(sampleDateTime, "days")
+    ) %>%
+    # [ ] Ask Nikki if we don't expect same sites to be observed in 
+    # CTD and PAR samples
+    dplyr::mutate(
+      Study = "CSMI_2021_CTD",
+      UID = paste0(Study, "-", 1:nrow(.)),
+      UNITS = "percent",
+      ANALYTE = "cpar",
+      RESULT = cpar,
+    ) %>%
+    dplyr::select(-c(cpar, UID))
+
+  usgs <- dplyr::bind_rows(usgsCTD, usgsPAR) %>%
+    dplyr::mutate(
+      # assume PAR measured at same time as CTD
+      sampleDateTime1 = unique(na.omit(sampleDateTime))[1],
+      # else fill in with 12 noon
+      sampleDateTime2 = lubridate::ymd_hm(paste(sampleDate, "12:00")),
+      .by = c(Site, sampleDate),
+    ) %>%
+    dplyr::mutate(
+      sampleDateTime = dplyr::coalesce(sampleDateTime, sampleDateTime1, sampleDateTime2),
+      # pH is the only analyte that misses the pivot longer pattern
+      ANALYTE = ifelse(is.na(ANALYTE), "pH", ANALYTE)
+    ) %>%
+    dplyr::select(-c(sampleDateTime1, sampleDateTime2, sampleDate)) %>%
+    dplyr::rename(SITE_ID = Site) %>%
+    dplyr::left_join(usgsCTDsites)
+
+  #   ########################
+  #   # CPAR > 100% check
+  #   # check if CPAr over 100
+  #   library(patchwork)
+  #   p1 <- usgsPAR %>% 
+  #     reframe(over = mean(RESULT > 1, na.rm =T), .by = c(sampleDepth)) %>%
+  #     ggplot(aes(y = over, x= factor(sampleDepth))) +
+  #     geom_point() +
+  #     ggtitle("Nikki")
+  # 
+  #   p2 <- epaCTD %>% 
+  #     dplyr::rename(depth = Depth..fresh.water..m.) %>%
+  #     filter(ANALYTE == "cpar", depth < 31) %>%
+  #     reframe(over = mean(RESULT > 1, na.rm =T), .by = c(depth)) %>%
+  #     ggplot(aes(y = over, x= factor(depth))) +
+  #     geom_point() +
+  #     ggtitle("Gerads")
+  # 
+  #   p1 / p2
+  #   ########################
+  #   # Check coverage for site ID lat longs
+  #   sitelists <- list(
+  #     "usgsCTD" = tolower(unique(usgsCTD$Transect)),
+  #     #"usgsSits" = tolower(unique(usgsCTDsites$TRANSECT)),
+  #     #"Gerard" = str_remove(tolower(unique(CTD$Site)), "_"),
+  #     "Zoop" = tolower(unique(zooPlank$SITE_ID)),
+  #     # "WQ" = tolower(unique(WQ$Site)),
+  #     "USGSPar" = str_remove(tolower(unique(usgsPAR$Site)), "_")
+  #     )
+  #   ggvenn::ggvenn(sitelists)
+  #   #######################
+  # 
+  # # [ ] intersect Gerard spacetime with Nikki
+  # # - Gerard should be fully contained
+  # # - if so only use Nikki's CPAR
+  # # - there isn't any overlaps, so keep both
+  #   sitelists <- list(
+  #     gerardsiteDates = epaCTD %>% 
+  #                 mutate(Site = str_remove(tolower(Site), "_")) %>%
+  #                 distinct(Site, sampleDate) %>% 
+  #                 arrange(Site, sampleDate) %>%
+  #                 unite(temp, Site, sampleDate) %>%
+  #                 pull(temp)
+  #                 ,
+  #     usgsSiteDates = usgsPAR %>%
+  #                 mutate( Site = str_remove(tolower(Site), "_")) %>%
+  #                 distinct(Site, sampleDate) %>%
+  #                 arrange(Site, sampleDate) %>%
+  #                 unite(temp, Site, sampleDate) %>%
+  #                 pull(temp)
+  #     )
+  #   ggvenn::ggvenn(sitelists)
+  # 
+  # intersect(gerardsiteDates$Site, usgsSiteDates$Site)
+  # setdiff(gerardsiteDates$Site, usgsSiteDates$Site)
+  # setdiff(usgsSiteDates$Site, gerardsiteDates$Site)
+  # intersect(gerardsiteDates$sampleDate, usgsSiteDates$sampleDate)
+  # setdiff(gerardsiteDates$sampleDate, usgsSiteDates$sampleDate)
+  # setdiff(usgsSiteDates$sampleDate, gerardsiteDates$sampleDate)
+  # inner_join(gerardsiteDates, usgsSiteDates)
+  ######################################################################
+  
+  # grab additional site data from zooplankton files
+  zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
+    readr::read_csv(show_col_types = FALSE) %>%
+    dplyr::rename(SITE_ID = TRANSECT) %>%
+    dplyr::reframe(
+      Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T),
+      .by = SITE_ID
+    ) %>%
+    dplyr::mutate(SITE_ID = tolower(SITE_ID))
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% 
     openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
@@ -115,8 +264,8 @@
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = "^[:alpha:]*", "\\.", ".g.*L$" ), too_few = "align_start") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     dplyr::rename(SITE_ID = Site) %>%
-    dplyr::bind_rows(., CTD) %>%
-    dplyr::left_join(renamingTable) %>%
+    dplyr::bind_rows(., epaCTD, usgs) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::mutate(
       Year = 2021,
     ) %>%
@@ -130,30 +279,19 @@
       Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
       QAcomment = ifelse(is.na(stationDepth), paste(QAcomment, "station Depth estimated as the maximum sample Depth"), QAcomment),
       stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm = T), stationDepth),
+      stationDepth = dplyr::coalesce(stationDepth, siteDepth),
       .by = SITE_ID
     ) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(SITE_ID, "_"),
       ANALYTE = stringr::str_extract(ANALYTE, "^[:alpha:]*")
-    )
-
-  # grab additional site data from zooplankton files
-  zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
-    readr::read_csv(show_col_types = FALSE) %>%
-    dplyr::rename(SITE_ID = TRANSECT) %>%
-    dplyr::reframe(
-      Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T),
-      .by = SITE_ID
     ) %>%
-    dplyr::mutate(SITE_ID = tolower(SITE_ID))
-
-  # After adding site info from zooplank, missing lat/lons is 2%
-  WQ <- WQ %>%
     dplyr::mutate(
       SITE_ID = tolower(SITE_ID),
       SITE_ID = stringr::str_replace(SITE_ID, "^pwa", "pw"),
       SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud")
     ) %>%
+    # After adding site info from zooplank, missing lat/lons is 2%
     dplyr::left_join(zooPlank, by = "SITE_ID") %>%
     dplyr::mutate(
       Longitude = dplyr::coalesce(Longitude, Longitude2),
@@ -164,7 +302,8 @@
     dplyr::left_join(key) %>%
     dplyr::left_join(conversions) %>%
     dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
-    dplyr::left_join(mdls)
+    dplyr::left_join(mdls) %>%
+    dplyr::filter(CodeName != "Remove")
 
   # return the joined data
   return(WQ)
