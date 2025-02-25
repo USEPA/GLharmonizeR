@@ -103,14 +103,15 @@
     ) %>%
     tidyr::unite(UID, Transect, Serial, remove = FALSE) %>%
     dplyr::select(
-      Site = Transect,
+      SITE_ID = Transect,
       sampleDepth = Depth_m,
       sampleDate, UID, ANALYTE, UNITS, RESULT, Study
     )
 
 
   # bin starting at 0.5m every 1m so 0.5-1.5 ...
-  usgsPAR <- file.path(csmi2021, "USGS_sites_for_percentPAR-forKelseyV.xlsx") %>%
+  # contains some usgs and some epa sites
+  nikkiPAR <- file.path(csmi2021, "USGS_sites_for_percentPAR-forKelseyV.xlsx") %>%
     openxlsx::read.xlsx(
       sheet = "UpdatedData",
       check.names = TRUE
@@ -123,10 +124,11 @@
       cpar = dc.pc.PAR / 100,
       # rebinned with evertyhing +/- 0.5 going to nearest whole number
       sampleDepth = round(as.numeric(Depth_m)),
-      Site = stringr::str_remove(tolower(Transect), "_")
+      #SITE_ID = stringr::str_remove(tolower(Transect), "_")
+      SITE_ID = Transect
     ) %>%
     dplyr::filter(sampleDepth != 0) %>%
-    dplyr::reframe(cpar = mean(cpar, na.rm = T), .by = c(Site, sampleDateTime, sampleDepth)) %>%
+    dplyr::reframe(cpar = mean(cpar, na.rm = T), .by = c(SITE_ID, sampleDateTime, sampleDepth)) %>%
     # still no missingness
     dplyr::mutate(
       # for joining to CTD
@@ -141,15 +143,17 @@
       ANALYTE = "cpar",
       RESULT = cpar,
     ) %>%
-    dplyr::select(-c(cpar, UID))
+    dplyr::select(-c(cpar, UID)) %>%
+    mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
 
-  usgs <- dplyr::bind_rows(usgsCTD, usgsPAR) %>%
+  # technically this contains usgs PAR + a little bit from EPA sites too 
+  usgs <- dplyr::bind_rows(usgsCTD, nikkiPAR) %>%
     dplyr::mutate(
       # assume PAR measured at same time as CTD
       sampleDateTime1 = unique(na.omit(sampleDateTime))[1],
       # else fill in with 12 noon
       sampleDateTime2 = lubridate::ymd_hm(paste(sampleDate, "12:00")),
-      .by = c(Site, sampleDate),
+      .by = c(SITE_ID, sampleDate),
     ) %>%
     dplyr::mutate(
       sampleDateTime = dplyr::coalesce(sampleDateTime, sampleDateTime1, sampleDateTime2),
@@ -157,10 +161,91 @@
       ANALYTE = ifelse(is.na(ANALYTE), "pH", ANALYTE)
     ) %>%
     dplyr::select(-c(sampleDateTime1, sampleDateTime2, sampleDate)) %>%
-    dplyr::rename(SITE_ID = Site) %>%
     dplyr::left_join(usgsCTDsites)
+  
+  ctdDat <- dplyr::bind_rows(epaCTD, usgs)
 
-  #   ########################
+  ########################
+  ### NIKKI PAR DATA LOOK#
+  ########################
+  # selectCTDcasts <- nikkiPAR %>%
+  #   filter(sampleDepth !=0, sampleDepth < 31, ANALYTE == "cpar") %>%
+  #   mutate(
+  #     # find casts with at least one value exceeding 1
+  #     Quality = ifelse(sum(RESULT > 1.0) != 0, "Exceeds", "OK"),
+  #     .by = c(SITE_ID, sampleDateTime)
+  #   )
+
+  # selectCTDcasts %>%
+  #   mutate(label = if_else((abs(sampleDepth - 1)) == min(abs(sampleDepth - 1)) & (Quality == "Exceeds"), as.character(interaction(SITE_ID, date(sampleDateTime))), NA_character_), .by = c(SITE_ID, sampleDateTime)) %>%
+  #   ggplot(aes(x = sampleDepth, y = RESULT, group = interaction(SITE_ID, sampleDateTime), col = Quality, linetype = agency)) +
+  #   geom_line() +
+  #   ggrepel::geom_label_repel(aes(label = label)) +
+  #   xlim(0,30)
+
+  #############################################
+  # Assessing CPAR > 1 ########################
+  # p1 <- usgs %>%
+  #   filter(ANALYTE == "cpar") %>%
+  #   ggplot(aes(x = factor(sampleDepth), y = RESULT)) +
+  #   geom_boxplot() +
+  #   ggtitle("Nikki CPar distribution vs depth") +
+  #   xlab("Sample depth (m)") +
+  #   ylab("CPAR measure (proportion)")
+  # selectCTDcasts <- epaCTD %>% 
+  #   mutate(agency = "EPA") %>%
+  #   bind_rows(usgs) %>%
+  #   filter(sampleDepth !=0, sampleDepth < 31, ANALYTE == "cpar") %>%
+  #   mutate(
+  #     # find casts with at least one value exceeding 1
+  #     Quality = ifelse(sum(RESULT > 1.0) != 0, "Exceeds", "OK"),
+  #     .by = c(SITE_ID, sampleDateTime)
+  #   ) %>%
+  #   nest_by(agency, Quality, SITE_ID, sampleDateTime) %>%
+  #   # grab 3 of each factor with highest recorded CPAR 
+  #   mutate(
+  #     m = max(data$RESULT, na.rm = T)
+  #   ) %>%
+  #   arrange(desc(m)) %>%
+  #   ungroup() %>%
+  #   #slice_head(n=3, by= c(agency, Quality)) %>%
+  #   unnest(data)
+  
+  # selectCTDcasts <- nikkiPAR %>% 
+  #   filter(sampleDepth !=0, sampleDepth < 31, ANALYTE == "cpar") %>%
+  #   mutate(
+  #     # find casts with at least one value exceeding 1
+  #     Quality = ifelse(sum(RESULT > 1.0) != 0, "Exceeds", "OK"),
+  #     .by = c(SITE_ID, sampleDateTime)
+  #   )
+
+  # selectCTDcasts %>%
+  #   mutate(label = if_else((abs(sampleDepth - 7.1)) == min(abs(sampleDepth - 7.1)) & (Quality == "Exceeds"), as.character(interaction(SITE_ID, date(sampleDateTime))), NA_character_), .by = c(SITE_ID, sampleDateTime)) %>%
+  #   ggplot(aes(x = sampleDepth, y = RESULT, group = interaction(SITE_ID, sampleDateTime), linetype = Quality, col = agency)) +
+  #   geom_line() +
+  #   ggrepel::geom_label_repel(aes(label = label)) +
+  #   xlim(0,30)
+  
+  # p2 <- usgs %>%
+  #   filter(ANALYTE == "cpar") %>%
+  #   mutate(over = RESULT > 1) %>%
+  #   reframe(.by = sampleDepth, over = sum(over, na.rm = T)) %>%
+  #   ggplot(aes(x = factor(sampleDepth), y = over)) +
+  #   geom_point() +
+  #   ggtitle("Nikki: # over 100%") +
+  #   xlab("Sample depth (m)") +
+  #   ylab("# CPAR measures > 1.0")
+  # p1 / p2
+
+  # usgs %>%
+  #   filter(ANALYTE == "cpar", sampleDepth ==1) %>%
+  #   reframe(
+  #     number1m = n(),
+  #     numberGT1.0 = sum(RESULT >1,na.rm = T),
+  #     propGT1.0 = numberGT1.0 / number1m
+  #     ) %>%
+  #     gt::gt()
+
   #   # CPAR > 100% check
   #   # check if CPAr over 100
   #   library(patchwork)
@@ -192,10 +277,7 @@
   #   ggvenn::ggvenn(sitelists)
   #   #######################
   # 
-  # # [ ] intersect Gerard spacetime with Nikki
-  # # - Gerard should be fully contained
-  # # - if so only use Nikki's CPAR
-  # # - there isn't any overlaps, so keep both
+  # - there isn't any overlaps, so keep both
   #   sitelists <- list(
   #     gerardsiteDates = epaCTD %>% 
   #                 mutate(Site = str_remove(tolower(Site), "_")) %>%
@@ -264,7 +346,7 @@
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = "^[:alpha:]*", "\\.", ".g.*L$" ), too_few = "align_start") %>%
     # figured out parsing before joining with CTD is WAAAAAAY easier
     dplyr::rename(SITE_ID = Site) %>%
-    dplyr::bind_rows(., epaCTD, usgs) %>%
+    dplyr::bind_rows(., ctdDat) %>%
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::mutate(
       Year = 2021,
