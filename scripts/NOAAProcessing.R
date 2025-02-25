@@ -69,7 +69,14 @@ noaaCTDdf <- noaaFiles %>%
   filter(ANALYTE_Orig_Name != "par")
 
 # Save the cleaned seabird Files
-saveRDS(noaaCTDdf, "../GL_Data/NOAA/noaaCTD.Rds")
+noaaCTDdf %>%
+  # a small number of dates are a century old
+  filter(sampleDateTime > lubridate::ymd("1950-01-01")) %>%
+  saveRDS("../GL_Data/NOAA/noaaCTD.Rds")
+
+# noaaCTDdf %>%
+#   ggplot(aes(x = sampleDateTime)) +
+#   geom_histogram()
 
 # noaaCTDdf %>%
 # # Check which names might not be getting matched
