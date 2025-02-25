@@ -34,18 +34,19 @@ renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
 #### Need to add to NOAA renaming table
 # noaa ctd doesn't have spar so no cpar
 #oce::read.oce(noaaFiles$ctdFiles[180])
+# [ ] Make sure years make sense 
 noaaCTDdf <- noaaFiles %>%
   mutate(
     data = purrr::map(ctdFiles, \(x)
       tryCatch({
       .oce2df(suppressWarnings(oce::read.oce(x)), studyName = "NOAActd", bin = TRUE, downcast = TRUE) %>% 
         # take the station information froma the filepath
-        rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth)},
+        dplyr::rename(Latitude.ctd = Latitude, Longitude.ctd  = Longitude, sampleDateTime.ctd = sampleDateTime, stationDepth.ctd = stationDepth)},
       error = function (e) {
         message(paste("Error reading file", basename(x)))
         NULL
       }),
-        .progress = TRUE)
+    .progress = TRUE)
   ) %>%
   tidyr::unnest(cols = data) %>%
   # prioritize ctd machine information
@@ -58,7 +59,7 @@ noaaCTDdf <- noaaFiles %>%
     UID = paste0(SITE_ID, "_", lubridate::date(sampleDateTime))
     ) %>%
   left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
-  rename(ReportedUnits = UNITS)  %>%
+  dplyr::rename(ReportedUnits = UNITS)  %>%
   mutate(ReportedUnits = tolower(ReportedUnits)) %>%
   left_join(key, by =  "CodeName") %>%
   left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
