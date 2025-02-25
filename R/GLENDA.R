@@ -128,17 +128,23 @@
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
 
-  internalMDL <- df %>%
+  # all rl not mdls
+  internalRL <- df %>%
     dplyr::filter(grepl("^<", VALUE)) %>%
-    dplyr::distinct(YEAR, ANALYTE, VALUE) %>%
-    dplyr::left_join(renamingTable) %>% 
-    dplyr::distinct(YEAR, ANALYTE, VALUE) %>%
+    dplyr::distinct(YEAR, SEASON, ANALYTE, VALUE, MEDIUM, FRACTION, METHOD, RESULT_REMARK) %>%
+    dplyr::left_join(renamingTable, by = c("MEDIUM", "ANALYTE", "FRACTION", "METHOD" = "Methods")) %>%
     dplyr::mutate(
-      internalMDL = readr::parse_number(VALUE),
+      VALUE = readr::parse_number(VALUE),
       YEAR = as.numeric(YEAR)
-    )
-  # [ ] unit conversions for the above internal mdls before joining into mdl df
-  # [ ] Double check that renaming is working properly for the mdl
+    ) %>%
+    dplyr::left_join(key, by = "CodeName") %>%
+    dplyr::rename(ReportedUnits = Units) %>%
+    dplyr::left_join(conversions, by = c("TargetUnits", "ReportedUnits")) %>%
+    dplyr::mutate(VALUE = ifelse(is.na(ConversionFactor), VALUE, VALUE * ConversionFactor)) %>%
+    # Format similar to other MDLs
+    dplyr::distinct(YEAR, SEASON, CodeName, rl = VALUE)
+    # [x] unit conversions for the above internal mdls before joining into mdl df
+    # [x] Double check that renaming is working properly for the mdl
 
   # All self reported mdls are identical across all years for a gien analyte
   limitNames <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_mdl_Map")
@@ -176,7 +182,8 @@
       mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl),
       mdl = ifelse(CodeName == "Diss_SiO2", mdl * 2.13918214, mdl)
       ) %>%
-    dplyr::select(YEAR, SEASON, CodeName, mdl)
+    dplyr::select(YEAR, SEASON, CodeName, mdl) %>%
+    dplyr::bind_rows(internalRL)
 
   df <- df %>%
     # Convert daylight saving TZs into standard time TZs
@@ -216,8 +223,8 @@
             Latitude = as.numeric(Latitude),
             LONGITUDE = as.numeric(LONGITUDE),
             Longitude = as.numeric(Longitude),
-            LATITUDE = dplyr::coalesce(Latitude, LATITUDE),
-            LONGITUDE = dplyr::coalesce(Longitude, LONGITUDE)
+            LATITUDE = dplyr::coalesce(LATITUDE, Latitude),
+            LONGITUDE = dplyr::coalesce(LONGITUDE, Longitude)
           ) %>%
           dplyr::select(-c(Latitude, Longitude))
       } else {
@@ -282,9 +289,7 @@
     # add in the detection limits
     dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
     dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
-    dplyr::left_join(., internalMDL, by = c("ANALYTE", "YEAR")) %>%
-    dplyr::mutate(mdl = dplyr::coalesce(mdl, internalMDL)) %>%
-    dplyr::select(-c(sampleDate, internalMDL))
+    dplyr::select(-c(sampleDate, dplyr::ends_with(".x"), dplyr::ends_with(".y")))
 
     # [x] Add self reported  detection limits
     # [x] Extract the < values for all datas, join it back to the pdf extracted RL's
