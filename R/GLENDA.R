@@ -268,10 +268,11 @@
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     # [x] Check if we need to impute units- nope all taken care of
     # sum(is.na(df$Units)) == 0
-    # If so, we will assume on a given year analytes have same units
+    # [ ] Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
+    # If so, we will assume on a given year analytes have same units **KV comment: suggest imputing by year-season combo, rather than just by year**
     dplyr::mutate(
       TargetUnits = tolower(TargetUnits),
-      ReportedUnits = ifelse(ReportedUnits == "pH", "unitless", ReportedUnits),
+      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
       ReportedUnits = ifelse(ReportedUnits == "%", "percent", ReportedUnits)
       ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
