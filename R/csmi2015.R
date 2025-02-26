@@ -34,8 +34,19 @@
 
     # sample information (time, depth)
   eventInfo <- RODBC::sqlFetch(dbi, "L2a_StationSampleEvent") %>%
-      # [x] Grab eastern time
-      dplyr::select(SampleEventKey, SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual)
+      # Grab eastern time
+      dplyr::select(SampleEventKey, SITE_ID = StationCodeFK, Latitude = LatDD_actual, Longitude = LonDD_actual, sampleDate = SampleDate, sampleTime = TimeEST, stationDepth = DepthM_actual) %>%
+      # one of the MAN_46 samples is out of bounds, so impute its coordinates
+      dplyr::mutate(
+        Longitude = ifelse(
+          (SITE_ID == "Man_46") & (Latitude > 46),
+          -87.4686166666667, Longitude
+        ),
+        Latitude = ifelse(
+          (SITE_ID == "Man_46") & (Latitude > 46),
+          44.1132833333333, Latitude
+        )
+      )
 
   # Water chem sample depth
   stisInfo <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%

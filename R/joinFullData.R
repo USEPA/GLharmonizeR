@@ -38,7 +38,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] Minyear maxyear arguments
   # [ ] water body name argument
-  n_max <- ifelse(.test, 50, Inf)
+  n_max <- ifelse(.test, 1000, Inf)
   # [x] report sample DateTime not just date
   print("Step 1/7: Read and clean NCCA")
   ncca <- .loadNCCA(
@@ -73,9 +73,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
         .default = stationDepth),
       .by = STATION_ID
-    ) %>%
-    dplyr::select(-Finalized)
-
+    )
 
   print("Step 4/7: Read and clean CSMI data")
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
@@ -87,49 +85,49 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
-  dplyr::mutate(
-    SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID)
-  ) %>%
-  dplyr::select(
-    # time and space
-    "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
-    # analyte name
-    "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
-    # unit conversion
-    "ConversionFactor", "TargetUnits", "Conversion", "ReportedUnits", "Explicit_Units",
-    # measurement and limits
-    "RESULT", "MDL", "MRL", "METHOD",
-    # QA
-    "QAcode", "QAcomment", "LAB", "LRL", contains("QAconsiderations")
-  ) %>%
-  # catching some where units were inferred
-  dplyr::mutate(
-    QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
-      paste0(QAcode, sep = "; ", "U"), QAcode),
-    QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-      "No reported units, assumed most common units in analyte-year", QAcomment
-    )
-  ) %>%
-  dplyr::mutate(
-    RL = dplyr::coalesce(LRL, MRL),
-    # [x] Flag if below detection limit
-    # If MDL is missing, 
-    QAcode = dplyr::case_when(
-      is.na(MDL) ~ QAcode,
-      RESULT >= MDL ~ QAcode, 
-      RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
-      RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
-      RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
-      .default = QAcode
-      ),
-    QAcomment = dplyr::case_when(
-      is.na(MDL) ~ QAcomment,
-      RESULT >= MDL ~ QAcomment, 
-      RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
-      .default = QAcomment
+    dplyr::mutate(
+      SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID),
+      RL = dplyr::coalesce(LRL, MRL, rl),
+      MDL = dplyr::coalesce(MDL, mdl, rl),
+    ) %>%
+    dplyr::select(
+      # time and space
+      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
+      # analyte name
+      "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
+      # unit conversion
+      "ConversionFactor", "TargetUnits", "ReportedUnits", "Explicit_Units",
+      # measurement and limits
+      "RESULT", "MDL", "RL", "METHOD",
+      # QA
+      "QAcode", "QAcomment", "LAB", contains("QAconsiderations")
+    ) %>%
+    # catching some where units were inferred
+    dplyr::mutate(
+      QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
+        paste0(QAcode, sep = "; ", "U"), QAcode),
+      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+        "No reported units, assumed most common units in analyte-year", QAcomment
       )
-  ) %>%
-  dplyr::select(-c(MRL, LRL))
+    ) %>%
+    dplyr::mutate(
+      # [x] Flag if below detection limit
+      # If MDL is missing, 
+      QAcode = dplyr::case_when(
+        is.na(MDL) ~ QAcode,
+        RESULT >= MDL ~ QAcode, 
+        RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
+        RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
+        RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
+        .default = QAcode
+        ),
+      QAcomment = dplyr::case_when(
+        is.na(MDL) ~ QAcomment,
+        RESULT >= MDL ~ QAcomment, 
+        RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
+        .default = QAcomment
+      )
+    )
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
@@ -185,12 +183,13 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
      .by = c(
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
       ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT, 
-      MDL, PQL, RL, LAB
+      MDL, #PQL,
+       RL, LAB
     ))  %>%
      # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
   dplyr::mutate(
-    RESULT2 = dplyr::case_when(
+    RESULT = dplyr::case_when(
       is.na(Unified_Flag) ~ RESULT,
       grepl("N;|N$", Unified_Flag) ~ NA,
       # These next two are set in deliberate order set priority to the more complex match
@@ -213,13 +212,21 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::mutate(Units = Explicit_Units) %>%
     dplyr::select(
       UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDateTime, sampleDepth,
-      CodeName, LongName, RESULT, Units, MDL, PQL, RL, Unified_Flag, Unified_Comment, 
+      CodeName, LongName, RESULT, Units, MDL, # PQL,
+      RL, Unified_Flag, Unified_Comment, 
       Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment, 
       Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
-      TargetUnits, ConversionFactor, Conversion_Note=Conversion, Retain_InternalUse=Retain,
+      TargetUnits, ConversionFactor, Retain_InternalUse=Retain,
       Action_InternalUse=Action) %>%
     dplyr::arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
 
+allWQ %>% 
+  filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
+  reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
+  print(n = 300)
+allWQ %>% 
+  reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
+  print(n = 300)
 
 
   if (!is.null(out) & binaryOut) {

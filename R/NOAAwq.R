@@ -80,14 +80,15 @@
     dplyr::filter(RESULT != 0) %>%
     # add newly reported Mdls for TP and PP
     dplyr::mutate(
-      MDL = dplyr::case_when(
+      mdl = dplyr::case_when(
         # units match what is desired already 
         # these were given by Steve Pothoven
         CodeName == "Tot_P" ~ 0.2,
         CodeName == "Part_P" ~ 0.05,
         .default = NA
       )
-    )
+    ) %>%
+    dplyr::select(-SITE_ID.y)
   return(noaaWQdata)
 }
 

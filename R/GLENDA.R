@@ -17,7 +17,6 @@
 #' @return a dataframe
 .readFormatGLENDA <- function(Glenda, n_max = Inf, sampleIDs = NULL) {
   # [x] Make glendaData the argument for load anssemble data function
-  imputeCoordinates <- TRUE
   df <- Glenda %>%
     {
       if (grepl(tools::file_ext(Glenda), ".csv", ignore.case = TRUE)) {
@@ -130,6 +129,7 @@
 
   # all rl not mdls
   internalRL <- df %>%
+    # [ ] try catch, throw error if it doesn't say reporting limit
     dplyr::filter(grepl("^<", VALUE)) %>%
     dplyr::distinct(YEAR, SEASON, ANALYTE, VALUE, MEDIUM, FRACTION, METHOD, RESULT_REMARK) %>%
     dplyr::left_join(renamingTable, by = c("MEDIUM", "ANALYTE", "FRACTION", "METHOD" = "Methods")) %>%
@@ -271,8 +271,8 @@
     # If so, we will assume on a given year analytes have same units
     dplyr::mutate(
       TargetUnits = tolower(TargetUnits),
-      ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
-      ReportedUnits = ifelse(ANALYTE == "%", "percent", ReportedUnits)
+      ReportedUnits = ifelse(ReportedUnits == "pH", "unitless", ReportedUnits),
+      ReportedUnits = ifelse(ReportedUnits == "%", "percent", ReportedUnits)
       ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case = T)) %>%
