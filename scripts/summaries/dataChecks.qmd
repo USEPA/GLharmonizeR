@@ -7,11 +7,16 @@ date: today
 library(tidyverse)
 library(fuzzyjoin)
 devtools::load_all()
+#start.time <- Sys.time()
 df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+# assembly takes 1 minute
+# end.time <- Sys.time()
+# time.taken <- end.time - start.time
+# time.taken
 #df <- readRDS("fullData.Rds")
-processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "days", depthCuts = c(-0.1, 5, 15, 25, 50, max(df$sampleDepth, na.rm=T)), 
-  startDate= "2000-01-01", endDate= "2050-01-01")
-saveRDS(processedDf, "processedData.Rds")
+# processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "days", depthCuts = c(-0.1, 5, 15, 25, 50, max(df$sampleDepth, na.rm=T)), 
+#   startDate= "2000-01-01", endDate= "2050-01-01")
+# saveRDS(processedDf, "processedData.Rds")
 ```
 
 # Missing Checks
@@ -21,9 +26,14 @@ df %>%
     # missingness across key columns
     across(c(CodeName, Latitude, RESULT, LongName, Units, MDL), function(x) mean(is.na(x))),
     .by = Study)  %>%
-    arrange(Study) %>%
+    arrange(Study)
     saveRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds"))
 readRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds")) %>% View()
+
+df %>%
+  mutate(RESULT = ifelse(is.na(RESULT), mean(MDL, na.rm = T), RESULT), .by = CodeName) %>%
+  reframe(m = mean(is.na(RESULT)), .by = c(Study, CodeName)) %>%
+  arrange(desc(m))
 
 df %>%
   reframe(

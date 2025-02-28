@@ -113,6 +113,7 @@ df %>%
         # NOTE that taking the min of results would also include estimated values where they exist
         # Follow up- this means that values aren't consistently imputed when comparing those that are 
         # reported as estimates and what this program imputes
+        # [ ] This might break because the min needs a vector
         grepl("N", Unified_Flag) & (!is.na(MDL) | sum(!is.na(RESULT)) > 1) ~ imputeFunction(min(MDL, RL, RESULT, na.rm=T)),
         .default = RESULT
       ),
