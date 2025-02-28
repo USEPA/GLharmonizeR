@@ -48,7 +48,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     namingFile,
     Lakes = c("Lake Michigan"),
     n_max = n_max
-  )
+  ) %>%
+  dplyr::mutate(Finalized = as.character(Finalized))
 
   print("Step 2/7: Read preprocessed Seabird files associated with GLENDA")
   seaBirdDf <- readr::read_rds(seaBird) %>%
@@ -88,7 +89,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     dplyr::mutate(
       SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID),
       RL = dplyr::coalesce(LRL, MRL, rl),
-      MDL = dplyr::coalesce(MDL, mdl, rl),
+      MDL = dplyr::coalesce(MDL, mdl),
     ) %>%
     dplyr::select(
       # time and space
