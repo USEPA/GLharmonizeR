@@ -69,12 +69,16 @@
     dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%  
     # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
     
-    #### Code is now okay up until this point ####
+    
+    
+    # Code is now okay up until this point
     
     
     
     
     
+
+
     # [ ] *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
     
     # [ ] Also the QAcode and QAcomments get lost in the below process
@@ -99,12 +103,13 @@
     dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
     dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
     # [ ] Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
-    
+
     
     
     
     
     #### Code okay after this point ####
+
     dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
