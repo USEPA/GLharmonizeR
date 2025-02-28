@@ -11,31 +11,37 @@
 #'
 #' @return dataframe
 .loadNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max) {
-  sites <- .loadNCCASite2010(NCCAsites2010) %>%
-    dplyr::mutate(
-      SITE_ID = stringr::str_remove(SITE_ID, "^NCCA[:alpha:]{0,2}10-"),
-      SITE_ID = stringr::str_remove(SITE_ID, "^GLBA10-"),
-      #SITE_ID = stringr::str_replace(SITE_ID, "-GLBA10-", "-"),
-      )
+  sites <- .loadNCCASite2010(NCCAsites2010) #%>%
+    # dplyr::mutate(
+    #   SITE_ID = stringr::str_remove(SITE_ID, "^NCCA[:alpha:]{0,2}10-"),
+    #   SITE_ID = stringr::str_remove(SITE_ID, "^GLBA10-"),
+    #   #SITE_ID = stringr::str_replace(SITE_ID, "-GLBA10-", "-"),
+    #   )
+  # Do not alter the SITE_ID to avoid confusion with original source
+  
+  
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+  
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      Methods = ifelse(is.na(Methods), Study, Methods)
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
+      # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
+      # Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
     )
 
 
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
-    # filter to just downcast (include IM_CALC because that's where Secchi is, NREC wasn't
-    # observed in great lakes so don't need to worry about it)
+    # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
+    dplyr::filter(grepl("GL",SITE_ID)) %>% 
+    # filter to just downcast (include IM_CALC because that's where Secchi is)
     dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
     dplyr::rename(
       ANALYTE = PARAMETER_NAME,
@@ -49,36 +55,56 @@
       UNITS = ifelse(ANALYTE == "pH", "unitless", UNITS),
       UNITS = ifelse(ANALYTE == "Mean secchi", "m", UNITS),
       # turbidity is removed anyway
-      UNITS = ifelse(ANALYTE == "Turbidity", "unitless", UNITS),
+      UNITS = ifelse(ANALYTE == "Turbidity", "unknown", UNITS),
       sampleDepth = ifelse(sampleDepth == -9, NA, sampleDepth)
     ) %>%
-    dplyr::mutate(
-      UNITS  = rev(names(table(UNITS)))[[1]],
-      .by = ANALYTE
-    ) %>%
+    # Doesn't look like below code to fill in missing units is needed after filtering to only GL
+    # sum(is.na(df$UNITS))==0
+    # dplyr::mutate(
+    #   UNITS  = rev(names(table(UNITS)))[[1]],
+    #   .by = ANALYTE
+    # ) %>%
+    # Note: CAST_COMMENT and CAST_FLAG are all NA
+    # Note: Averaging over RESULT is necessary below because sometimes multiple values present at same depth. Looking at data, this looks like due to possible data entry error due to upcasts being mislabeled, but this is a reasonable solution.
     dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%  
-    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT, values_fill = list("RESULT" = 9999999, NA)) %>%
+    # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
+    
+    # Code is now okay up until this point
+    
+    # [ ] *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
+    
+    # [ ] Also the QAcode and QAcomments get lost in the below process
+    
+    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
     # fill in mean secchi in same rows where other results appear
     dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
+    # [ ] Secchi units not filled in and are missing in the final returned data
     # remove where sechhi used to appear
     tidyr::drop_na(sampleDepth) %>%
     # [x] filter out where either ambientPAR or underPAR check if this does what we think
+    
+    ### [ ] **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
     dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
+    
+    # It may work to just do this calculation without filtering above if it just produces NAs when one is available
     dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
-    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`)) %>%
+    
+    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`, `UNITS_Ambient PAR`, `UNITS_Underwater PAR`)) %>%
     tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
-    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported
-    dplyr::filter(RESULT != 9999999) %>%
+    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported -- KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
+    dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
     dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
+    # [ ] Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
     dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010",
       UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS),
-      # make site ids look like site id file
-      SITE_ID = stringr::str_remove_all(SITE_ID, "NCCA10-"),
-      SITE_ID = stringr::str_remove_all(SITE_ID, "NCCAGL10-"),
-      SITE_ID = stringr::str_remove_all(SITE_ID, "GLBA10-"),
+      UNITS = ifelse(ANALYTE == "Conductivity", "uscm", UNITS) # adding because there's a weird special character
+      # # make site ids look like site id file
+      # SITE_ID = stringr::str_remove_all(SITE_ID, "NCCA10-"),
+      # SITE_ID = stringr::str_remove_all(SITE_ID, "NCCAGL10-"),
+      # SITE_ID = stringr::str_remove_all(SITE_ID, "GLBA10-"),
     ) %>%
 
     # add station info
@@ -86,15 +112,20 @@
     dplyr::mutate(stationDepth = dplyr::coalesce(stationDepth.x, stationDepth.y)) %>%
     dplyr::select(-c(stationDepth.x, stationDepth.y)) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
-    dplyr::mutate(
-      ANALYTE = stringr::str_trim(ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)),
-    ) %>%
+    # There is no ANL_CODE
+    # dplyr::mutate(
+    #   ANALYTE = stringr::str_trim(ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)),
+    # ) %>%
     # convert units
     dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
+    dplyr::filter(CodeName != "Remove") %>% 
     dplyr::left_join(key) %>%
+    dplyr::mutate(
+      ReportedUnits = as.character(ReportedUnits),
+      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+      ReportedUnits = tolower(ReportedUnits)) %>% # 
     dplyr::left_join(conversions) %>%
-    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
-    dplyr::filter(CodeName != "Remove")
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
   return(df)
 }
