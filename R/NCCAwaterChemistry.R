@@ -11,8 +11,8 @@
 .loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
   sites <- .loadNCCASite2010(NCCAsites2010) #%>%
     # dplyr::mutate(SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$"))
-  # Do not alter the SITE_ID to avoid confusion
-
+  # Do not alter the SITE_ID to avoid confusion with original source
+  
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
@@ -26,7 +26,7 @@
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
       # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
-      # The methods in NCCA_Map are a result of not originally filtering the dataset to GL
+      # Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
     )
 
   df <- readr::read_csv(
@@ -155,6 +155,8 @@
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime)
     ) %>%
+    
+    ## **** As mentioned in the comments for .loadNCCAhydro2010(), I don't think these approaches of pivoting the whole dataset to do calculations is working well and is introducing problems. I would suggest instead splitting out the data that you need to do manipulations on (nitrate and nitrite) and dealing with them separately, them joining them back in. ***********
     tidyr::pivot_wider(id_cols = c(UID:sampleDateTime), names_from = ANALYTE, values_from = LAB:sampleID) %>% # 4705 rows
     # Combine Nitrate and Nitrite
     dplyr::mutate(
@@ -164,7 +166,7 @@
     tidyr::pivot_longer(cols= LAB_PH:sampleID_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
     # if no result or comment, this is created by the pivot_wider and needs to be removed
     dplyr::filter(!is.na(RESULT) | !is.na(QAcode) | !is.na(QAcomment)) %>% # 4680 rows
-    # End up with 25 fewer rows than began with -- can't figure out why
+    # **** End up with 25 fewer rows than began with -- can't figure out why ****
     dplyr::mutate(
       # Change the names
       ANL_CODE = dplyr::case_when(
