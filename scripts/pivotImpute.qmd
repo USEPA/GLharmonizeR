@@ -1,0 +1,180 @@
+---
+title: Imputing and pivoting
+author: Christian Coffman
+date: today
+format:
+  html:
+    code-fold: true
+    toc: true
+    embed-resources: false
+project:
+  execute-dir: project
+execute:
+  warning: false
+  error: false
+---
+
+
+
+```{r setup}
+library(tidyverse)
+df <- readRDS("fullData.Rds") %>% 
+  filter(!grepl("no result", Orig_QAcomment, ignore.case = T)) %>%
+  # some values are missing and don't have QA codes nor comments
+  filter(
+    !is.na(RESULT) | 
+    !is.na(Orig_QAcode) |
+    !is.na(Orig_QAcomment) |
+    !is.na(Orig_QAdefinition) |
+    !is.na(Unified_Flag) |
+    !is.na(Unified_Comment)
+  ) %>%
+  # some missed qa actions not filtered
+  filter(
+    !grepl("invalid", Orig_QAcomment, ignore.case = T),
+    !grepl("NRR", Orig_QAcomment, ignore.case = T),
+  ) %>% 
+  # sometimes unrelated QAcodes retain sample so removing that for Secchi
+  #filter(
+  #  !(is.na(RESULT) & CodeName == "Secchi" & grepl("T", Orig_QAcomment, ignore.case = T)),
+  #) %>% 
+  tidyr::drop_na(Latitude, sampleDateTime, CodeName)
+
+df %>% 
+  reframe(
+    measureCount = sum(!is.na(RESULT)),
+    missingCount = sum(is.na(RESULT)),
+    .by = CodeName
+  ) %>%
+  arrange(desc(missingCount), desc(measureCount)) %>%
+  gt::gt() %>%
+  gt::tab_header("Pre-DL imputation")
+```
+
+# Detection limit informed imputation
+```{r}
+
+df <- .dlImputation(df, imputeMethod = "uniform") %>%
+  filter(
+    # remove 2 secchi samples that have an unrelated flag
+    !(is.na(RESULT) & Unified_Flag == "T")
+  )
+
+# [ ] count imputed mdl vs rl
+# [ ] Metals are missing mdls and rls
+  # GLENDA has something going on leading to too many NAs
+  # [ ]  figure out what it is 
+# expectedRows <- df %>%
+#   unite(un, sampleDateTime, Latitude, Longitude, sampleDepth) %>%
+#   mutate(wide_rows = length(unique(un))) %>%
+#   distinct(wide_rows) %>%
+#   pull(wide_rows)
+
+df %>% 
+  reframe(
+    measureCount = sum(!is.na(RESULT)),
+    missingCount = sum(is.na(RESULT)),
+    #expectedMissing = expectedRows - measureCount,
+    .by = CodeName
+  ) %>%
+  arrange(desc(missingCount), desc(measureCount)) %>%
+  gt::gt() %>%
+  gt::tab_header("Post DL imputation")
+
+saveRDS(df, "postImputed.Rds")
+```
+
+
+# Pivoting from long to wide
+
+## Exact match pivoting
+```{r}
+df_wide <- .exactPivot(df)
+df_wide %>%
+  reframe(across(everything(), function(x) sum(is.na(x)))) %>%
+  gt::gt() %>%
+  gt::tab_header("Column Missingness")
+```
+
+## Nearest Neighbor imputation
+```{r}
+dayThres <- 3 
+latlonThres <- 0.01
+
+# [ ] keep site from chla observations
+# [ ] don't just match to missing dataframe, rather the full dataframe minus the observation under question
+chlamissing <- df_wide %>% filter(is.na(Chla))
+chlanonmissing <- df_wide %>% drop_na(Chla) 
+
+missingobs <- chlamissing %>% filter(sampleDateTime > ymd("2010-07-01")) %>% slice(1)
+
+# Time difference of 3.323348 mins
+tempmissing <- df_wide %>% filter(is.na(Temp))
+tempnonmissing <- df_wide %>% drop_na(Temp) 
+tempMatched <- tempmissing %>%
+  dplyr::rowwise() %>%
+  dplyr::mutate(
+    Temp1 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
+   matchingSet = tempnonmissing, dayThresh = 3, latlonThres = 0.01, CodeName = "Temp"),
+    Temp2 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
+   matchingSet = tempnonmissing, dayThresh = 4, latlonThres = 0.01, CodeName = "Temp"),
+    Temp3 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
+   matchingSet = tempnonmissing, dayThresh = 4, latlonThres = 0.02, CodeName = "Temp"),
+   )
+
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+tempMatched %>%
+  ungroup() %>%
+  reframe(
+    across(c(Temp1, Temp2, Temp3),
+    .fns = list(added = function(x) sum(is.na(x)), prop_added = function(x) mean(is.na(x)))
+  ))
+
+```
+- Takes 3.3 minutes for Chla column (25secs for Temp)
+  - will potentially be longer for columns with greater missingness 
+    - more matches to make
+    - fewer boxes with an observation within
+- 49 variables
+  - 49 x 3.3  = 161 mins
+
+Bring matched data back in
+
+
+# Naive imputation
+- roughly 2 minutes
+```{r}
+# Count of missing values per row
+hist(rowSums(is.na(df_wide)))
+hist(colSums(is.na(df_wide)))
+
+# Subset rows with 2+ missing values 
+test <- df_wide[, colMeans(is.na(df_wide)) < mean(is.na(df_wide$Chla)) * 1.25]
+
+# missForest doesn't like tibbles so convert to deprecated df
+test <- test %>% 
+  select(CaCO3:CPAR) %>% 
+  drop_na(Chla) %>% 
+  data.frame()
+
+# [ ] could stratify by near / offshore or seasonality
+start.time <- Sys.time()
+test2 <- missForest(test, variablewise = T)
+colMeans(is.na(test2[[2]]))
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+length(sqrt(test2$OOBerror)) /
+test %>% 
+  reframe(across(everything(), function(x) sd(x, na.rm = T)))
+```
+- 6 minutes
+
+```{r}
+lm(Chla ~ ., data = test )
+```

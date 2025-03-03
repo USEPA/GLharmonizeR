@@ -17,20 +17,19 @@ execute-dir: project
 
 ```{r setup}
 #| output: false
-#| echo: false
 
 # following https://cran.r-project.org/web/packages/gstat/vignettes/st.pdf
 library(tidyverse)
 library(spacetime)
 library(lattice)
 ggplot2::theme_set(theme_minimal(base_size= 16))
-df <- readRDS("../fullData.Rds") %>% 
+df <- readRDS("../postDLImputed.Rds") %>% 
   filter(
     Longitude > -88,
     Longitude < -85,
     Latitude > 41.5,
     Latitude < 46,
-    sampleDepth <= 5.1,
+    sampleDepth <= 5.0,
     CodeName == "Chla",
     !is.na(RESULT),
     )  %>%
@@ -512,8 +511,6 @@ plot(test)
 
 ## Autocorrelation (1 year)
 ```{r}
-#| echo: false
-
 test <-acf(na.omit(as(stDf, "xts")), lag.max= 1000, plot = F, type = "correlation")
 test$lag <- test$lag / (360 *24)
 plot(test[c(0, 70, 140, 210, 280, 350),])
@@ -539,8 +536,6 @@ plot(test[c(0, 70, 140, 210, 280, 350),])
 ::::{.columns}
 :::{.column width="60%"}
 ```{r joint}
-#| echo: false
- 
 recent <- df %>%
     mutate(sampleDate = round_date(sampleDateTime, "days")) %>%
     drop_na(Longitude, Latitude, sampleDate) %>%
@@ -630,9 +625,6 @@ sepVgm$time %>% gt::gt() %>%
 
 ## Wireframe
 ```{r}
-#| echo: false
-
-
 plot(test, list(na.omit(metricVgm), na.omit(sepVgm)),
   all=T, zlim=c(0.02,0.20),
   zlab=NULL,
@@ -646,7 +638,6 @@ plot(test, list(na.omit(metricVgm), na.omit(sepVgm)),
 # Map for scale
 ```{r}
 #| eval: true
-#| echo: false
 
 library(leaflet)
 opacity = 0.33
@@ -669,8 +660,6 @@ m
 
 ## all semis
 ```{r allSemis}
-#| echo: false
-
 full1week
 full2week
 full1month
