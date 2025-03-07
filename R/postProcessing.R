@@ -72,7 +72,7 @@
 }
 
 # nearest neighbor imputation
-.imputeNearestMatch <- function(..., matchingSet = NULL, dayThresh = 3, latlonThres = 0.01, CodeName = "Chla"){
+.imputeNearestMatch <- function(..., CodeName, matchingSet = NULL, dayThresh = 3, latlonThres = 0.01){
   observation <- tibble::tibble(...)
   # different threshold depending on depth
   # depth Threshold could defintiely be done better using asymetric bound
@@ -123,7 +123,7 @@
       # select minimum on this distance metric
       dplyr::filter(D == min(D, na.rm = T)) %>%
       dplyr::slice(1) %>%
-      dplyr::pull(CodeName)
+      dplyr::pull({{ CodeName }})
       # if nothing within tolerance return NA
     } else {
       nearestMatch <- NA
@@ -131,7 +131,18 @@
     return(nearestMatch)
 }
 
-
+.imputeNearestMatchColumn <- function(df, column, dayThresh = 6, latlonThres = 0.01){
+  missing <- df %>% filter(is.na({{ column }}))
+  nonmissing <- df %>% drop_na({{ column }}) 
+  missing <- missing %>%
+    dplyr::rowwise() %>%
+    dplyr::mutate(
+      imp = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
+     matchingSet = nonmissing, dayThresh = 3, latlonThres = 0.01, CodeName = {{ column }})) %>%
+    dplyr::bind_rows(nonmissing)
+  
+  return(missing)
+}
 
 # naive imputation
 

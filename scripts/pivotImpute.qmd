@@ -18,6 +18,8 @@ execute:
 
 ```{r setup}
 library(tidyverse)
+library(devtools)
+load_all()
 df <- readRDS("fullData.Rds") %>% 
   filter(!grepl("no result", Orig_QAcomment, ignore.case = T)) %>%
   # some values are missing and don't have QA codes nor comments
@@ -98,41 +100,23 @@ df_wide %>%
 
 ## Nearest Neighbor imputation
 ```{r}
-dayThres <- 3 
-latlonThres <- 0.01
-
-# [ ] keep site from chla observations
-# [ ] don't just match to missing dataframe, rather the full dataframe minus the observation under question
-chlamissing <- df_wide %>% filter(is.na(Chla))
-chlanonmissing <- df_wide %>% drop_na(Chla) 
-
-missingobs <- chlamissing %>% filter(sampleDateTime > ymd("2010-07-01")) %>% slice(1)
-
-# Time difference of 3.323348 mins
-tempmissing <- df_wide %>% filter(is.na(Temp))
-tempnonmissing <- df_wide %>% drop_na(Temp) 
-tempMatched <- tempmissing %>%
-  dplyr::rowwise() %>%
-  dplyr::mutate(
-    Temp1 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
-   matchingSet = tempnonmissing, dayThresh = 3, latlonThres = 0.01, CodeName = "Temp"),
-    Temp2 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
-   matchingSet = tempnonmissing, dayThresh = 4, latlonThres = 0.01, CodeName = "Temp"),
-    Temp3 = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
-   matchingSet = tempnonmissing, dayThresh = 4, latlonThres = 0.02, CodeName = "Temp"),
-   )
-
+# 27.5 minutes for these three
+start.time <- Sys.time()
+testdf <- .imputeNearestMatchColumn(df_wide, Temp_c, dayThresh = 6, latlonThres = 0.27)
+testdf <- .imputeNearestMatchColumn(testdf, DO_mgl, dayThresh = 6, latlonThres = 0.27)
+testdf <- .imputeNearestMatchColumn(testdf, Tot_P_ugl, dayThresh = 6, latlonThres = 0.27)
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
-tempMatched %>%
-  ungroup() %>%
-  reframe(
-    across(c(Temp1, Temp2, Temp3),
-    .fns = list(added = function(x) sum(is.na(x)), prop_added = function(x) mean(is.na(x)))
-  ))
+# didn't replace anything
+sum(is.na(df_wide$Temp_c))
+sum(is.na(testdf$Temp_c))
+sum(is.na(df_wide$DO_mgl))
+sum(is.na(testdf$DO_mgl))
+sum(is.na(df_wide$Tot_P_ugl))
+sum(is.na(testdf$Tot_P_ugl))
 
 ```
 - Takes 3.3 minutes for Chla column (25secs for Temp)
@@ -178,3 +162,4 @@ test %>%
 ```{r}
 lm(Chla ~ ., data = test )
 ```
+
