@@ -69,12 +69,16 @@
     dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%  
     # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
     
-    #### Code is now okay up until this point ####
+    
+    
+    # Code is now okay up until this point
     
     
     
     
     
+
+
     # [ ] *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
     
     # [ ] Also the QAcode and QAcomments get lost in the below process
@@ -99,12 +103,13 @@
     dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
     dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
     # [ ] Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
-    
+
     
     
     
     
     #### Code okay after this point ####
+
     dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
@@ -142,6 +147,11 @@
 
 
 
+## KV left off here
+
+
+
+
 #' Load and join NCCA 2015 hydrographic data from csv files
 #'
 #' @description
@@ -164,48 +174,60 @@
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      Methods = ifelse(is.na(Methods), Study, Methods)
+      ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)
+      # Methods = ifelse(is.na(Methods), Study, Methods) # prefer to not fill in Methods if not available (keep as NA)
     )
 
   df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
     # the only comments mention no measurment data or typo
-    # [x] Need to remove all NARS_COMMENTs
+    # [x] Need to remove all NARS_COMMENTs  -- KV: I don't see where this is done
+    # KV: Actually, only the 'Cast and depth provided but no measurement data; measurement depth > station depth (6.6m)' will be taken care of by just removing all NA values. And 'Typo - L uw? No field form available.' only catches one case of where UW > AMB light. There are other similar cases as well, so don't remove these.
+    # KV changed NCCA_hydro_2015 action in flagsMap to 'Keep' based on above notes
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
       sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
       Study = "NCCA_hydro_2015"
     ) %>%
-    dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>%
+    # Some Corrected PAR is Inf because LIGHT_AMB==0, which must be incorrect
+    # Replace Corrected PAR infinity values with NA
+    mutate(`Corrected PAR` = na_if(`Corrected PAR`, Inf)) %>%
+    # dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>% # You can't filter in this way or you are removing other data where light is missing but other parameters are measured
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
-    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH) %>%
+    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH, QAcomment= NARS_COMMENT) %>%
+    # [ ] Added QAcomment=NARS_COMMENT here. Check that it doesn't break anything
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # Remove NAs after pivoting - gets rid of bad CPAR and other missing data
+    dplyr::filter(!is.na(RESULT)) %>%
     dplyr::select(-DATE_COL) %>%
     dplyr::mutate(
       UNITS = dplyr::case_when(
       # [x] can we make this more year specific
-      # These were take from hdyro 2015 metadata file
+      # These were take from hydro 2015 metadata file
       ANALYTE == "DO" ~ "mgl",
       ANALYTE == "TEMPERATURE" ~ "c",
       ANALYTE == "CONDUCTIVITY" ~ "uscm",
-      ANALYTE == "Corrected PAR" ~ "%",
-      ANALYTE == "TRANS" ~ "%",
+      ANALYTE == "Corrected PAR" ~ "percent",
+      ANALYTE == "TRANS" ~ "percent",
       ANALYTE == "PH" ~ "unitless",
     )) %>%
-    dplyr::left_join(renamingTable) %>%
+    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
     dplyr::filter(CodeName != "Remove") %>%
     dplyr::left_join(key) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(conversions) %>%
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
-
-
-# rename, change units, remove CodeName
+  
   return(df)
 }
+
+
+##### NOTE KV HAS NOT REVIEWED THE 2020 HYDRO FUNCTION BELOW ####
+
+
+
 
 #' Load and join NCCA 2020 hydrographic data from csv files
 #'
