@@ -12,12 +12,16 @@ project:
 execute:
   warning: false
   error: false
-  cache: true
+  cache: false 
 ---
 
 
 
 ```{r setup}
+#| label: tbl-dlimpute
+#| tbl-cap: "Missing and nonmissing counts for each analyte before imputation."
+
+
 library(tidyverse)
 library(devtools)
 load_all()
@@ -56,8 +60,8 @@ df %>%
 
 # Detection limit informed imputation
 ```{r dl-informedImp}
-#| label: fig-
-#| fig-cap: "Life expectancy from 1952 - 2007 for Australia. Life expentancy increases steadily except from 1962 to 1969. We can safely say that our life expectancy is higher than it has ever been!"
+#| label: tbl-dlimputepost
+#| tbl-cap: "Missing and nonmissing counts for each analyte after DL informed imputation."
 
 df <- .dlImputation(df, imputeMethod = "uniform") %>%
   filter(
@@ -93,20 +97,24 @@ saveRDS(df, "postImputed.Rds")
 df_wide <- .exactPivot(df)
 
 
-
 df_wide %>%
   reframe(across(-c(Latitude:SITE_ID, Chla_ugl), function(x) sum(is.na(x) & !is.na(Chla_ugl))))  %>%
   gt::gt() %>%
-  gt::tab_header("Missing values with Chla observations, n=8998")
+  gt::tab_header("Missing values with Chla observations, n=9003")
 ```
 
 ## Nearest Neighbor imputation
-
+- depth cutoffs conditional on the sample depth
+  - sample > 30m then window =  15m
+  - else 5m window
+- Next, we will vary and explore different time and horizontal thresholds
+  
 ### 6 days 30km
 ```{r nnimputation}
 # 1 degree ≈ 110.574 km
 # 0.27 ≈ 30km
 # 27.5 minutes for these three
+
 start.time <- Sys.time()
 testdf <- .imputeNearestMatchColumn(df_wide, Temp_c, dayThresh = 6, latlonThres = 0.27)
 testdf <- .imputeNearestMatchColumn(testdf, DO_mgl, dayThresh = 6, latlonThres = 0.27)
@@ -126,7 +134,7 @@ after <- testdf %>%
 
 bind_rows(before, after) %>%
   mutate(step = c("before", "after")) %>%
-  gt::gt(caption  = "% Chla with missing before and after nearest neighbor imputation, n=8998")
+  gt::gt(caption  = "% Chla with missing before and after nearest neighbor imputation, n=9003")
 
 df_wide %>%
   mutate(step = "before") %>%
