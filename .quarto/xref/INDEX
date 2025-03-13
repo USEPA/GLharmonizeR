@@ -51,5 +51,14 @@
   },
   "scripts/exploreCorrelations.qmd": {
     "exploreCorrelations.html": "3ea8c217"
+  },
+  "scripts/summaries/glendaDepthCodestest.qmd": {
+    "glendaDepthCodestest.html": "994b0189"
+  },
+  "scripts/summaries/glendaDepthCodes.qmd": {
+    "glendaDepthCodes.html": "f953219c"
+  },
+  "scripts/summaries/pivotImpute.qmd": {
+    "pivotImpute.html": "27df3b55"
   }
 }

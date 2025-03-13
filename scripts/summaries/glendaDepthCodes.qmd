@@ -1,0 +1,197 @@
+---
+title: "GLENDA depth codes"
+author: "Christian"
+format: dashboard
+server: shiny
+theme: yeti 
+---
+
+```{r setup}
+#| contex: setup
+ 
+library(tidyverse)
+library(devtools)
+library(shiny)
+library(patchwork)
+load_all()
+theme_set(theme_minimal())
+
+
+# [x] Make barbell plot a boxplot with overlain 2.5 to 97.5 percentiles
+# [x] also do this for the table
+# [x] Make this a markdown file
+# [ ] find minimal interval for nonoverlappingness
+
+filepaths <- .getFilePaths()
+GLENDA <- .readFormatGLENDA(filepaths["Glenda"], n_max = Inf)  %>%
+  # [x] Distinct SAMPLE_ID
+  distinct(SAMPLE_ID, .keep_all = T) %>%
+  mutate(
+    DEPTH_CODE =
+      case_when(
+        grepl("Five", DEPTH_CODE, ignore.case = T) ~ "5",
+        grepl("ten", DEPTH_CODE, ignore.case = T) ~ "10",
+        grepl("twenty", DEPTH_CODE, ignore.case = T) ~ "20",
+        grepl("thirty", DEPTH_CODE, ignore.case = T) ~ "30",
+        grepl("forty", DEPTH_CODE, ignore.case = T) ~ "40",
+        grepl("fifty", DEPTH_CODE, ignore.case = T) ~ "50",
+        grepl("one hundred", DEPTH_CODE, ignore.case = T) ~ "100",
+        grepl("two hundred", DEPTH_CODE, ignore.case = T) ~ "200",
+        .default = DEPTH_CODE,
+      )
+  ) %>%
+  filter(is.na(as.numeric(DEPTH_CODE))) %>%
+  filter(DEPTH_CODE != ".", DEPTH_CODE != "Not Applicable") %>%
+  filter(!grepl("bottom", DEPTH_CODE, ignore.case = T)) 
+
+codeOrder <- GLENDA %>% 
+  reframe(m= median(SAMPLE_DEPTH_M, na.rm = T), .by = DEPTH_CODE) %>%
+  arrange(m) %>%
+  pull(DEPTH_CODE)
+
+GLENDA <- GLENDA %>%
+  mutate(
+    DEPTH_CODE = factor(DEPTH_CODE, levels = codeOrder),
+    simplerLayers = case_when(
+      DEPTH_CODE %in% c("Surface", "Mid Epilimnion", "Lower Epilimnion") ~ "Epilimnion",
+      DEPTH_CODE %in% c("Mid Hypolimnion", "Upper Hypolimnion") ~ "Hypolimnion",
+      .default = DEPTH_CODE),
+    simplerLayers = factor(simplerLayers,
+     levels = c("Epilimnion", "Thermocline", "Hypolimnion", "Deep Chlorophyll Layer", "Middle Depth"))
+  )
+```
+
+
+
+# Depth Code Distributions
+ - Sample depth distributions for each GLENDA depth code.
+```{r codeDistributions}
+fi <- GLENDA %>% 
+  drop_na(DEPTH_CODE, SAMPLE_DEPTH_M) %>%
+  reframe(.by = DEPTH_CODE, quant = quantile(SAMPLE_DEPTH_M, probs = c(0, 0.025, 0.5, 0.975, 1))) %>%
+  mutate(.by = DEPTH_CODE, Position = rep(c("Minimum", "2.5th", "50th", "0.975", "Maximum"))) %>%
+  pivot_wider(id_cols = DEPTH_CODE, names_from = Position, values_from = quant) %>%
+  mutate(DEPTH_CODE = factor(DEPTH_CODE, levels = codeOrder)) %>%
+  arrange(DEPTH_CODE)
+
+t1 <- GLENDA %>%
+  ggplot(aes(x = SAMPLE_DEPTH_M, col = DEPTH_CODE)) +
+  geom_histogram(aes(y = after_stat(ncount))) +
+  facet_wrap(~DEPTH_CODE) +
+  theme(legend.position = "none")
+t2 <- fi %>%
+  mutate(DEPTH_CODE = factor(DEPTH_CODE, levels = codeOrder)) %>%
+  ggplot(aes(y = DEPTH_CODE, col = DEPTH_CODE)) +
+  geom_boxplot(aes(xmin = Minimum,
+                   xlower = `2.5th`,
+                   xmiddle = `50th`,
+                   xupper = `0.975`,
+                   xmax = Maximum),
+                   stat = "identity") +
+  ylab("") +
+  theme(legend.position = "none")
+
+t1 + t2
+```
+
+# Distributions table
+```{r}
+
+fi %>%
+  gt::gt(caption = "Summary of the depths associated with each ecologically informative depth code.")
+```
+
+
+# Finding a symmetric interval
+
+## {.toolbar}
+```{r sliderBar}
+sliderInput(inputId = "halfwidth", 
+            label = strong("Half width"),
+            min = 0,
+            max=  0.5,
+            value = 0.25)
+
+```
+
+## Interactive Plots
+```{r fewerSymInt}
+
+plotOutput(outputId = "distPlot")
+plotOutput(outputId = "lessDistPlot")
+```
+
+# Notes 
+
+- Exploring possibility for global, centered, symmetric quantile cutoff before (Left) and after (Right) removing Middle Depth and Deep Chlorophyll layer (most heterogeneous depths).
+- Find global symmetric quantile for interval cutoffs
+  - Mutually exclusive
+  - contiguous
+- Can't simultatenously be contiguous and mutually exclusive
+  - try dropping middle depth
+
+- Find global symmetric quantile for interval cutoffs
+  - Mutually exclusive
+  - contiguous
+- Can't simultatenously be contiguous and mutually exclusive
+  - try dropping middle depth
+
+# All depth codes
+```{r alldepthCodes}
+.readFormatGLENDA(filepaths["Glenda"], n_max = Inf)  %>%
+  # [x] Distinct SAMPLE_ID
+  distinct(DEPTH_CODE) %>%
+  gt::gt()
+```
+
+
+```{r}
+#| context: server
+
+library(shiny)
+#endregion GLENDA %>% 
+#   drop_na(SAMPLE_DEPTH_M) %>%
+#   reframe(.by = simplerLayers,
+#    quant = quantile(SAMPLE_DEPTH_M, probs = c(0.5 - 0.25, 0.5 + 0.25))) %>%
+#   mutate(.by = simplerLayers, Position = c("Lower", "Upper")) %>%
+#   pivot_wider(id_cols = simplerLayers, names_from = Position, values_from = quant) %>%
+#   mutate(simplerLayers = factor(simplerLayers, levels = c("Epilimnion", "Thermocline", "Hypolimnion", "Deep Chlorophyll Layer", "Middle Depth"))) %>%
+#   pivot_longer(c(Lower, Upper), names_to = "Position") %>%
+#   ggplot(aes(y = simplerLayers, col = simplerLayers, x = value)) +
+#   geom_line() +
+#   geom_vline(aes(xintercept= value, col = simplerLayers), alpha = 0.75)
+
+
+
+output$distPlot <- renderPlot({
+  GLENDA %>% 
+    drop_na(DEPTH_CODE, SAMPLE_DEPTH_M) %>%
+    reframe(.by = DEPTH_CODE, quant = quantile(SAMPLE_DEPTH_M, probs = c(0.5 - input$halfwidth, 0.5 + input$halfwidth))) %>%
+    mutate(.by = DEPTH_CODE, Position = c("Lower", "Upper")) %>%
+    pivot_wider(id_cols = DEPTH_CODE, names_from = Position, values_from = quant) %>%
+    mutate(DEPTH_CODE = factor(DEPTH_CODE, levels = codeOrder)) %>%
+    pivot_longer(c(Lower, Upper), names_to = "Position") %>%
+    ggplot(aes(y = DEPTH_CODE, col = DEPTH_CODE, x = value)) +
+    geom_line() +
+    geom_vline(aes(xintercept= value, col = DEPTH_CODE), alpha = 0.75) +
+    ylab("") +
+    xlab("Depth (m)")
+})
+
+output$lessDistPlot <- renderPlot({
+  GLENDA %>% 
+    drop_na(simplerLayers, SAMPLE_DEPTH_M) %>%
+    reframe(.by = simplerLayers,
+     quant = quantile(SAMPLE_DEPTH_M, probs = c(0.5 - input$halfwidth, 0.5 + input$halfwidth))) %>%
+    mutate(.by = simplerLayers, Position = c("Lower", "Upper")) %>%
+    pivot_wider(id_cols = simplerLayers, names_from = Position, values_from = quant) %>%
+    mutate(simplerLayers = factor(simplerLayers, levels = c("Epilimnion", "Thermocline", "Deep Chlorophyll Layer", "Hypolimnion", "Middle Depth"))) %>%
+    pivot_longer(c(Lower, Upper), names_to = "Position") %>%
+    ggplot(aes(y = simplerLayers, col = simplerLayers, x = value)) +
+    geom_line() +
+    geom_vline(aes(xintercept= value, col = simplerLayers), alpha = 0.75) +
+    ylab("") +
+    xlab("Depth (m)")
+})
+
+```

@@ -81,8 +81,8 @@
     # only look within some box
     dplyr::filter(
       dplyr::between(sampleDateTime, 
-        observation$sampleDateTime - days(dayThres),
-        observation$sampleDateTime + days(dayThres)
+        observation$sampleDateTime - days(dayThresh),
+        observation$sampleDateTime + days(dayThresh)
         ),
       dplyr::between(Latitude, 
         observation$Latitude - latlonThres,
@@ -118,7 +118,7 @@
         ddays = sampleDateTime - observation$sampleDateTime,
         # compute a scalar distance (formula up for debate)
         # standardizing by 3 day, 20km cutoff
-        D = ((1/latlonThres * d) + (1 / depthThres) * ddepth + (1/dayThres) * abs(ddays))
+        D = ((1/latlonThres * d) + (1 / depthThres) * ddepth + (1/dayThresh) * abs(ddays))
       ) %>%
       # select minimum on this distance metric
       dplyr::filter(D == min(D, na.rm = T)) %>%
@@ -131,15 +131,23 @@
     return(nearestMatch)
 }
 
-.imputeNearestMatchColumn <- function(df, column, dayThresh = 6, latlonThres = 0.01){
+.imputeNearestMatchColumn <- function(df, column, outcomeColumn = Chla_ugl, dayThresh = 6, latlonThres = 0.01){
   missing <- df %>% filter(is.na({{ column }}))
-  nonmissing <- df %>% drop_na({{ column }}) 
+  nonmissing <- df %>% drop_na({{ column }})
+
+  # [ ] Add ifelse to only impute for observations that have nonmising Chla
   missing <- missing %>%
     dplyr::rowwise() %>%
     dplyr::mutate(
-      imp = .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
-     matchingSet = nonmissing, dayThresh = 3, latlonThres = 0.01, CodeName = {{ column }})) %>%
-    dplyr::bind_rows(nonmissing)
+      {{ column }} := ifelse(
+        # only consider imputing if desired outcome is observed
+        !is.na({{ outcomeColumn }}),
+        .imputeNearestMatch(Latitude, Longitude, sampleDepth, sampleDateTime,
+        matchingSet = nonmissing, dayThresh = dayThresh, latlonThres = latlonThres, CodeName = {{ column }}),
+        {{ column }}
+        )) %>%
+    dplyr::bind_rows(nonmissing) %>%
+    dplyr::ungroup()
   
   return(missing)
 }
