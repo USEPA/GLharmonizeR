@@ -1,3 +1,5 @@
+# Note that we are not including CSMI 2010 data currently because key details are unclear and not documented - commented out in csmiJoinAll.R
+
     # XXX this is for csmi 2010, since it's not included, leaving it commented out
     # dplyr::mutate(
     #   FRACTION = NA,
@@ -16,7 +18,7 @@
     # )) %>%
 
 
-# Should probably check that these data are not redundant with 2010 NCCA data
+
 
 
 #' Load and join data for CSMI 2010 from csv excel files

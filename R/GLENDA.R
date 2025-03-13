@@ -125,7 +125,8 @@
 
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    unique() # Duplicate rows
 
   # all rl not mdls
   internalRL <- df %>%

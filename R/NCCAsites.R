@@ -54,7 +54,8 @@
       stationDepth = STATION_DEPTH,
       WTBDY_NM = GREAT_LAKE
     ) %>%
-    tidyr::drop_na()
+    tidyr::drop_na() %>% 
+    unique()
   
   return(sites)
 }

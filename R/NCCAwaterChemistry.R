@@ -18,7 +18,8 @@
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    unique() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joining
@@ -112,7 +113,8 @@
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    unique() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joining
@@ -274,7 +276,9 @@
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 
+    unique() # Duplicate rows
+  
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(

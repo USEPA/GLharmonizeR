@@ -17,7 +17,8 @@
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 
+    unique() # Duplicate rows
   
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
       dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))

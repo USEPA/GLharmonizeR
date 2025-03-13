@@ -39,6 +39,7 @@
       UID,
       Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
       CodeName, LongName, Explicit_Units, mdl, QAcomment, Units, RESULT) %>%
+    # [ ] KV: ***Add LAB and METHOD from CSMI 2015 data***
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
   return(CSMI)
 }
