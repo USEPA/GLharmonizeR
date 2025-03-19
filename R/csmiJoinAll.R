@@ -21,29 +21,30 @@
       .readCleanCSMI2015(csmi2015, namingFile),
       .readCleanCSMI2021(csmi2021, namingFile)
     ) %>%
-    dplyr::filter(CodeName != "Remove") %>%
     # dplyr::mutate(
     #   QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
     #   QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
     #   RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
     # ) %>%
-    dplyr::mutate(Units = TargetUnits) %>% 
-    # [ ] KV: why is this here? Check.
+    # dplyr::mutate(Units = TargetUnits) %>% 
+    # [X] KV: why is TargetUnits renamed here? This should not be changed.
     dplyr::mutate(
       UID = as.character(UID),
       STIS = as.character(STIS),
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
       UID = paste0("CSMI-", UID)
-    ) %>%
-    dplyr::select(
-      UID,
-      Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
-      CodeName, LongName, Explicit_Units, mdl, QAcomment, Units, RESULT) %>%
-    # [ ] KV: ***Add LAB and METHOD from CSMI 2015 data***
-    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
-  return(CSMI)
+    ) #%>%
+    # dplyr::select(
+    #   UID,
+    #   Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
+    #   CodeName, LongName, Explicit_Units, mdl, QAcomment, TargetUnits, RESULT, LAB, METHOD)
+    # [X] KV: ***Add LAB and METHOD for CSMI 2015 data***
+    # [X] KV: A bunch of things aren't selected that should be. Do you even need to select these variables? Don't do this in other datasets. Removing above code.
+  
+    return(CSMI)
 }
+
 # Turn into test
 # test %>%
 #   filter(! TargetUnits == ReportedUnits) %>%

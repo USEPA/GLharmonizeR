@@ -94,8 +94,11 @@
     dplyr::rename(sampleDepth = Depth..fresh.water..m., Latitude = Latitude..deg., Longitude = Longitude..deg.) %>%
     dplyr::select(-sampleDate) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_"))
-
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+    dplyr::mutate(
+      UID = paste0("EPActd-", SITE_ID, "-", sampleDepth)
+    )
+    # [X] KV: Needs UID
 
   
   # USGS CTD
@@ -129,6 +132,9 @@
       Study = "CSMI_2021_CTD" 
     ) %>%
     tidyr::unite(UID, Transect, Serial, remove = FALSE) %>%
+    dplyr::mutate(
+      UID = paste0("USGSctd-", UID)
+    ) %>%
     dplyr::select(
       SITE_ID = Transect,
       sampleDepth = Depth_m,
@@ -168,18 +174,22 @@
       # for joining to CTD
       sampleDate = lubridate::floor_date(sampleDateTime, "days")
     ) %>%
+    dplyr::mutate(SITE_ID = tolower(SITE_ID),
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
     dplyr::mutate(
       Study = "CSMI_2021_CTD", 
-      UID = paste0(Study, "-", 1:nrow(.)),
+      UID = paste0("NBpar-", SITE_ID, "-", sampleDepth),
       UNITS = "percent",
       ANALYTE = "cpar_USGS",
       RESULT = cpar,
     ) %>%
-    dplyr::select(-c(cpar, UID)) %>%
-    dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+    dplyr::select(-c(cpar)) %>%
     filter(SITE_ID %in% usgsCTDsites$SITE_ID)
     # mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
+  
+    # [X] KV: Needs UID - Use NB for Nikki Berry
+  
+  
   
   # EPA and USGS CTD sites are mutually exclusive
   # sum(epaCTD$SITE_ID %in% usgsCTDsites$SITE_ID)
