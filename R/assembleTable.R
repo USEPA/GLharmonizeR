@@ -1,3 +1,6 @@
+# [ ] KV: These functionalities all need to be split up into separate functions and revisited. Unclear whether the 'remove duplicates' functionality is needed, but if so, it should be renamed to something else (like binning/averaging). Pivoting should be based on a particular variable of interest (e.g., chl-a). Will save further comments.
+
+
 #' imputeNwiden
 #'
 #' @description

@@ -55,7 +55,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   seaBirdDf <- readr::read_rds(seaBird) %>%
     # since pH aren't being converted, need to set the explicit units
     dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
-
+  # [ ] KV: Looks like all of this code went to ctdProcessing.R, which is not a package function. I appreciate you moving the code to clean up this script, but I'm not sure if we should move code outside the core functions that would cause an update to Analytes3 to not get incorporated by running the package functions? Let's talk about how to structure these CTD functions so that the renaming and conversions happen when you run the package, rather than as an external step.
+  
+  
   print("Step 3/7: Read and clean GLENDA")
   GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(.,
@@ -74,6 +76,10 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
         .default = stationDepth),
       .by = STATION_ID
+      
+      # [ ] KV: If we're going to impute stationDept from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen
+      # [ ] KV: Also need to add formal flag for imputing stationDepth
+      # [ ] KV: Also get warning that it's replacing with -Inf for the max argument.
     )
 
   print("Step 4/7: Read and clean CSMI data")
@@ -123,6 +129,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         .default = QAcode
         ),
       QAcomment = dplyr::case_when(
+        # [ ] KV: Does this need same cases as QAcode? Maybe not depending on QCflags sheet.
         is.na(MDL) ~ QAcomment,
         RESULT >= MDL ~ QAcomment, 
         RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
