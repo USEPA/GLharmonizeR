@@ -1,3 +1,5 @@
+# NOT YET REVIEWED
+
 # Check to see if names are same across all seabird files
 .getCTDNames <- function(file) {
   try(oce::read.oce(file) |>
