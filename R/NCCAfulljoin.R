@@ -55,13 +55,14 @@
     } %>%
     dplyr::mutate(
       QAcode = dplyr::case_when(
-        is.na(ReportedUnits) & !grepl("hydro|secchi", Study, ignore.case = T) ~ paste0(QAcode, "; U"),
+        is.na(ReportedUnits) ~ paste0(QAcode, "; U"),
         .default = QAcode
       ),
       QAcomment = dplyr::case_when(
-        is.na(ReportedUnits) & !grepl("hydro|secchi", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
+        is.na(ReportedUnits) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
         .default = QAcomment
-        # [ ] KV: Not sure why this code isn't applied to hydro or secchi study types?
+        # [x] KV: Not sure why this code isn't applied to hydro or secchi study types?
+        # - this was before I added the unts within the loading files, so no longer necessary
       )
     )
 
