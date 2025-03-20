@@ -190,7 +190,7 @@
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
     dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH, QAcomment= NARS_COMMENT) %>%
-    # [ ] KV: Added QAcomment=NARS_COMMENT here to hopefully preserve the comments, which didn't seem to be happening. 
+    # [x] KV: Added QAcomment=NARS_COMMENT here to hopefully preserve the comments, which didn't seem to be happening. 
     # Note comments at beginning of function that we will not be using these comments to remove any data though. Check that it doesn't break anything
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
     # Remove NAs after pivoting - gets rid of bad CPAR and other missing data
