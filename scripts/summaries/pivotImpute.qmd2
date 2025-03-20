@@ -18,11 +18,13 @@ execute:
 
 
 ```{r setup}
+<<<<<<< HEAD
 #| label: tbl-dlimpute
 #| tbl-cap: "Missing and nonmissing counts for each analyte before imputation."
 
-
+=======
 # ************ NONE OF THIS CODE HAS BEEN REVIEWED YET **************
+>>>>>>> initialCodeReview
 
 library(tidyverse)
 library(devtools)

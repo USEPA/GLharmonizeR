@@ -1,16 +1,16 @@
-#' Load and join CSMI water quality data from 2010, 2015, and 2021.
+#' Load and join CSMI water quality data from 2015 and 2021.
 #'
 #' @description
 #' `LoadCSMI` returns a dataframe of all of the joined water quality data relating to CSMI years
-#' 2010, 2015, and 2021.
+#' 2015 and 2021.
 #'
 #' @details
 #' This is the main functions users should use to load and assemble CSMI data
 #' using this package. This function is also called in over arching functions
 #' to assemble data across multiple data sources.
-#' @param csmi2010 a string specifying the directory containing CSMI 2010 data
+#' @param csmi2015 a string specifying the directory containing CSMI 2015 data
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data
-#' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021
+#' @return dataframe of the fully joined water quality data from CSMI years 2015 and 2021
 .loadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf) {
   # Water chemistry  copied from
   # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
@@ -21,28 +21,30 @@
       .readCleanCSMI2015(csmi2015, namingFile),
       .readCleanCSMI2021(csmi2021, namingFile)
     ) %>%
-    dplyr::filter(CodeName != "Remove") %>%
     # dplyr::mutate(
     #   QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
     #   QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
     #   RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
     # ) %>%
-    dplyr::mutate(Units = TargetUnits) %>%
+    # dplyr::mutate(Units = TargetUnits) %>% 
+    # [X] KV: why is TargetUnits renamed here? This should not be changed.
     dplyr::mutate(
       UID = as.character(UID),
       STIS = as.character(STIS),
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
       UID = paste0("CSMI-", UID)
-    ) %>%
-    dplyr::select(
-      UID,
-      Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
-      CodeName, LongName, Explicit_Units, mdl, QAcomment, Units, RESULT) %>%
-    # [ ] KV: ***Add LAB and METHOD from CSMI 2015 data***
-    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))
-  return(CSMI)
+    ) #%>%
+    # dplyr::select(
+    #   UID,
+    #   Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
+    #   CodeName, LongName, Explicit_Units, mdl, QAcomment, TargetUnits, RESULT, LAB, METHOD)
+    # [X] KV: ***Add LAB and METHOD for CSMI 2015 data***
+    # [X] KV: A bunch of things aren't selected that should be. Do you even need to select these variables? Don't do this in other datasets. Removing above code.
+  
+    return(CSMI)
 }
+
 # Turn into test
 # test %>%
 #   filter(! TargetUnits == ReportedUnits) %>%

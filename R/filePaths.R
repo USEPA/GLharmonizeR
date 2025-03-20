@@ -18,18 +18,18 @@
     "NCCAsites2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_site_information_great_lakes-data.csv",
     "NCCAsites2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20-siteinfo-great-lakes-data_revision-1_0.csv",
 
-    # Water quality
+    # Water chemistry
     "NCCAwq2010" = "https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_waterchem.csv",
+    "NCCAqa2010" = "https://raw.githubusercontent.com/kvitense/GL_Data/main/NCCA/ncca_qa_codes.csv",
     "NCCAwq2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_great_lakes-data.csv",
     "NCCAwq2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20_waterchem_data.csv",
-    "NCCAqa2010" = "https://raw.githubusercontent.com/kvitense/GL_Data/main/NCCA/ncca_qa_codes.csv",
 
     # %% GLENDA
     "Glenda" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDA.Rds",
     "GLENDAlimitsPath" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
     "GLENDAsitePath" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
 
-    # SeaBird data
+    # GLNPO SeaBird data
     "seaBird" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/seabird.Rds",
 
     # %% CSMI

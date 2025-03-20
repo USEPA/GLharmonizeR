@@ -130,7 +130,7 @@
 
   # all rl not mdls
   internalRL <- df %>%
-    # [ ] try catch, throw error if it doesn't say reporting limit
+    # [ ] try catch, throw error if it doesn't say reporting limit in RESULT_REMARK
     dplyr::filter(grepl("^<", VALUE)) %>%
     dplyr::distinct(YEAR, SEASON, ANALYTE, VALUE, MEDIUM, FRACTION, METHOD, RESULT_REMARK) %>%
     dplyr::left_join(renamingTable, by = c("MEDIUM", "ANALYTE", "FRACTION", "METHOD" = "Methods")) %>%
@@ -193,6 +193,7 @@
       # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE = dplyr::case_when(
         TIME_ZONE == "EDT" ~ "Canada/Newfoundland",
+        # [ ] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
         TIME_ZONE == "CDT" ~ "EST",
         .default = TIME_ZONE
       ),
@@ -269,8 +270,9 @@
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     # [x] Check if we need to impute units- nope all taken care of
     # sum(is.na(df$Units)) == 0
-    # [ ] Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
+    # [ ] KV: Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
     # If so, we will assume on a given year analytes have same units **KV comment: suggest imputing by year-season combo, rather than just by year**
+    # PR comment: In checking that the unit conversions mapped correctly below, I noticed that there are several observations where ReportedUnits is "none" rather than NA, so those aren't being picked up with the check here for NA units. When you look at the GLENDA_Map tab in Analytes3.xlsx, you can see these analytes that sometimes have 'none' for units. In these cases, there is only ever one type of unit reported for that analyte for the rest of the dataset, so it should be reasonable to impute these missing units. It would be worth doing this in case there are analytes that need to have their units converted (I actually don't think there are, but just in case). You could just impute units by Year/Season to make it general.
     dplyr::mutate(
       TargetUnits = tolower(TargetUnits),
       ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
@@ -299,6 +301,10 @@
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
 
+  
+    # KV issues:
+    # [ ] Do other datasets need time flags? CSMI 2021 wq has 'Assumed sample at noon' in QAcomment, different from GLENDA. Only GLENDA has T flag in flagsMap_withDecisions
+    # [ ] Is it possible to just not impute time?
 
   return(df)
 }

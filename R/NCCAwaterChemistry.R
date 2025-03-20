@@ -27,7 +27,8 @@
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
       # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
-      # Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
+      # KV: Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
+      # KV: Here and elsewhere, prefer not to fill in Methods with Study - just leave blank. Joins fine.
     )
 
   df <- readr::read_csv(
@@ -52,6 +53,7 @@
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
       sampleDateTime = DATE_COL
+      # [ ] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag.
     ) %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
@@ -70,9 +72,9 @@
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::filter(CodeName != "Remove") %>%
+    # KV: conversions did not join correctly without editing ReportedUnits
     dplyr::mutate(
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      # ReportedUnits = stringr::str_remove(ReportedUnits, "\\\\"),
       ReportedUnits = tolower(ReportedUnits)) %>% 
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(
@@ -156,23 +158,31 @@
     dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>% 
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime)
+      # [ ] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag
     ) %>%
     
-    ## **** As mentioned in the comments for .loadNCCAhydro2010(), I don't think these approaches of pivoting the whole dataset to do calculations is working well and is introducing problems. I would suggest instead splitting out the data that you need to do manipulations on (nitrate and nitrite) and dealing with them separately, them joining them back in. ***********
+    ## KV: **** As mentioned in the comments for .loadNCCAhydro2010(), I don't think these approaches of pivoting the whole dataset to do calculations is working well and is introducing problems. I would suggest instead splitting out the data that you need to do manipulations on (nitrate and nitrite) and dealing with them separately, them joining them back in. ***********
+    # [ ] KV: Deal with above comment
     tidyr::pivot_wider(id_cols = c(UID:sampleDateTime), names_from = ANALYTE, values_from = LAB:sampleID) %>% # 4705 rows
     # Combine Nitrate and Nitrite
     dplyr::mutate(
       # Hide result in Nitrate so don't need to make all of the other columns
       RESULT_NITRATE_N =  RESULT_NITRITE_N + RESULT_NITRATE_N,
+      # [ ] KV: Add together the MDLs for nitrate and nitrite here, too. Looks like there are 15 cases where they both exist, and where they are both non-detects. Doesn't look like LRL are available for both, so just do MDL.
+      # If you run the code through the tidyr::pivot_wider line, then do
+      # check <- df %>% filter(!is.na(MDL_NITRITE_N) & !is.na(MDL_NITRATE_N))
+      # You can see these cases and that they are non-detects. Please add together the MDLs in the same manner as RESULT.
     ) %>%
     tidyr::pivot_longer(cols= LAB_PH:sampleID_SILICA, names_pattern = "^([[:alpha:]]*)_(.*)$", names_to = c(".value", "ANL_CODE"), names_repair = "unique") %>%
     # if no result or comment, this is created by the pivot_wider and needs to be removed
     dplyr::filter(!is.na(RESULT) | !is.na(QAcode) | !is.na(QAcomment)) %>% # 4680 rows
-    # **** End up with 25 fewer rows than began with -- can't figure out why ****
+    # KV: **** End up with 25 fewer rows than began with -- can't figure out why ****
+    # [ ] KV: Redo/address the pivoting issues here, per comments above.
     dplyr::mutate(
       # Change the names
       ANL_CODE = dplyr::case_when(
         ANL_CODE == "NITRATE_N" ~ "Diss_NOx",
+        # [ ] KV: Change the MDL name for Diss_NOx here too in the same manner as the ANL_CODE.
         .default = ANL_CODE
       ),
       ReportedUnits = dplyr::case_when(

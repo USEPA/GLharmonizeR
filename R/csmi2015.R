@@ -149,6 +149,7 @@
           lubridate::date(sampleDate),
           "-",
           lubridate::hour(sampleTime)
+          # [ ] KV: time zone not specified here but is elsewhere. How does lubridate deal with this? How does it know this is EST? What happens when join data together with UTC time zone?
         )
       )
     ) %>%

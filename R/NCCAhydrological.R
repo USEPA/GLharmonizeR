@@ -72,7 +72,7 @@
     
     
     
-    # Code is now okay up until this point
+    # KV: Code is now okay up until this point
     
     
     
@@ -80,9 +80,9 @@
     
 
 
-    # [ ] *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
+    # [ ] KV: *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
     
-    # [ ] Also the QAcode and QAcomments get lost in the below process
+    # [ ] KV: Also the QAcode and QAcomments get lost in the below process
     
     tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
     # fill in mean secchi in same rows where other results appear
@@ -92,18 +92,19 @@
     tidyr::drop_na(sampleDepth) %>%
     # [x] filter out where either ambientPAR or underPAR check if this does what we think
     
-    ### [ ] **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
+    ### [ ] KV: **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
     dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
     
-    # It may work to just do this calculation without filtering above if it just produces NAs when one is available
+    # KV: It may work to just do this calculation without filtering above if it just produces NAs when one is available
     dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
     
     dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`, `UNITS_Ambient PAR`, `UNITS_Underwater PAR`)) %>%
     tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
-    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported -- KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
+    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported -- 
+    # KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
     dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
     dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
-    # [ ] Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
+    # [ ] KV: Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
 
     
     
@@ -190,24 +191,24 @@
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
       sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
+      # [ ] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets and flags added. What happens when it is merged with the rest of the data without a time?
       Study = "NCCA_hydro_2015"
     ) %>%
     # Some Corrected PAR is Inf because LIGHT_AMB==0, which must be incorrect
     # Replace Corrected PAR infinity values with NA
     mutate(`Corrected PAR` = na_if(`Corrected PAR`, Inf)) %>%
-    # dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>% # You can't filter in this way or you are removing other data where light is missing but other parameters are measured
+    # dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>% # KV: You can't filter in this way or you are removing other data where light is missing but other parameters are measured
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
     dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH, QAcomment= NARS_COMMENT) %>%
-    # [ ] Added QAcomment=NARS_COMMENT here. Check that it doesn't break anything
+    # [ ] KV: Added QAcomment=NARS_COMMENT here to hopefully preserve the comments, which didn't seem to be happening. Note comments at beginning of function that we will not be using these comments to remove any data though. Check that it doesn't break anything
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
     # Remove NAs after pivoting - gets rid of bad CPAR and other missing data
     dplyr::filter(!is.na(RESULT)) %>%
     dplyr::select(-DATE_COL) %>%
     dplyr::mutate(
       UNITS = dplyr::case_when(
-      # [x] can we make this more year specific
       # These were take from hydro 2015 metadata file
       ANALYTE == "DO" ~ "mgl",
       ANALYTE == "TEMPERATURE" ~ "c",
@@ -224,9 +225,9 @@
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%     
     # add station info
    dplyr::left_join(sites) # KV added this in, but not working properly
-  # [ ] This is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
+  # [ ] KV: This is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
   
-  # [ ] Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets. What happens when it is merged with the rest of the data without a time?
+  # [ ] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets. What happens when it is merged with the rest of the data without a time?
   
   return(df)
 }
@@ -312,10 +313,11 @@
       UNITS = "m",
       ANALYTE = "Secchi"#,
       # CodeName = "Secchi",
-      # LongName = "Secchi"   ### *** KV: can't do these shortcuts or everything in the Key tab won't be joined in here properly, and if we change CodeName, that will be hard-coded here instead of changing with the Analytes3 spreadsheet
+      # LongName = "Secchi"   
+      ### *** KV: can't do these shortcuts or everything in the Key tab won't be joined in here properly, and if we change CodeName, that will be hard-coded here instead of changing with the Analytes3 spreadsheet
     ) %>%
     dplyr::left_join(sites) %>%  
-    # [ ] Site info is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
+    # [ ] KV: Site info is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
   
     # KV added below code to properly join tables
     dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
