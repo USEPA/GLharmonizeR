@@ -42,8 +42,8 @@
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::mutate(
       ReportedUnits = stringr::str_replace(ReportedUnits, "[.]", " "),
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),  
-      ReportedUnits = tolower(ReportedUnits)) %>%     
+      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+      ReportedUnits = tolower(ReportedUnits)) %>%
     # KV: conversions was not joining correctly because ReportedUnits hadn't been modified
     dplyr::left_join(conversions) %>%
     dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
