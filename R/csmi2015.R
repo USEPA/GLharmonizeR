@@ -96,10 +96,8 @@
       mdl = as.numeric(mdl),
       mdl = ifelse(!is.na(ConversionFactor), mdl*ConversionFactor, mdl),
       ) %>%
-    dplyr::select(ANALYTE, CodeName, mdl, LAB, METHOD) # Include LAB and METHOD
-  
-  
-
+    dplyr::select(ANALYTE, CodeName, mdl, LAB, METHOD) %>% # Include LAB and METHOD
+    tidyr::drop_na(mdl) # no need to keep rows without an mdl
   
   
   # impute missing coordinates from target coordinates if possible
@@ -144,13 +142,15 @@
     dplyr::select(-sampleType) %>%
     # [x] combine date and time
     dplyr::mutate(
-      sampleDateTime = lubridate::ymd_h(
+      sampleDateTime = lubridate::ymd_hm(
         paste0(
           lubridate::date(sampleDate),
           "-",
-          lubridate::hour(sampleTime)
-          # [ ] KV: time zone not specified here but is elsewhere. How does lubridate deal with this? How does it know this is EST? What happens when join data together with UTC time zone?
-        )
+          lubridate::hour(sampleTime),
+          lubridate::minute(sampleTime),
+          # [x] KV: time zone not specified here but is elsewhere. How does lubridate deal with this? How does it know this is EST? What happens when join data together with UTC time zone?
+          # - added it's specification as EST
+        ), tz = "EST"
       )
     ) %>%
     tidyr::separate_wider_delim(ANALYTE, delim = "_", names= c("ANALYTE", "UNITS"), too_many = "merge", too_few = "align_start") %>%
@@ -184,6 +184,12 @@
   file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   unlink("CSMI2015_newQuery", recursive = TRUE)
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(WQ)
 }
 

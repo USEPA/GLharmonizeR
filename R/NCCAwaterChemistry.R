@@ -87,6 +87,12 @@
       ) %>%
     dplyr::left_join(sites) 
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
 
@@ -258,7 +264,12 @@
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
                   MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
                   LRL = ifelse(!is.na(ConversionFactor), LRL * ConversionFactor, LRL))
-
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
 
@@ -394,5 +405,11 @@
       RL = ifelse(!is.na(ConversionFactor), RL * ConversionFactor, RL),
     )
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)) # 0
+  # mean(df$CodeName == "Remove") # 0
+  # mean(is.na(df$TargetUnits)) # 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))) # 0
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }

@@ -1,11 +1,14 @@
 # NOT FULLY REVIEWED
 #'
-#' @param out (optional) filepath to save the dataset to
+#' @param out filepath to save the dataset to. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
-#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?
+#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as csv. Default is TRUE.
 #' @export
-#' @return full, harmonized dataset
-assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
+#' @returns full, harmonized dataset
+#' @examples
+#' assembleData("filepath", binaryOut = FALSE)
+#' assembleData("filepath.Rds")
+assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # Load up the filepaths
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
@@ -241,7 +244,6 @@ allWQ %>%
     print(paste0("Writing data to ", out, ".Rds"))
     saveRDS(allWQ, paste0(out, ".Rds"))
   } else {
-    out <- paste0(out, ".csv")
     print(paste0("Writing data to ", out, ".csv"))
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }

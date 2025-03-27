@@ -132,6 +132,12 @@
     dplyr::left_join(conversions) %>%
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
 
@@ -218,6 +224,12 @@
     # - only missing 5% of lat/lngs now after successful join 
     # [x] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets. What happens when it is merged with the rest of the data without a time?
   
+  # missingness/joining checks in output:
+  #mean(is.na(df$CodeName)): 0
+  #mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
 
@@ -329,7 +341,12 @@
     # KV: NaN's in RESULT seem to be cases where DISAPPEAR and REAPPEAR aren't available. Often these are marked as clear to bottom, but sometimes estimated value is inconsistent with this marking. 
     # Decide to remove as bad data
   
-  
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
 
@@ -403,5 +420,11 @@
       )) %>%
     dplyr::filter(CodeName != "Remove")
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }

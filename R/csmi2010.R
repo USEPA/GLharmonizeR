@@ -146,5 +146,11 @@
   #     "CTD Casts 2010 Excel.xlsx"
   #   ))
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }
