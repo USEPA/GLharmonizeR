@@ -35,9 +35,9 @@
     # %% CSMI
     "csmi2015" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
     "csmi2021" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2020_2021/",
-    
+
     # %% NOAA
-    "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26.xlsx",
+    "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26_CORRECTED.xlsx", # This file has corrected values based on 'edits_nutrients.xlsx' Steve Pothoven sent 2024-12-13. These were manually corrected.
     "noaaWQ2" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/Additionalnutrients_NOAA.xlsx",
     "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD.Rds",
     "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformationUpdated.xlsx"
