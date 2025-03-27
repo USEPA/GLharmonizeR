@@ -7,7 +7,7 @@
 #' @returns full, harmonized dataset
 #' @examples
 #' assembleData("filepath", binaryOut = FALSE)
-#' assembleData("filepath.Rds")
+#' assembleData("filepath")
 assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # Load up the filepaths
   filepaths <- .getFilePaths()
