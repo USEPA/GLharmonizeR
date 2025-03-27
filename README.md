@@ -3,7 +3,7 @@
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)
+<!--[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)-->
 <!-- badges: end -->
 
 This repository contains R functions to merge Lake Michigan Chlorophyll-A (Chla) and predictor data from diverse sources. It also contains workflows for pivoting and imputing the data in preparation for analysis.
@@ -42,7 +42,15 @@ The full documentation is contained [here](docs/UserInfo.md). The sections below
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
 
 - Impute censored data based on detection limits
+  - starting with data (`df`) in long format
+  ```r
+  dfimputed <- .dlImputation(df, imputeMethod = "halfMDL")
+  ```
+
 - Pivot from long to wide format
+  ```r
+  dfshort <- .exactPivot(dflong)
+  ```
 - Impute missing observations based on a nearest neighbor search
 - Naively impute remaining missingness using a random forest model
 
@@ -61,6 +69,7 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 - Download data from remote sources (under construction)
 - Clean each dataset individually
 - Combine into a unified dataset
+- Provide utilities for processing (imputation etc.)
 
 ## Data sources
 The data were taken from the following sources
@@ -104,6 +113,8 @@ Tags in code are supported to make it easier to search when searching for things
 - [ ] - For TODO's
 - [x] - to mark that necessary changes are done
 - DOCTHIS - highlight sections of code that are important to write up in the documentation for the package
+- XXX - Something else of note for developers
+
 
 ## Testing
 In order to cut down time tests take to run, tests for a given data source should all be run together. To accomplish this, the data should be stored as a fixture and then tested. Tests are ran through ['testthat' R package](https://testthat.r-lib.org/). Code coverage is provided by [covr](https://covr.r-lib.org/).
@@ -130,6 +141,8 @@ The database contains metadata (analyte descriptions and data column description
 
 ## Making changes to namings
 Make sure you change all occurences in the Analytes3.xlsx
+- Each of the "_Map" sheets
+- The "key" sheet
 
 # Citation
 .....

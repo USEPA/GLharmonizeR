@@ -1,7 +1,7 @@
 
 
-# [ ] Add in less than RL's here too
-# [ ] Count the values that are <RL separately
+# [x] Add in less than RL's here too
+# [x] Count the values that are <RL separately
 # - if both mdl and rl igve priority to mdl
 .dlImputation <- function(df, imputeMethod = NULL){
   # [ ] impute secchi depth as a separate function
@@ -34,7 +34,7 @@
       # impute using DLs
       # https://19january2017snapshot.epa.gov/sites/production/files/2015-06/documents/whatthel.pdf
       # MDL < PQL 
-      # [ ] find how to incorporate RL
+      # [x] find how to incorporate RL
       # NOTE keep those reported as below MDL because their estimate is still likely better
       MDL = mean(MDL, na.rm =T), 
       # PQL = mean(PQL, na.rm =T),  dropped PQL might need to add back imputeMethodn
