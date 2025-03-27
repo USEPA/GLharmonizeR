@@ -1,14 +1,20 @@
-# NOT YET REVIEWED
+# FIRST NOAA CTD SCRIPT TO RUN (before NOAAProcessing.R)
+
+# [ ] KV: Please add comments at the top of this document describing what this script does and clarifying/confirming the order in which the NOAA processing files are run
+
+# ** Note: KV has not run or carefully checked this code **
 
 library(oce)
 library(tidyverse)
 devtools::load_all()
 filepaths <- .getFilePaths()
-noaaWQ <- filepaths["noaaWQ"]
+# noaaWQ <- filepaths["noaaWQ"] # KV: Doesn't appear to be used here
 noaaWQSites <- filepaths["noaaWQSites"]
-namingFile <- filepaths["namingFile"]
+# namingFile <- filepaths["namingFile"] # KV: Doesn't appear to be used here and SHOULD NOT be used in any of these processing scripts (per comments in NOAAProcessing.R)
 noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 
+
+# [ ] KV: Not a high priority, but note that the CTD file paths here are just synced files from Sharepoint and could probably be read in directly from Sharepoint, rather than having a user-specific path here.  https://usepa.sharepoint.com/:f:/r/sites/LakeMichiganML/Shared%20Documents/General/Raw_data/NOAA/CTD%202007-2022?csf=1&web=1&e=WmEi8R
 ctdFiles <- list.files(
   path = file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General",
    "Raw_data", "NOAA", "CTD 2007-2022"), recursive = T, pattern = "*.cnv$", full.names = F, ignore.case =T) %>%

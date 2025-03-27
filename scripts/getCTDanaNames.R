@@ -1,4 +1,9 @@
-# NOT YET REVIEWED
+# [ ] KV: Please add comments at the top of this document describing what this script does and the order in which the CTD processing files need to be run. For instance, NOAActdNameParsing.R outputs ctdFileMetaData.csv, which is read in below, and would need to be run first.
+# [ ] KV: Please edit typo in script file name, if it is a typo
+
+
+
+# [ ] KV: Are the two functions below used anywhere else in the scripts or package functions or are they just used here? If just used in this sole script, please add a comment explaining that.
 
 # Check to see if names are same across all seabird files
 .getCTDNames <- function(file) {
@@ -19,6 +24,9 @@
   try(meta$date <- data@metadata$date)
   return(meta)
 }
+
+
+# [ ] KV: Please describe what the code below is doing and why
 
 NAMES <- sapply(seaBird, FUN = .getCTDNames)
 table(unlist(NAMES))

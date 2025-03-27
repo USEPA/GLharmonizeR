@@ -1,15 +1,21 @@
-# NOT YET REVIEWED
 
 # This function isn't explicitly used in the package. Instead, it was used to
 # preprocess CTD data (specifically data stored on SeaBird). The processing script 
 # is scripts/seaBirdProcessing.R 
 
+# [ ] KV: Seems like this script should be moved to the 'scripts' folder if it is not a core package function and was only used to preprocess CTD data. You could instead source it directly in the processing files so that it loads, if that is part of the reason why it is in the R directory
+# [ ] KV: Looks like this function was also used to process NOAA's CTD data, is that right? If so, please update description above.
+# [ ] KV: I am surprised a single function could be written to cover both GLNPO's and NOAA's CTD data - please carefully ensure that the function is working correctly for both 
 
+# Note: KV will need to recheck function after clarifications/checks are made
 
 
 # Convert conductance with the following (suggested by James Gerads)
 # [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
 .oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
+  
+  # [ ] KV: Where is studyName used? It's not in the function
+  
   # load data as oce object
   # get Date, Lat, Lon, stationDepth # Station Name
   meta <- data.frame(
@@ -54,10 +60,12 @@
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
     dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH", "conductivity", "par")))
+    # Note that this selects data from the first sensor - additional sensors have the same name followed by an integer
 
 
   # possible names
   possibleNames <- c("cpar", "oxygen", "specificConductance", "pH", "par")
+  # [ ] KV: Does this list of possible names really work for both GLNPO and NOAA CTD? Please double check that all applicable analytes are being selected across both datasets - e.g., when specific conductivity is available for NOAA, is it called specificConductance exactly?
 
   if (bin) {
     # Bin data
@@ -99,6 +107,7 @@
       stringr::str_remove_all(UNITS, pattern = "/"),
       stringr::str_extract(UNITS, pattern = "C$")
     ))
+  # [ ] KV: Double check this  units code works across both GLNPO and NOAA CTD
 
   df <- df %>%
     dplyr::left_join(unitTable, by = "ANALYTE")
