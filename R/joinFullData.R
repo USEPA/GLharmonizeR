@@ -60,8 +60,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
   # [ ] KV: Looks like all of this code went to seaBirdProcessing.R, which is not a package function. I appreciate you moving the code to clean up this script, but we should not move code outside the core functions that would cause an update to Analytes3 to not get incorporated by running the package functions. See extensive comments in both seaBirdProcessing.R and NOAAProcessing.R regarding how to address this comment.
   # [ ] KV: Also the mutate() line editing Explicit_Units should be in the new GLNPO Seabird CTD function you will create, not added here.
-  
-  
+
+
   print("Step 3/7: Read and clean GLENDA")
   GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(.,
@@ -80,7 +80,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
         is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
         .default = stationDepth),
       .by = STATION_ID
-      
+
       # [ ] KV: If we're going to impute stationDept from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen
       # [ ] KV: Also need to add formal flag for imputing stationDepth
       # [ ] KV: Also get warning that it's replacing with -Inf for the max argument.
@@ -124,10 +124,10 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     ) %>%
     dplyr::mutate(
       # [x] Flag if below detection limit
-      # If MDL is missing, 
+      # If MDL is missing,
       QAcode = dplyr::case_when(
         is.na(MDL) ~ QAcode,
-        RESULT >= MDL ~ QAcode, 
+        RESULT >= MDL ~ QAcode,
         RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
         RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
         RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
@@ -136,7 +136,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
       QAcomment = dplyr::case_when(
         # [ ] KV: Does this need same cases as QAcode? Maybe not depending on QCflags sheet.
         is.na(MDL) ~ QAcomment,
-        RESULT >= MDL ~ QAcomment, 
+        RESULT >= MDL ~ QAcomment,
         RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
         .default = QAcomment
       )
@@ -144,7 +144,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
-  notflagged <- allWQ %>% 
+  # [ ] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
+  notflagged <- allWQ %>%
     dplyr::filter((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study))) %>%
     dplyr::distinct()
 
@@ -157,7 +158,10 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     )
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
-  flagged <- allWQ %>%
+
+
+    # [ ] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
+    flagged <- allWQ %>%
     dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study)))) %>%
     dplyr::mutate(
       QAcode = stringr::str_remove_all(QAcode, "^NA;"),
@@ -195,7 +199,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
       Action = toString(unique(Action)),
      .by = c(
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
-      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT, 
+      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
       MDL, #PQL,
        RL, LAB
     ))  %>%
@@ -223,21 +227,23 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
     dplyr::mutate(Units = Explicit_Units) %>%
+    # [ ] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
+    # [ ] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
     dplyr::select(
       UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDateTime, sampleDepth,
       CodeName, LongName, RESULT, Units, MDL, # PQL,
-      RL, Unified_Flag, Unified_Comment, 
-      Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment, 
+      RL, Unified_Flag, Unified_Comment,
+      Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment,
       Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
       TargetUnits, ConversionFactor, Retain_InternalUse=Retain,
       Action_InternalUse=Action) %>%
     dplyr::arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
 
-allWQ %>% 
+allWQ %>%
   filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
   reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
   print(n = 300)
-allWQ %>% 
+allWQ %>%
   reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
   print(n = 300)
 
@@ -253,7 +259,22 @@ allWQ %>%
   return(allWQ)
 }
 
+# *** KV list ***
+# [ ] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
+# [ ] Add flag for all CPAR>100% across datasets but keep in
+# [ ] Need flag for station depth imputed from another site visit
+# Time imputation issues:
+# [ ] Did flag for imputing sample time as noon get incorporated universally? Only for GLENDA (T Flag) - others need it?
+# [ ] Need thorough check for missing times being imputed - not imputed for hydro 2015
+# [ ] Another option is to just have separate columns for date and time and not impute time and remove flag?
+# [ ] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
+# [ ] CSMI 2021 time zones not dealt with properly
+# [ ] Add known issues to documentation
+  # --Times not to be trusted yet
 
+
+
+# Christian comments
 # [ ]: Identify all analytes with missing Code Names and add to naming shee
 # - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
 # - Then fill all missing ANL_CODE with nonmissing
