@@ -10,26 +10,26 @@
 #' this function implicitly when assembling their full water quality dataset
 #' @return dataframe of the fully joined water quality data from CSMI 2015
 .readCleanCSMI2015 <- function(csmi2015, namingFile) {
-  
+
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
-  
+
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
     unique() # Duplicate rows
-  
+
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
-    dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")) %>% 
+    dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")) %>%
     dplyr::select(-Methods) # Removing Methods because these were filled in manually in spreadsheet and are incomplete, they're not needed for joining, and we can pull out the methods in mdl object and join back in
-  
+
   # Establish connection to the database
   download.file(csmi2015, destfile = "tempCSMI2015.zip")
   unzip("tempCSMI2015.zip")
   file.remove("tempCSMI2015.zip")
 
   dbi <- RODBC::odbcConnectAccess2007("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
-  
+
   # Spatial information
   stationInfo <- RODBC::sqlFetch(dbi, "L1_Stationmaster") %>%
     dplyr::select(
@@ -56,7 +56,7 @@
   # Water chem sample depth
   stisInfo <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
     dplyr::select(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m,
-      sampleType = ASTlayername) %>% 
+      sampleType = ASTlayername) %>%
     mutate(
       SampleEventKey = ifelse(
         STIS %in% as.character(5008:5015),
@@ -66,11 +66,11 @@
   # *** Note: STIS 5008-5015 has wrong SampleEventFK in L3a_SampleLayerList above ***
   # Should be Fra_46_May_LE2 - KV changed and will inform Anett
   # Note that this can be seen based on max depths of WQdepth_m, and in the SampleEvents in L3b_CTDLayerData
-  
-  
+
+
   sampleInfo <- dplyr::left_join(stisInfo, eventInfo, by = "SampleEventKey") %>%
     dplyr::left_join(stationInfo, by = "SITE_ID")
-  
+
   mdls <- RODBC::sqlFetch(dbi, "Metadata_WQanalytes") %>%
     dplyr::select(ANALYTE = WQParam, ReportedUnits = WQUnits, mdl = DetectLimit, LAB = Analyst, METHOD = AnalMethod) %>%
     dplyr::mutate(
@@ -84,8 +84,8 @@
     dplyr::left_join(key, by = "CodeName") %>%
     # Conversions was not joining correctly - need to clean up ReportedUnits before join conversions table
     dplyr::mutate(
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),  
-      ReportedUnits = tolower(ReportedUnits)) %>% 
+      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+      ReportedUnits = tolower(ReportedUnits)) %>%
     # Manually change pH and temp units
     dplyr::mutate(
       ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
@@ -97,11 +97,11 @@
       mdl = ifelse(!is.na(ConversionFactor), mdl*ConversionFactor, mdl),
       ) %>%
     dplyr::select(ANALYTE, CodeName, mdl, LAB, METHOD) # Include LAB and METHOD
-  
-  
 
-  
-  
+
+
+
+
   # impute missing coordinates from target coordinates if possible
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     tidyr::pivot_longer(NH4_ugNL:CtoN_atom, names_to = "ANALYTE", values_to = "RESULT") %>%
@@ -109,7 +109,7 @@
     tidyr::drop_na(RESULT) %>%
     dplyr::select(STIS = `STIS#`, SITE_ID = Chem_site, ANALYTE, RESULT) %>%
     dplyr::left_join(sampleInfo, by = "STIS") %>%
-    # retain the site information from the sample information -- 
+    # retain the site information from the sample information --
       # OK for Sjo_XtraDeep=Sjo_xd and MI18/Deep Stn 18 = Rac_xd
       # Needed to correct Fra_46 from L3a_SampleLayerList though
     dplyr::select(-SITE_ID.x) %>%
@@ -160,13 +160,13 @@
       ANALYTE = stringr::str_extract(ANALYTE, "[:alnum:]*")
     ) %>%
     dplyr::left_join(renamingTable) %>%
-    dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>% 
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(key) %>%
-    
+
     # Conversions was not joining correctly - needed to clean up ReportedUnits before join conversions table
     dplyr::mutate(
-      ReportedUnits = tolower(ReportedUnits)) %>% 
+      ReportedUnits = tolower(ReportedUnits)) %>%
     # Manually change units so that conversions table joins correctly
     dplyr::mutate(
       ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
@@ -175,11 +175,11 @@
       ReportedUnits = ifelse(ReportedUnits == "ugl_sirms", "ugl", ReportedUnits),
       ReportedUnits = ifelse(ReportedUnits == "pct", "percent", ReportedUnits)
     ) %>%
-    
+
     dplyr::left_join(conversions) %>%
     dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
     dplyr::left_join(mdls)
-  
+
   RODBC::odbcClose(dbi)
   file.remove("CSMI2015_newQuery/CSMI2015_newQuery.accdb")
   unlink("CSMI2015_newQuery", recursive = TRUE)

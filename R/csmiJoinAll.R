@@ -26,22 +26,24 @@
     #   QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
     #   RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
     # ) %>%
-    # dplyr::mutate(Units = TargetUnits) %>% 
+    # dplyr::mutate(Units = TargetUnits) %>%
     # [X] KV: why is TargetUnits renamed here? This should not be changed.
     dplyr::mutate(
       UID = as.character(UID),
       STIS = as.character(STIS),
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
-      UID = paste0("CSMI-", UID)
-    ) #%>%
+      UID = paste0("CSMI-", UID),
+      Years = as.character(Years)
+    ) %>%
+    dplyr::select(-ANL_CODE) # Not used in CSMI and causes problems in joining
     # dplyr::select(
     #   UID,
     #   Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
     #   CodeName, LongName, Explicit_Units, mdl, QAcomment, TargetUnits, RESULT, LAB, METHOD)
     # [X] KV: ***Add LAB and METHOD for CSMI 2015 data***
     # [X] KV: A bunch of things aren't selected that should be. Do you even need to select these variables? Don't do this in other datasets. Removing above code.
-  
+
     return(CSMI)
 }
 

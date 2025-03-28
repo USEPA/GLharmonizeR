@@ -1,4 +1,6 @@
 # NOT FULLY REVIEWED
+# This file will also need to be rechecked after fixing issues in the other files
+
 #'
 #' @param out (optional) filepath to save the dataset to
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
@@ -50,8 +52,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     n_max = n_max
   ) %>%
   dplyr::mutate(Finalized = as.character(Finalized))
+  # [ ] KV: Move this final mutate function to within .loadNCCA() function if still needed
 
-  print("Step 2/7: Read preprocessed Seabird files associated with GLENDA")
+  print("Step 2/7: Read preprocessed GLNPO Seabird files")
   seaBirdDf <- readr::read_rds(seaBird) %>%
     # since pH aren't being converted, need to set the explicit units
     dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
@@ -78,9 +81,18 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         .default = stationDepth),
       .by = STATION_ID
 
-      # [ ] KV: If we're going to impute stationDept from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen
-      # [ ] KV: Also need to add formal flag for imputing stationDepth
+      # [ ] KV: If we're going to impute stationDepth from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen.
+          # Suggest first imputing stationDepth from other site visits
+          # Then use Study ID to only impute CTD stationDepth by maxDepth separately, adding a flag
+          # Then do another round of imputing stationDepth from other site visits, preserving the flag from other original maxDepth imputation
+      # [ ] KV: Also need to add formal flag for imputing stationDepth in flagsMap
       # [ ] KV: Also get warning that it's replacing with -Inf for the max argument.
+            # 3: There were 113 warnings in `dplyr::mutate()`.
+            # The first warning was:
+            #   ℹ In argument: `stationDepth = dplyr::case_when(...)`.
+            # ℹ In group 24: `STATION_ID = "MI9552n"`.
+            # Caused by warning in `max()`:
+            #   ! no non-missing arguments to max; returning -Inf
     )
 
   print("Step 4/7: Read and clean CSMI data")
@@ -92,6 +104,8 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   # [ ] KV: This will need to be replaced with calling the new NOAA CTD function you will create
   NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
 
+
+  ########### LEFT OFF HERE ###############
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
     dplyr::mutate(
@@ -258,6 +272,7 @@ allWQ %>%
 }
 
 # *** KV list ***
+# [ ] Does package load dplyr? If not, there are several helper functions that need to have dplyr loaded or need to have dplyr:: added (e.g., join_by)
 # [ ] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
 # [ ] Add flag for all CPAR>100% across datasets but keep in
 # [ ] Need flag for station depth imputed from another site visit

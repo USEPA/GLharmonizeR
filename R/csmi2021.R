@@ -14,14 +14,14 @@
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
-  
+
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>%
     unique() # Duplicate rows
-  
+
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
       dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\."))
-  
+
   mdls <- file.path(csmi2021, "Chem2021_detection%20limits.xlsx") %>%
     # The detection limit file contains MDLs and the values used to impute results <MDL.
     openxlsx::read.xlsx(sheet = "detection limits", rows = 1:3) %>%
@@ -34,7 +34,7 @@
       ANALYTE = stringr::str_extract(ANALYTE, "^[:alnum:]*"),
       ANALYTE = ifelse(ANALYTE == "chl", "chla", ANALYTE),
       ) %>%
-    dplyr::mutate(Study = "CSMI_2021_WQ") %>% 
+    dplyr::mutate(Study = "CSMI_2021_WQ") %>%
     # KV: renaming table was not joining correctly because Study was not included and numbers were removed from ANALYTE in renaming Table
     dplyr::left_join(renamingTable) %>% # Note DOC not measured
     dplyr::filter(CodeName != "Remove") %>% # Note also removes NAs - which is DOC
@@ -42,18 +42,18 @@
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::mutate(
       ReportedUnits = stringr::str_replace(ReportedUnits, "[.]", " "),
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),  
-      ReportedUnits = tolower(ReportedUnits)) %>%     
+      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
+      ReportedUnits = tolower(ReportedUnits)) %>%
     # KV: conversions was not joining correctly because ReportedUnits hadn't been modified
     dplyr::left_join(conversions) %>%
     dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
-    dplyr::select(ANALYTE, CodeName, TargetUnits, mdl) 
+    dplyr::select(ANALYTE, CodeName, TargetUnits, mdl)
     # KV: why would you want to to change TargetUnits to UNITS here? Should join to the table correctly keeping as TargetUnits, and TargetUnits more clearly signifies that the units are converted
 
-  
-  
+
+
   ### CTD ###
-  
+
   # EPA CTD
   # EPA contact is James Gerads
   ## bin averaged over 1 meter depth intervals. Think bin depth is for 1 m below that depth (e.g., 1 m is 1-2 m)
@@ -80,13 +80,13 @@
       cols = 3:7,
       names_to = "ANALYTE",
       values_to = "RESULT"
-    ) %>% 
+    ) %>%
     tidyr::separate_wider_regex(ANALYTE, patterns = c("ANALYTE" = ".*", "\\.\\.", "UNITS" = ".*\\..*"), too_few = "align_start") %>%
     dplyr::mutate(
       UNITS = stringr::str_remove_all(UNITS, "[^%|^[:alnum:]]"),
-      UNITS = ifelse(ANALYTE=="cpar", "percent", UNITS), 
-      UNITS = ifelse(ANALYTE=="pH", "unitless", UNITS), 
-      UNITS = ifelse(UNITS=="degC", "C", UNITS), 
+      UNITS = ifelse(ANALYTE=="cpar", "percent", UNITS),
+      UNITS = ifelse(ANALYTE=="pH", "unitless", UNITS),
+      UNITS = ifelse(UNITS=="degC", "C", UNITS),
       ANALYTE = stringr::str_remove_all(ANALYTE, "\\."),
       sampleDateTime = lubridate::ymd_hm(paste(sampleDate, "12:00")),
       Study = "CSMI_2021_CTD"
@@ -94,13 +94,13 @@
     dplyr::rename(sampleDepth = Depth..fresh.water..m., Latitude = Latitude..deg., Longitude = Longitude..deg.) %>%
     dplyr::select(-sampleDate) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::mutate(
       UID = paste0("EPActd-", SITE_ID, "-", sampleDepth)
     )
     # [X] KV: Needs UID
 
-  
+
   # USGS CTD
   usgsCTDsites <- file.path(csmi2021, "CTD_OP_2021_LM_CSMI.xlsx") %>%
     openxlsx::read.xlsx(
@@ -112,7 +112,7 @@
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_"))
 
 
-  
+
   usgsCTD <- file.path(csmi2021, "2021%20July%20Lake%20Michigan%20CSMI%20CTD%20for%20EPA.csv")%>%
     readr::read_csv() %>%
     tidyr::pivot_longer(
@@ -124,12 +124,12 @@
     tidyr::separate_wider_delim(ANALYTE, delim = "_", names= c("ANALYTE", "UNITS"), too_many = "merge", too_few = "align_start") %>%
     dplyr::mutate(
       ANALYTE = paste0(ANALYTE, "_USGS") # Added to avoid problems with EPA and USGS CTD data having same study ID and similar parameter names with different meanings/decisions
-    ) %>% 
+    ) %>%
     dplyr::mutate(
       sampleDate = lubridate::dmy(Date),
       UNITS = tolower(stringr::str_remove_all(UNITS, "_")),
       UNITS = ifelse(ANALYTE=="pH_USGS", "unitless", UNITS),
-      Study = "CSMI_2021_CTD" 
+      Study = "CSMI_2021_CTD"
     ) %>%
     tidyr::unite(UID, Transect, Serial, remove = FALSE) %>%
     dplyr::mutate(
@@ -142,10 +142,10 @@
     ) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_"))
-  
+
     # [X] KV: Add '_USGS' to end of analyte names to deal with similar parameter names between EPA and USGS CTD datasets that have different meanings or decisions.
       # KV: Note that there were several errors for inclusion of the USGS CTD data in the renamingTable due to apparent copy/paste errors and differences between EPA and USGS data sheets. USGS data should've been included separately with different study IDs to account for differences in names across spreadsheets (e.g., for conductivity, temp), but adding '_USGS' to end helps at least.
-  
+
 
 
   # bin starting at 0.5m every 1m so 0.5-1.5 ...
@@ -166,7 +166,7 @@
       SITE_ID = Transect
     ) %>%
     dplyr::filter(sampleDepth != 0) %>%
-    dplyr::reframe(cpar = mean(cpar, na.rm = T), 
+    dplyr::reframe(cpar = mean(cpar, na.rm = T),
                    sampleDateTime = min(sampleDateTime, na.rm = T), # Do min in case a cast overlaps the hour
                    .by = c(SITE_ID, sampleDateTime, sampleDepth)) %>%
     # still no missingness
@@ -175,9 +175,9 @@
       sampleDate = lubridate::floor_date(sampleDateTime, "days")
     ) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::mutate(
-      Study = "CSMI_2021_CTD", 
+      Study = "CSMI_2021_CTD",
       UID = paste0("NBpar-", SITE_ID, "-", sampleDepth),
       UNITS = "percent",
       ANALYTE = "cpar_USGS",
@@ -186,15 +186,15 @@
     dplyr::select(-c(cpar)) %>%
     filter(SITE_ID %in% usgsCTDsites$SITE_ID)
     # mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
-  
+
     # [X] KV: Needs UID - Use NB for Nikki Berry
-  
-  
-  
+
+
+
   # EPA and USGS CTD sites are mutually exclusive
   # sum(epaCTD$SITE_ID %in% usgsCTDsites$SITE_ID)
   # sum(usgsCTDsites$SITE_ID %in% epaCTD$SITE_ID)
-  
+
   # All Nikki PAR data sites in either USGS or EPA CTD
   # Have CPAR for EPA sites to bottom of lake, so keep that data and remove Nikki PAR data for EPA sites
   # sum(unique(nikkiPAR$SITE_ID) %in% usgsCTDsites$SITE_ID) # 59 USGS sites in Nikki PAR
@@ -202,7 +202,7 @@
   # length(unique(nikkiPAR$SITE_ID)) # 101 total Nikki sites
 
 
-  # Combine usgs CTD and PAR 
+  # Combine usgs CTD and PAR
   usgs <- dplyr::bind_rows(usgsCTD, nikkiPAR) %>%
     dplyr::mutate(
       # assume PAR measured at same time as CTD
@@ -216,16 +216,16 @@
     ) %>%
     dplyr::select(-c(sampleDateTime1, sampleDateTime2, sampleDate)) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::left_join(usgsCTDsites)
-  
+
     # [ ] KV: Need a flag for imputing noon time above
 
-  
-  ctdDat <- dplyr::bind_rows(epaCTD, usgs) 
+
+  ctdDat <- dplyr::bind_rows(epaCTD, usgs)
 
 
-  
+
   # grab additional site data from zooplankton files
   # Note that these don't actually end up providing additional lat/longs for imputation
   zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
@@ -236,16 +236,16 @@
       .by = SITE_ID
     ) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_"))  # Adding b/c of capitalization 
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_"))  # Adding b/c of capitalization
 
 
-  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>% 
+  WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
     openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
     # KV: Thought this might help with the time as decimal issue, but it did not
     # Add (EST) if not present in Time
-    # dplyr::rename(Time.EST=`Time.(EST)`) %>% 
+    # dplyr::rename(Time.EST=`Time.(EST)`) %>%
     # dplyr::mutate(
     #   Time.EST = case_when(
     #     str_detect(Time.EST, pattern="\\(")==TRUE ~ Time.EST,
@@ -266,9 +266,9 @@
     ) %>%
     tidyr::unite("sampleDateTime", Date, time, sep = " ") %>%
     dplyr::mutate(sampleDateTime = lubridate::ymd_hm(sampleDateTime)) %>%
-    
-    # [ ] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise). 
-    
+
+    # [ ] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise).
+
     dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
     dplyr::select(-c(
       Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`,
@@ -289,7 +289,7 @@
     dplyr::bind_rows(., ctdDat) %>%
     # Deal with capitalization and underscore diffs across datasets
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>% 
+                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     # PWA and LVD are typos for PW and LUD, respectively
     # Needed to move this below code up before doing imputation by SITE_ID!!
     dplyr::mutate(
@@ -297,7 +297,7 @@
       SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud")
     ) %>%
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
-    dplyr::filter(CodeName != "Remove") %>% 
+    dplyr::filter(CodeName != "Remove") %>%
     dplyr::mutate(
       Year = 2021,
     ) %>%
@@ -316,7 +316,7 @@
       .by = SITE_ID
     ) %>%
     # [ ] KV: Need an actual flag for imputing station depth in flagsMap, not just in QAcomment
-    
+
     # All stationDepths are filled in at this point, but many CTD stationDepths were filled in by max CTD depth
     # Only missing Lat/Longs are for STO sites (sto5, sto23, sto30)
     # None of these are actually in the zooPlank file, so not needed below
@@ -324,7 +324,7 @@
     # So something seems off with these sites
     # [ ] KV: Follow up with Ryan to get lat/longs for STO or else remove these sites
     # [ ] KV: Check whether reasonable to impute stationDepth with max CTD depth
-    
+
     # dplyr::mutate(
     #   ANALYTE = stringr::str_extract(ANALYTE, "^[:alpha:]*") # Probably not necessary
     # ) %>%
@@ -382,7 +382,7 @@
 #   ggtitle("Nikki CPar distribution vs depth") +
 #   xlab("Sample depth (m)") +
 #   ylab("CPAR measure (proportion)")
-# selectCTDcasts <- epaCTD %>% 
+# selectCTDcasts <- epaCTD %>%
 #   mutate(agency = "EPA") %>%
 #   bind_rows(usgs) %>%
 #   filter(sampleDepth !=0, sampleDepth < 31, ANALYTE == "cpar") %>%
@@ -392,7 +392,7 @@
 #     .by = c(SITE_ID, sampleDateTime)
 #   ) %>%
 #   nest_by(agency, Quality, SITE_ID, sampleDateTime) %>%
-#   # grab 3 of each factor with highest recorded CPAR 
+#   # grab 3 of each factor with highest recorded CPAR
 #   mutate(
 #     m = max(data$RESULT, na.rm = T)
 #   ) %>%
@@ -401,7 +401,7 @@
 #   #slice_head(n=3, by= c(agency, Quality)) %>%
 #   unnest(data)
 
-# selectCTDcasts <- nikkiPAR %>% 
+# selectCTDcasts <- nikkiPAR %>%
 #   filter(sampleDepth !=0, sampleDepth < 31, ANALYTE == "cpar") %>%
 #   mutate(
 #     # find casts with at least one value exceeding 1
@@ -439,20 +439,20 @@
 #   # CPAR > 100% check
 #   # check if CPAr over 100
 #   library(patchwork)
-#   p1 <- usgsPAR %>% 
+#   p1 <- usgsPAR %>%
 #     reframe(over = mean(RESULT > 1, na.rm =T), .by = c(sampleDepth)) %>%
 #     ggplot(aes(y = over, x= factor(sampleDepth))) +
 #     geom_point() +
 #     ggtitle("Nikki")
-# 
-#   p2 <- epaCTD %>% 
+#
+#   p2 <- epaCTD %>%
 #     dplyr::rename(depth = Depth..fresh.water..m.) %>%
 #     filter(ANALYTE == "cpar", depth < 31) %>%
 #     reframe(over = mean(RESULT > 1, na.rm =T), .by = c(depth)) %>%
 #     ggplot(aes(y = over, x= factor(depth))) +
 #     geom_point() +
 #     ggtitle("Gerads")
-# 
+#
 #   p1 / p2
 #   ########################
 #   # Check coverage for site ID lat longs
@@ -466,12 +466,12 @@
 #     )
 #   ggvenn::ggvenn(sitelists)
 #   #######################
-# 
+#
 # - there isn't any overlaps, so keep both
 #   sitelists <- list(
-#     gerardsiteDates = epaCTD %>% 
+#     gerardsiteDates = epaCTD %>%
 #                 mutate(Site = str_remove(tolower(Site), "_")) %>%
-#                 distinct(Site, sampleDate) %>% 
+#                 distinct(Site, sampleDate) %>%
 #                 arrange(Site, sampleDate) %>%
 #                 unite(temp, Site, sampleDate) %>%
 #                 pull(temp)
@@ -484,7 +484,7 @@
 #                 pull(temp)
 #     )
 #   ggvenn::ggvenn(sitelists)
-# 
+#
 # intersect(gerardsiteDates$Site, usgsSiteDates$Site)
 # setdiff(gerardsiteDates$Site, usgsSiteDates$Site)
 # setdiff(usgsSiteDates$Site, gerardsiteDates$Site)

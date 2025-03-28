@@ -12,13 +12,13 @@
   sites <- .loadNCCASite2010(NCCAsites2010) #%>%
     # dplyr::mutate(SITE_ID = stringr::str_extract(SITE_ID, "\\d{3,4}$"))
   # Do not alter the SITE_ID to avoid confusion with original source
-  
+
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
     unique() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
@@ -48,7 +48,7 @@
     )
     ) %>%
     # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
-    dplyr::filter(grepl("GL",SITE_ID)) %>% 
+    dplyr::filter(grepl("GL",SITE_ID)) %>%
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
@@ -67,7 +67,7 @@
     dplyr::rename(
       QAcode = QACODE,
       ReportedUnits = UNITS
-    ) %>% 
+    ) %>%
     # Note that methods are all NA for GL sites but leaving as-is for generality
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
@@ -75,14 +75,14 @@
     # KV: conversions did not join correctly without editing ReportedUnits
     dplyr::mutate(
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = tolower(ReportedUnits)) %>% 
+      ReportedUnits = tolower(ReportedUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(
       RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
       MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
       MRL = ifelse(!is.na(ConversionFactor), MRL * ConversionFactor, MRL)
       ) %>%
-    dplyr::left_join(sites) 
+    dplyr::left_join(sites)
 
   return(df)
 }
@@ -115,7 +115,7 @@
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
     unique() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
@@ -155,12 +155,12 @@
       sampleID = SAMPLE_ID,
       batchID = BATCH_ID,
     ) %>%
-    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>% 
+    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>%
     dplyr::mutate(
       sampleDateTime = lubridate::dmy(sampleDateTime)
       # [ ] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag
     ) %>%
-    
+
     ## KV: **** As mentioned in the comments for .loadNCCAhydro2010(), I don't think these approaches of pivoting the whole dataset to do calculations is working well and is introducing problems. I would suggest instead splitting out the data that you need to do manipulations on (nitrate and nitrite) and dealing with them separately, them joining them back in. ***********
     # [ ] KV: Deal with above comment
     tidyr::pivot_wider(id_cols = c(UID:sampleDateTime), names_from = ANALYTE, values_from = LAB:sampleID) %>% # 4705 rows
@@ -192,11 +192,11 @@
         ANL_CODE == "Alkalinity" ~ "mgL",
         ANL_CODE == "SULFATE" ~ "mgL",
         ANL_CODE == "PH" ~ "unitless",
-        ANL_CODE == "SILICA" ~ "mgL", 
-        ANL_CODE == "Diss_NOx" ~ "mgL", 
-        ANL_CODE == "SRP" ~ "mgL", 
+        ANL_CODE == "SILICA" ~ "mgL",
+        ANL_CODE == "Diss_NOx" ~ "mgL",
+        ANL_CODE == "SRP" ~ "mgL",
         ANL_CODE == "CHLA" ~ "ugL",
-        ANL_CODE == "AMMONIA_N" ~ "mgL", 
+        ANL_CODE == "AMMONIA_N" ~ "mgL",
         ANL_CODE == "PTL" ~ "mgL",
         ANL_CODE == "DIN" ~ "mgL",
         ANL_CODE == "NTL" ~ "mgL"
@@ -241,8 +241,8 @@
       # METHOD = ifelse(is.na(METHOD), Study, METHOD),
     ) %>%
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
-    dplyr::filter(CodeName != "Remove") %>% 
-    dplyr::left_join(key, by = join_by(CodeName)) %>%
+    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
@@ -286,9 +286,9 @@
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>%
     unique() # Duplicate rows
-  
+
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(
@@ -362,7 +362,7 @@
       ANALYTE = ANL_CODE,
     ) %>%
     dplyr::filter(CodeName != "Remove")
-    
+
     # [ ] TODO converrt units
 
   return(df)
