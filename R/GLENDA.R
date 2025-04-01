@@ -126,12 +126,20 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   # all rl not mdls
   internalRL <- df %>%
     # [ ] try catch, throw error if it doesn't say reporting limit in RESULT_REMARK
-    dplyr::filter(grepl("^<", VALUE)) %>%
+    dplyr::filter(grepl("^<", VALUE))
+
+  if (mean(grepl("reporting limit", internalRL$RESULT_REMARK, ignore.case=T)) != 1) {
+    stop("At least one of the GLENDA values reported as less than some number 
+          isn't also reported as being less than reporting limit in the RESULT_REMARK
+          column. Investigate these comments to see how to deal with them.")
+  }
+  
+  internalRL <- internalRL %>%
     dplyr::distinct(YEAR, SEASON, ANALYTE, VALUE, MEDIUM, FRACTION, METHOD, RESULT_REMARK) %>%
     dplyr::left_join(renamingTable, by = c("MEDIUM", "ANALYTE", "FRACTION", "METHOD" = "Methods")) %>%
     dplyr::mutate(
@@ -267,12 +275,28 @@
       ReportedUnits = stringr::str_remove_all(ReportedUnits, "/")
     ) %>%
     dplyr::left_join(key, by = "CodeName") %>%
-    dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))  %>%
+
+
     # [x] Check if we need to impute units- nope all taken care of
     # sum(is.na(df$Units)) == 0
-    # [ ] KV: Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
+    # [x] KV: Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
     # If so, we will assume on a given year analytes have same units **KV comment: suggest imputing by year-season combo, rather than just by year**
-    # PR comment: In checking that the unit conversions mapped correctly below, I noticed that there are several observations where ReportedUnits is "none" rather than NA, so those aren't being picked up with the check here for NA units. When you look at the GLENDA_Map tab in Analytes3.xlsx, you can see these analytes that sometimes have 'none' for units. In these cases, there is only ever one type of unit reported for that analyte for the rest of the dataset, so it should be reasonable to impute these missing units. It would be worth doing this in case there are analytes that need to have their units converted (I actually don't think there are, but just in case). You could just impute units by Year/Season to make it general.
+    # PR comment: In checking that the unit conversions mapped correctly below, I noticed that 
+    # there are several observations where ReportedUnits is "none" rather than NA, so those aren't
+    # being picked up with the check here for NA units. When you look at the GLENDA_Map tab in 
+    # Analytes3.xlsx, you can see these analytes that sometimes have 'none' for units. 
+    # In these cases, there is only ever one type of unit reported for that analyte for the rest
+    # of the dataset, so it should be reasonable to impute these missing units. It would be worth
+    # doing this in case there are analytes that need to have their units converted (I actually 
+    # don't think there are, but just in case). You could just impute units by Year/Season to make 
+    # it general.
+    dplyr::mutate(
+      ReportedUnits = ifelse(ReportedUnits != "none", ReportedUnits,
+      names(sort(table(ReportedUnits), decreasing = TRUE))[1]
+      ),
+      .by = c(CodeName, YEAR, SEASON)
+    ) %>%
     dplyr::mutate(
       TargetUnits = tolower(TargetUnits),
       ReportedUnits = ifelse(ANALYTE == "pH", "unitless", ReportedUnits),
