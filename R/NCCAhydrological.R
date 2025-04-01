@@ -33,7 +33,7 @@
   df <- NCCAhydrofiles2010 %>%
     purrr::map_dfr(readr::read_csv, n_max = n_max, show_col_types = FALSE) %>%
     # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
-    dplyr::filter(grepl("GL",SITE_ID)) %>% 
+    dplyr::filter(grepl("GL",SITE_ID)) %>%
     # filter to just downcast (include IM_CALC because that's where Secchi is)
     dplyr::filter(CAST %in% c("DOWNCAST", "IM_CALC")) %>%
     dplyr::rename(
@@ -43,7 +43,7 @@
       QAcode = QA_CODE,
       QAcomment = QA_COMMENT
     ) %>%
-    dplyr::select(-PARAMETER) %>% 
+    dplyr::select(-PARAMETER) %>%
     dplyr::mutate(
       UNITS = ifelse(ANALYTE == "pH", "unitless", UNITS),
       UNITS = ifelse(ANALYTE == "Mean secchi", "m", UNITS),
@@ -61,10 +61,40 @@
     # Note: Averaging over RESULT is necessary below because sometimes multiple values present at same depth. Looking at data, this looks like due to possible data entry error due to upcasts being mislabeled, but this is a reasonable solution.
     dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x))))
     # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
-    
-    
-    
+
+
+
     # KV: Code is now okay up until this point
+
+
+
+
+
+
+
+    # [ ] KV: *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
+
+    # [ ] KV: Also the QAcode and QAcomments get lost in the below process
+
+    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
+    # fill in mean secchi in same rows where other results appear
+    dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
+    # [ ] Secchi units not filled in and are missing in the final returned data
+    # remove where sechhi used to appear
+    tidyr::drop_na(sampleDepth) %>%
+    # [x] filter out where either ambientPAR or underPAR check if this does what we think
+
+    ### [ ] KV: **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
+    dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
+
+    # KV: It may work to just do this calculation without filtering above if it just produces NAs when one is available
+    dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
+
+    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`, `UNITS_Ambient PAR`, `UNITS_Underwater PAR`)) %>%
+    tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
+    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported --
+    # KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
+    dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
     
     
     
@@ -123,12 +153,12 @@
     # ) %>%
     # convert units
     dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
-    dplyr::filter(CodeName != "Remove") %>% 
+    dplyr::filter(CodeName != "Remove") %>%
     dplyr::left_join(key) %>%
     dplyr::mutate(
       ReportedUnits = as.character(ReportedUnits),
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = tolower(ReportedUnits)) %>% # 
+      ReportedUnits = tolower(ReportedUnits)) %>% #
     dplyr::left_join(conversions) %>%
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
@@ -191,6 +221,7 @@
     # Some Corrected PAR is Inf because LIGHT_AMB==0, which must be incorrect
     # Replace Corrected PAR infinity values with NA
     dplyr::mutate(`Corrected PAR` = dplyr::na_if(`Corrected PAR`, Inf)) %>%
+    dplyr::mutate(`Corrected PAR` = dplyr::na_if(`Corrected PAR`, Inf)) %>%
     # dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>% # KV: You can't filter in this way or you are removing other data where light is missing but other parameters are measured
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
@@ -217,6 +248,7 @@
     dplyr::left_join(key) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(conversions) %>%
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
     # add station info
     dplyr::left_join(sites) # KV added this in, but not working properly
@@ -266,7 +298,7 @@
     dplyr::distinct() # Duplicate rows
   
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
-    # remove nas from table to remove ambiguities on joinging
+    # remove nas from table to remove ambiguities on joining
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)
@@ -335,10 +367,10 @@
     dplyr::left_join(key) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(conversions) %>%
-    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>% 
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
     dplyr::filter(!is.na(RESULT))
-  
-    # KV: NaN's in RESULT seem to be cases where DISAPPEAR and REAPPEAR aren't available. Often these are marked as clear to bottom, but sometimes estimated value is inconsistent with this marking. 
+
+    # KV: NaN's in RESULT seem to be cases where DISAPPEAR and REAPPEAR aren't available. Often these are marked as clear to bottom, but sometimes estimated value is inconsistent with this marking.
     # Decide to remove as bad data
   
   # missingness/joining checks in output:

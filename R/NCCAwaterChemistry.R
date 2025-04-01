@@ -49,7 +49,7 @@
     )
     ) %>%
     # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
-    dplyr::filter(grepl("GL",SITE_ID)) %>% 
+    dplyr::filter(grepl("GL",SITE_ID)) %>%
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
@@ -71,6 +71,7 @@
       QAcode = QACODE,
       ReportedUnits = UNITS
     ) %>%
+    ) %>%
     # Note that methods are all NA for GL sites but leaving as-is for generality
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
@@ -78,14 +79,14 @@
     # KV: conversions did not join correctly without editing ReportedUnits
     dplyr::mutate(
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = tolower(ReportedUnits)) %>% 
+      ReportedUnits = tolower(ReportedUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(
       RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
       MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
       MRL = ifelse(!is.na(ConversionFactor), MRL * ConversionFactor, MRL)
       ) %>%
-    dplyr::left_join(sites) 
+    dplyr::left_join(sites)
 
   # missingness/joining checks in output:
   # mean(is.na(df$CodeName)): 0
@@ -167,7 +168,7 @@
       sampleID = SAMPLE_ID,
       batchID = BATCH_ID,
     ) %>%
-    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>% 
+    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>%
     dplyr::mutate(
       sampleDateTime = lubridate::dmy_hm(paste(sampleDateTime, "12:00")),
       QAcode = ifelse(is.na(QAcode), "T", paste(QAcode, "T", sep = "; ")),
