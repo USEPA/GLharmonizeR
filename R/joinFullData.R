@@ -97,6 +97,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   print("Step 4/7: Read and clean CSMI data")
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
+  # [ ] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
 
   print("Step 5/7: Read and clean NOAA data")
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
@@ -105,7 +106,6 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
 
 
-  ########### LEFT OFF HERE ###############
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
     dplyr::mutate(
@@ -115,17 +115,23 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     ) %>%
     dplyr::select(
       # time and space
-      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "sampleDepth", "stationDepth", "sampleDateTime",
+      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth", "sampleDepth",  "sampleDateTime",
+      # [ ] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
       # analyte name
-      "CodeName", "ANALYTE", "Category", "LongName", # [x] Add LongName from key tab for the "long name"
-      # unit conversion
-      "ConversionFactor", "TargetUnits", "ReportedUnits", "Explicit_Units",
+      "CodeName", "ANALYTE", "Category", "LongName", "Explicit_Units",
       # measurement and limits
-      "RESULT", "MDL", "RL", "METHOD",
+      "RESULT", "MDL", "RL",
+      # unit conversion
+      "TargetUnits", "ReportedUnits", "ConversionFactor",
       # QA
-      "QAcode", "QAcomment", "LAB", contains("QAconsiderations")
+      "QAcode", "QAcomment", "METHOD", "LAB", contains("QAconsiderations")
     ) %>%
+    # [ ] KV: Could add in DEPTH_CODE eventually if decide need it at some point, and could add in any depth codes from CSMI (2015 at least)
     # catching some where units were inferred
+    # KV: I don't think there are any cases of inferred units anymore below. From flagsMap, looks like they previously were used for NCCA_hydro_2010, NCCA_hydro_2015, NCCA_secchi_2015, but these unit issues have likely been resolved elsewhere.
+
+    # [ ] KV: De-duplicate here after resolving duplicate issues below Step 6 - i.e., add distinct() here
+
     dplyr::mutate(
       QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
         paste0(QAcode, sep = "; ", "U"), QAcode),
@@ -133,25 +139,73 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         "No reported units, assumed most common units in analyte-year", QAcomment
       )
     ) %>%
+
+    # [ ] KV: note that SeaBird and NOAActd are missing some unit information (e.g., TargetUnits) - likely will be fixed when code is updated and table joins are refreshed dynamically
+
+    # Add in flags to catch limit issues
     dplyr::mutate(
-      # [x] Flag if below detection limit
-      # If MDL is missing,
+      # [X] KV: Split out MDL, RL, and Estimated cases to deal with NAs
+
+      # Flag if below detection limit
+      # KV: Note that this catches a bunch of early GLENDA data that are below MDLs but not flagged, and catches CSMI_2015 and NCCA_WChem_2010
       QAcode = dplyr::case_when(
         is.na(MDL) ~ QAcode,
         RESULT >= MDL ~ QAcode,
         RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
-        RESULT < MDL ~ paste(QAcode, "MDL", sep = "; "),
-        RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
+        # KV: Above catches NCCA_WChem_2010, GLENDA, CSMI_2015
         .default = QAcode
-        ),
+      ),
       QAcomment = dplyr::case_when(
-        # [ ] KV: Does this need same cases as QAcode? Maybe not depending on QCflags sheet.
         is.na(MDL) ~ QAcomment,
         RESULT >= MDL ~ QAcomment,
         RESULT < MDL ~ paste(QAcomment, "MDL", sep = "; "),
         .default = QAcomment
+      ),
+
+      ## Flag if below reporting limit
+      QAcode = dplyr::case_when(
+        is.na(RL) ~ QAcode,
+        RESULT >= RL ~ QAcode,
+        RESULT < RL ~ paste(QAcode, "RL", sep = "; "),
+        # KV: RL flag added to NCCA_WChem_2010 that are estimated (between MDL and RL) but preference given to estimated values over the <RL flag below, so okay
+        .default = QAcode
+      ),
+      QAcomment = dplyr::case_when(
+        is.na(RL) ~ QAcomment,
+        RESULT >= RL ~ QAcomment,
+        RESULT < RL ~ paste(QAcomment, "RL", sep = "; "),
+        .default = QAcomment
+      ),
+
+      ## Flag if between MDL and RL, inclusive
+      QAcode = dplyr::case_when(
+        is.na(RL) & is.na (MDL) ~ QAcode,
+        (RESULT >= MDL) & (RESULT <= RL) ~ paste(QAcode, "Estimated", sep = "; "),
+        .default = QAcode
+      ),
+      QAcomment = dplyr::case_when(
+        is.na(RL) & is.na (MDL) ~ QAcomment,
+        (RESULT >= MDL) & (RESULT <= RL) ~ paste(QAcomment, "Estimated", sep = "; "),
+        .default = QAcomment
       )
+      # [X] KV: Note that there are some NCCA_WChem_2015 ammonium values between MDL and RL that didn't get flag as estimated -- need to add flag
+      # [X] KV: Add Estimated and RL flags for all studies to flagsMap
     )
+
+
+  # [ ] KV: After confirming below issues are okay or resolved, add distinct() to the above Step 6 where noted to reduce the size of the joined data
+
+  # [ ] KV: *** Why are there duplicated rows? This should not be the case. Check before do anything else ***
+  # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDateTime, sampleDepth, CodeName)
+  # NCCA_hydro_2010 - Repeated Secchi values already noted where appropriate. Also has -9 values, which may not be noted or dealt with? Are those CTB? If so, they aren't flagged
+  # NOAA_WQ - Secchi repeated in a few instances - makes sense to just do distinct() here
+  # NOAActd - Lots of NOAA CTD repeated twice - perhaps CTD files are in there twice. Makes sense to do distinct() here
+  # SeaBird - Lots of SeaBird CTD repeated twice, but not consistently for each parameter, like for NOAA. Seems odd???
+
+
+
+
+  ### LEFT OFF HERE ###
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
@@ -159,6 +213,7 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   notflagged <- allWQ %>%
     dplyr::filter((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study))) %>%
     dplyr::distinct()
+
 
   # [x] join flag explanations
   flags <- openxlsx::read.xlsx(flagsFile) %>%
@@ -284,6 +339,7 @@ allWQ %>%
 # [ ] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
   # --Times not to be trusted yet
+# [ ] Missing station lat/longs (GLENDA, CSMI 2021)
 
 
 
