@@ -68,38 +68,6 @@
 
 
 
-
-
-
-
-    # [ ] KV: *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
-
-    # [ ] KV: Also the QAcode and QAcomments get lost in the below process
-
-    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
-    # fill in mean secchi in same rows where other results appear
-    dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
-    # [ ] Secchi units not filled in and are missing in the final returned data
-    # remove where sechhi used to appear
-    tidyr::drop_na(sampleDepth) %>%
-    # [x] filter out where either ambientPAR or underPAR check if this does what we think
-
-    ### [ ] KV: **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
-    dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
-
-    # KV: It may work to just do this calculation without filtering above if it just produces NAs when one is available
-    dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
-
-    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`, `UNITS_Ambient PAR`, `UNITS_Underwater PAR`)) %>%
-    tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
-    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported --
-    # KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
-    dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
-    
-    
-    
-
-
   # [x] KV: *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
   # [x] KV: Also the QAcode and QAcomments get lost in the below process- solved removing pivot
   # [x] Secchi units not filled in and are missing in the final returned data - solved removing pivot
@@ -122,11 +90,24 @@
   df <- df %>% dplyr::filter(! ANALYTE %in% c("Ambient PAR", "Underwater PAR")) %>% 
     dplyr::bind_rows(parDf) %>%
     dplyr::filter(!(is.na(RESULT) & is.na(QAcode))) %>% # Replaced with a statement to remove NA, not 9999999
-    dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
-    # [ ] KV: Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
-    # - not sure if they were repeated or if we would like them to be repeated?
+    dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth))
+  # [x] KV: Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
+  notsecchis <- df %>%
+    dplyr::filter(!grepl("secchi", ANALYTE, ignore.case= T)) %>%
+    dplyr::distinct(SITE_ID, sampleDepth, DATE_COL)
+  
+  secchis <- df %>%
+    dplyr::filter(grepl("secchi", ANALYTE, ignore.case= T)) %>%
+    dplyr::full_join(notsecchis, by = c("SITE_ID", "DATE_COL")) %>%
+    dplyr::select(-sampleDepth.x) %>%
+    dplyr::rename(sampleDepth = sampleDepth.y) %>%
+    dplyr::mutate(RESULT = ifelse(RESULT == -9, NA, RESULT)) %>%
+    tidyr::drop_na(sampleDepth)
+  
+  df <- df %>%
+    dplyr::filter(!grepl("secchi", ANALYTE, ignore.case= T)) %>%
+    dplyr::bind_rows(secchis) %>%
 
-    
     
     #### Code okay after this point ####
 
