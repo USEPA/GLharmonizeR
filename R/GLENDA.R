@@ -130,7 +130,7 @@
 
   # all rl not mdls
   internalRL <- df %>%
-    # [ ] try catch, throw error if it doesn't say reporting limit in RESULT_REMARK
+    # [x] try catch, throw error if it doesn't say reporting limit in RESULT_REMARK
     dplyr::filter(grepl("^<", VALUE))
 
   if (mean(grepl("reporting limit", internalRL$RESULT_REMARK, ignore.case=T)) != 1) {
@@ -198,10 +198,11 @@
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
       SEASON = ifelse(is.na(SEASON), lubridate::month(SAMPLING_DATE, label = T), SEASON),
+        # [x] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
+      SAMPLING_DATE = ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE),
       # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE = dplyr::case_when(
-        TIME_ZONE == "EDT" ~ "Canada/Newfoundland",
-        # [ ] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
+        TIME_ZONE == "EDT" ~ "EST",
         TIME_ZONE == "CDT" ~ "EST",
         .default = TIME_ZONE
       ),
