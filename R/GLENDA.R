@@ -91,7 +91,22 @@
       # !grepl("Invalid", RESULT_REMARK, ignore.case = T),
       # RESULT_REMARK != "Known Contamination"
     ) %>%
-    dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T))
+    dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
+    dplyr::mutate(
+        # [x] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
+      SAMPLING_DATE = lubridate::as_datetime(ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE)),
+      # [x] Check if remove RESULTstart - verified it's gone
+      TIME_ZONE = dplyr::case_when(
+        TIME_ZONE == "EDT" ~ "EST",
+        TIME_ZONE == "CDT" ~ "EST",
+        .default = TIME_ZONE
+      )) %>%
+    tidyr::unite(sampleDateTime, SAMPLING_DATE, TIME_ZONE) %>%
+    dplyr::mutate(
+      sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y-%m-%d %H:%M:%S_%Z"),
+      sampleDate = lubridate::date(test$sampleDateTime),
+      sampleTimeUTC = lubridate::hour(test$sampleDateTime)
+      )
   return(df)
 }
 
@@ -115,6 +130,7 @@
 .cleanGLENDA <- function(
     df, namingFile, imputeCoordinates = TRUE, GLENDAsitePath = NULL,
     GLENDAlimitsPath = NULL) {
+  
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_Map", na.strings = c("", "NA")) %>%
     tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
     dplyr::mutate(minYear = as.numeric(minYear), maxYear = as.numeric(maxYear))
@@ -194,34 +210,11 @@
     dplyr::select(YEAR, SEASON, CodeName, mdl) %>%
     dplyr::bind_rows(internalRL)
 
-  df <- df %>%
+  test <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
       SEASON = ifelse(is.na(SEASON), lubridate::month(SAMPLING_DATE, label = T), SEASON),
-        # [x] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
-      SAMPLING_DATE = ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE),
-      # [x] Check if remove RESULTstart - verified it's gone
-      TIME_ZONE = dplyr::case_when(
-        TIME_ZONE == "EDT" ~ "EST",
-        TIME_ZONE == "CDT" ~ "EST",
-        .default = TIME_ZONE
-      ),
-      SAMPLING_DATE = stringr::str_remove(SAMPLING_DATE, " UTC$"),
-      # Some have missing times, so impute 12 noon where necessary
-      # [x] ADD A FLAG whereever we assumed it was noon
-      RESULT_REMARK = ifelse(
-        stringr::str_length(SAMPLING_DATE) < 14,
-        paste0(RESULT_REMARK, "; sample time imputed as noon"),
-        RESULT_REMARK
-      ),
-      SAMPLING_DATE = ifelse(
-        stringr::str_length(SAMPLING_DATE) < 14,
-        paste(SAMPLING_DATE, "12:00:00"),
-        SAMPLING_DATE
-      ),
     ) %>%
-    tidyr::unite(sampleDate, SAMPLING_DATE, TIME_ZONE) %>%
-    dplyr::mutate(sampleDateTime = readr::parse_datetime(sampleDate, format = "%Y-%m-%d %H:%M:%S_%Z")) %>%
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
     dplyr::select(-Number) %>%
@@ -325,11 +318,6 @@
     # [x] Join them all together then join back to the data
     # [x] Give priority to the pdf source - not necessary since they are mutually exclusive
     # [x] Code the flags MDL and DL are the same
-
-  
-    # KV issues:
-    # [ ] Do other datasets need time flags? CSMI 2021 wq has 'Assumed sample at noon' in QAcomment, different from GLENDA. Only GLENDA has T flag in flagsMap_withDecisions
-    # [ ] Is it possible to just not impute time?
 
   return(df)
 }
