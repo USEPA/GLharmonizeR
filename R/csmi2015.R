@@ -52,7 +52,8 @@
           44.1116833333333, Latitude
         ),
       sampleDate = lubridate::date(sampleDate), 
-      sampleTimeUTC = lubridate::hour(sampleTime)
+      sampleTimeUTC = lubridate::hour(sampleTime),
+      sampleTimeUTC = ifelse(sampleTimeUTC == 0, NA, sampleTimeUTC)
       ) %>%
       dplyr::select(-sampleTime)
   

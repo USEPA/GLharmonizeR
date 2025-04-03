@@ -70,15 +70,14 @@
       # sampleDateTime = lubridate::ymd_h(paste(sampleDateTime, "12")),
       # [x] KV: Times are in 'Station Reference' tab. Need to add in.
       # [x] KV: Otherwise, need flag for imputing time here and elsewhere
-      sampleDate = lubridate::floor_date(sampleDateTimetemp, "days")
-      ) %>%
-    # assuming only one sample per site per day
-    dplyr::left_join(times, by = c("SITE_ID", "sampleDate")) %>%
+      sampleDate = lubridate::date(sampleDateTimetemp),
+      sampleTimeUTC = lubridate::hour(sampleDateTimetemp),
+      sampleTimeUTC = ifelse(sampleTimeUTC == 0, NA, sampleTimeUTC)
+    ) %>%
     # don't select bio samples, scans
     dplyr::select(
-      sampleDateTime, SITE_ID:Temperature..deg.C., Oxygen..mg.l.,Specific.Conductance..uS.cm.,
+      sampleDate, sampleTimeUTC, SITE_ID:Temperature..deg.C., Oxygen..mg.l.,Specific.Conductance..uS.cm.,
       CPAR.Corrected.Irradiance....,pH:Longitude..deg.) %>%
-    dplyr::select(-sampleDateTimetemp) %>%
     dplyr::rename(cpar = CPAR.Corrected.Irradiance....) %>%
     dplyr::mutate(cpar = cpar /100) %>%
     tidyr::pivot_longer(
@@ -129,7 +128,8 @@
       ANALYTE = paste0(ANALYTE, "_USGS") # Added to avoid problems with EPA and USGS CTD data having same study ID and similar parameter names with different meanings/decisions
     ) %>%
     dplyr::mutate(
-      sampleDate = lubridate::dmy(Date),
+      sampleDate = lubridate::date(lubridate::dmy(Date)),
+      sampleTimeUTC = NA,
       UNITS = tolower(stringr::str_remove_all(UNITS, "_")),
       UNITS = ifelse(ANALYTE=="pH_USGS", "unitless", UNITS),
       Study = "CSMI_2021_CTD"
@@ -141,7 +141,7 @@
     dplyr::select(
       SITE_ID = Transect,
       sampleDepth = Depth_m,
-      sampleDate,  UID, ANALYTE, UNITS, RESULT, Study # sampleDateTime,
+      sampleDate, sampleTimeUTC,  UID, ANALYTE, UNITS, RESULT, Study # sampleDateTime,
     ) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_"))
@@ -159,10 +159,8 @@
       check.names = TRUE
     ) %>% # no missingness
     dplyr::mutate(
-      Date = lubridate::ymd_hms(Date),
-      Date = lubridate::floor_date(Date, "days"),
-      hours = round(time_converted * 24),
-      sampleDateTime = lubridate::ymd_h(paste(Date, hours)),
+      sampleDate = lubridate::date(lubridate::ymd_hms(Date)),
+      sampleTimeUTC = lubridate::hour(lubridate::ymd_hms(Date)),
       cpar = dc.pc.PAR / 100,
       # rebinned with evertyhing +/- 0.5 going to nearest whole number
       sampleDepth = round(as.numeric(Depth_m)),
@@ -170,13 +168,9 @@
     ) %>%
     dplyr::filter(sampleDepth != 0) %>%
     dplyr::reframe(cpar = mean(cpar, na.rm = T),
-                   sampleDateTime = min(sampleDateTime, na.rm = T), # Do min in case a cast overlaps the hour
-                   .by = c(SITE_ID, sampleDateTime, sampleDepth)) %>%
+                   sampleTimeUTC = min(sampleTimeUTC, na.rm = T), # Do min in case a cast overlaps the hour
+                   .by = c(SITE_ID, sampleDate, sampleDepth)) %>%
     # still no missingness
-    dplyr::mutate(
-      # for joining to CTD
-      sampleDate = lubridate::floor_date(sampleDateTime, "days")
-    ) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::mutate(
@@ -208,18 +202,10 @@
   # Combine usgs CTD and PAR
   usgs <- dplyr::bind_rows(usgsCTD, nikkiPAR) %>%
     dplyr::mutate(
-      QAcode = ifelse(is.na(sampleDateTime), "T", NA),
-      QAcomment = ifelse(is.na(sampleDateTime), "Time imputed as noon", NA),
       # assume PAR measured at same time as CTD
-      sampleDateTime1 = unique(na.omit(sampleDateTime))[1],
-      # else fill in with 12 noon
-      sampleDateTime2 = lubridate::ymd_hm(paste(sampleDate, "12:00")),
+      sampleTimeUTC = unique(na.omit(sampleTimeUTC))[1],
       .by = c(SITE_ID, sampleDate),
     ) %>%
-    dplyr::mutate(
-      sampleDateTime = dplyr::coalesce(sampleDateTime, sampleDateTime1, sampleDateTime2),
-    ) %>%
-    dplyr::select(-c(sampleDateTime1, sampleDateTime2, sampleDate)) %>%
     dplyr::mutate(SITE_ID = tolower(SITE_ID),
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::left_join(usgsCTDsites)
@@ -228,20 +214,6 @@
 
 
   ctdDat <- dplyr::bind_rows(epaCTD, usgs)
-
-
-
-  # grab additional site data from zooplankton files
-  # Note that these don't actually end up providing additional lat/longs for imputation
-  zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
-    readr::read_csv(show_col_types = FALSE) %>%
-    dplyr::rename(SITE_ID = TRANSECT) %>%
-    dplyr::reframe(
-      Latitude2 = mean(Latitude, na.rm = T), Longitude2 = mean(Longitude, na.rm = T),
-      .by = SITE_ID
-    ) %>%
-    dplyr::mutate(SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_"))  # Adding b/c of capitalization
 
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
@@ -256,31 +228,25 @@
     #     str_detect(Time.EST, pattern="\\(")==TRUE ~ Time.EST,
     #     str_detect(Time.EST, pattern="\\(")==FALSE ~ paste(Time.EST, " (EST)"))
     # )
-    tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start") %>%
+    tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start")  %>%
     # [x] parse the time column along with date
     dplyr::mutate(
-      Date = as.POSIXct(Date * 86400, origin = "1899-12-30", tz = "UTC"),
-      # [x] flag it if we need to assume it's noon
-      # [ ] KV: Need to discuss if actually want a formal flag for imputed sample times and also whether it is even necessary
-      # [ ] KV: There is also no flag for CSMI 2021 time issues in flagsMap_withDecisions and likely other datasets. This needs to be checked thoroughly for all datasets
-      QAcomment = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "Assumed sample at noon", NA),
-      time = ifelse(grepl("no time", time, ignore.case = T) | is.na(time), "12:00", time),
-      time = stringr::str_remove_all(time, "[:space:]"),
+      sampleDate = as.POSIXct(Date * 86400, origin = "1899-12-30", tz = "UTC"),
       # one date is reported funkily so we use the average
-      time = ifelse(time == "3:45/4:29", "4:07", time)
+      time = ifelse(time == "3:45/4:29", "4:07", time),
+      sampleTimeUTC = lubridate::hm(stringr::str_remove_all(time, "[:space:]")),
+      sampleTimeUTC = lubridate::hour(sampleTimeUTC),
     ) %>%
-    tidyr::unite("sampleDateTime", Date, time, sep = " ") %>%
-    dplyr::mutate(sampleDateTime = lubridate::ymd_hm(sampleDateTime)) %>%
 
-    # [ ] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise).
+    # [x] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise).
 
     dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
     dplyr::select(-c(
       Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`,
-      Station, tz
+      Station, tz, Date, time
     )) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, "-", `STIS#`)) %>%
-    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDateTime, stationDepth, sampleDepth, QAcomment, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDate, sampleTimeUTC, stationDepth, sampleDepth, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
     # NA's and non-reports are the only NA's in this dataset
     tidyr::drop_na(RESULT) %>%
     # KV: No, need to extract units from name, not use units from renamingTable! Edited accordingly
@@ -316,8 +282,8 @@
       Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude), # fills in some EPA water chem lat/longs but not all
       Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
       stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth), # This was missing
-      QAcode = ifelse(is.na(stationDepth), paste(QAcode, "B"), QAcomment),
-      QAcomment = ifelse(is.na(stationDepth), paste(QAcomment, "station Depth estimated as the maximum sample Depth"), QAcomment),
+      QAcode = ifelse(is.na(stationDepth), "B", NA),
+      QAcomment = ifelse(is.na(stationDepth), "station Depth estimated as the maximum sample Depth", NA),
       stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm = T), stationDepth), # Fills in the rest of the EPA CTD max depths - need a flag
       .by = SITE_ID
     ) %>%
@@ -335,12 +301,7 @@
 
     # After adding site info from zooplank, missing lat/lons is 2%
     # KV: Zooplank file doesn't actually fill anything extra in after moving the SITE_ID mods further up in the code so that lat/longs were imputed correctly. But will keep in because it doesn't hurt anything
-    dplyr::left_join(zooPlank, by = "SITE_ID") %>%
-    dplyr::mutate(
-      Longitude = dplyr::coalesce(Longitude, Longitude2),
-      Latitude = dplyr::coalesce(Latitude, Latitude2)
-    ) %>%
-    dplyr::select(-c(Latitude2, Longitude2)) %>%
+    #dplyr::left_join(zooPlank, by = "SITE_ID") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::mutate(
       ReportedUnits = stringr::str_replace(ReportedUnits, "[.]", " "),

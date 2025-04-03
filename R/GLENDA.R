@@ -105,7 +105,8 @@
     dplyr::mutate(
       sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y-%m-%d %H:%M:%S_%Z"),
       sampleDate = lubridate::date(sampleDateTime),
-      sampleTimeUTC = lubridate::hour(sampleDateTime)
+      sampleTimeUTC = lubridate::hour(sampleDateTime),
+      sampleTimeUTC = ifelse(sampleTimeUTC ==0, NA, sampleTimeUTC)
     )
   return(df)
 }
