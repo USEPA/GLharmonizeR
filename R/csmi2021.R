@@ -43,8 +43,6 @@
       ReportedUnits = stringr::str_replace(ReportedUnits, "[.]", " "),
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = tolower(ReportedUnits)) %>%
-      ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
-      ReportedUnits = tolower(ReportedUnits)) %>%
     # KV: conversions was not joining correctly because ReportedUnits hadn't been modified
     dplyr::left_join(conversions) %>%
     dplyr::mutate(mdl = ifelse(!is.na(ConversionFactor), mdl * ConversionFactor, mdl)) %>%
@@ -226,8 +224,6 @@
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::left_join(usgsCTDsites)
 
-    # [ ] KV: Need a flag for imputing noon time above
-  
     # [x] KV: Need a flag for imputing noon time above
 
 
@@ -320,11 +316,12 @@
       Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude), # fills in some EPA water chem lat/longs but not all
       Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
       stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth), # This was missing
+      QAcode = ifelse(is.na(stationDepth), paste(QAcode, "B"), QAcomment),
       QAcomment = ifelse(is.na(stationDepth), paste(QAcomment, "station Depth estimated as the maximum sample Depth"), QAcomment),
       stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm = T), stationDepth), # Fills in the rest of the EPA CTD max depths - need a flag
       .by = SITE_ID
     ) %>%
-    # [ ] KV: Need an actual flag for imputing station depth in flagsMap, not just in QAcomment
+    # [x] KV: Need an actual flag for imputing station depth in flagsMap, not just in QAcomment
 
     # All stationDepths are filled in at this point, but many CTD stationDepths were filled in by max CTD depth
     # Only missing Lat/Longs are for STO sites (sto5, sto23, sto30)
@@ -333,10 +330,8 @@
     # So something seems off with these sites
     # [ ] KV: Follow up with Ryan to get lat/longs for STO or else remove these sites
     # [ ] KV: Check whether reasonable to impute stationDepth with max CTD depth
-
-    # dplyr::mutate(
-    #   ANALYTE = stringr::str_extract(ANALYTE, "^[:alpha:]*") # Probably not necessary
-    # ) %>%
+    # - I remember Ryan mentioning that most CTD have a cutoff of 200m ? and some with a
+    #   more complex relay go up to 30m. so I think we certainly can on the interval (30,200)
 
     # After adding site info from zooplank, missing lat/lons is 2%
     # KV: Zooplank file doesn't actually fill anything extra in after moving the SITE_ID mods further up in the code so that lat/longs were imputed correctly. But will keep in because it doesn't hurt anything

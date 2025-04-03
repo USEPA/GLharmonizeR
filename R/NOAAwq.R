@@ -58,9 +58,9 @@
       SITE_ID = stringr::str_remove(SITE_ID, "leg"),
       SITE_ID = stringr::str_remove(SITE_ID, "#"),
       # only useful notes are when reporting sampling time
-      time = round(24 * as.numeric(notes)),
-      # [X] KV: Round time above so that there aren't decimals. Or else, need to convert decimal to minutes
-      # [ ] KV: Also need to specify eastern time zone? Here and elsewhere throughout data where appropriate. Otherwise, looks like UTC time zone is applied, which is not correct
+      # [x] KV: Also need to specify eastern time zone? Here and elsewhere throughout data where appropriate. Otherwise, looks like UTC time zone is applied, which is not correct
+      time = round(24 * as.numeric(notes)) - 1,
+      # [x] KV: Round time above so that there aren't decimals. Or else, need to convert decimal to minutes
       QAcomment = ifelse(is.na(time), "time imputed as noon", NA),
       time = ifelse(is.na(time), "12", time)
     ) %>%

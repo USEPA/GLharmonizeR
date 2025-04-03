@@ -71,7 +71,6 @@
       QAcode = QACODE,
       ReportedUnits = UNITS
     ) %>%
-    ) %>%
     # Note that methods are all NA for GL sites but leaving as-is for generality
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
