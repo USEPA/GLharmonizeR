@@ -50,9 +50,12 @@
         Latitude = ifelse(
           (SITE_ID == "Man_46") & (Latitude > 46),
           44.1116833333333, Latitude
-        )
-      )
-
+        ),
+      sampleDate = lubridate::date(sampleDate), 
+      sampleTimeUTC = lubridate::hour(sampleTime)
+      ) %>%
+      dplyr::select(-sampleTime)
+  
   # Water chem sample depth
   stisInfo <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
     dplyr::select(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m,
@@ -99,9 +102,6 @@
     dplyr::select(ANALYTE, CodeName, mdl, LAB, METHOD) # Include LAB and METHOD
 
 
-
-
-
   # impute missing coordinates from target coordinates if possible
   chem <- RODBC::sqlFetch(dbi, "L3b_LabWQdata") %>%
     tidyr::pivot_longer(NH4_ugNL:CtoN_atom, names_to = "ANALYTE", values_to = "RESULT") %>%
@@ -142,19 +142,6 @@
     # actual coordinates
     dplyr::filter(!grepl("_cmp", sampleType)) %>%
     dplyr::select(-sampleType) %>%
-    # [x] combine date and time
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(
-        paste0(
-          lubridate::date(sampleDate),
-          "-",
-          lubridate::hour(sampleTime),
-          lubridate::minute(sampleTime),
-          # [x] KV: time zone not specified here but is elsewhere. How does lubridate deal with this? How does it know this is EST? What happens when join data together with UTC time zone?
-          # - added it's specification as EST
-        ), tz = "EST"
-      )
-    ) %>%
     tidyr::separate_wider_delim(ANALYTE, delim = "_", names= c("ANALYTE", "UNITS"), too_many = "merge", too_few = "align_start") %>%
     dplyr::mutate(
       Study = "CSMI_2015",

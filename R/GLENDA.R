@@ -104,9 +104,9 @@
     tidyr::unite(sampleDateTime, SAMPLING_DATE, TIME_ZONE) %>%
     dplyr::mutate(
       sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y-%m-%d %H:%M:%S_%Z"),
-      sampleDate = lubridate::date(test$sampleDateTime),
-      sampleTimeUTC = lubridate::hour(test$sampleDateTime)
-      )
+      sampleDate = lubridate::date(sampleDateTime),
+      sampleTimeUTC = lubridate::hour(sampleDateTime)
+    )
   return(df)
 }
 
