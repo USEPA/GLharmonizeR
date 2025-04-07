@@ -1,4 +1,3 @@
-# SECOND/FINAL NOAA CTD PROCESSING FILE TO RUN
 
 # [ ] KV: Please add comments at the top of this document describing what this script does and the order in which the NOAA processing files are run. I noted that this appears to be the final NOAA CTD processing file.
 
@@ -6,7 +5,7 @@
 
 
 
-# Remember need to be on VPN to process this data
+# Remember need to be on epa network to process this data
 
 library(devtools)
 library(tidyverse)
@@ -62,9 +61,9 @@ noaaCTDdf <- noaaFiles %>%
   ) %>%
   tidyr::unnest(cols = data) %>%
 
-  # [ ] KV: Stop this function here and write out noaaCTD.Rds data (see note below)
+  # [x] KV: Stop this function here and write out noaaCTD.Rds data (see note below)
 
-  # [ ] KV: Any parts of processing scripts that use the naming/conversions file (Analytes3) need to be moved to its own package function so that any updates to Analytes3 results in the data being updated dynamically when the core package functions are run. As it stands now, these CTD files and names are static and are inconsistent with the rest of the package and the idea behind the tables in Analytes3
+  # [x] KV: Any parts of processing scripts that use the naming/conversions file (Analytes3) need to be moved to its own package function so that any updates to Analytes3 results in the data being updated dynamically when the core package functions are run. As it stands now, these CTD files and names are static and are inconsistent with the rest of the package and the idea behind the tables in Analytes3
 
   ########## Everything below here needs to be moved to a NEW NOAA CTD package function that reads in noaaCTD.Rds and does the remaining mapping and harmonization ########################
 
