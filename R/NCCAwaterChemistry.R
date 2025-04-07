@@ -275,11 +275,6 @@
 
 
 
-##### NOTE KV HAS NOT REVIEWED THE 2020 WATER CHEMISTRY FUNCTION BELOW ####
-# [ ] Should this be removed ( I see commments in this function now )
-
-
-
 #' Read in all NCCA water chemistry from 2020
 #'
 #' @description
@@ -298,7 +293,7 @@
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 

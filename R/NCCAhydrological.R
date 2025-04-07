@@ -195,7 +195,8 @@
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
       `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
+      sampleDate = as.Date(DATE_COL, origin = "1900-1-1"),
+      sampleTimeUTC = NA,
       # [x] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets and flags added. What happens when it is merged with the rest of the data without a time?
       Study = "NCCA_hydro_2015"
     ) %>%
@@ -295,10 +296,9 @@
     ) %>%
     # Confirmed that the reference date with Hugh and by reformatting in Excel
     dplyr::mutate(
-      SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
+      sampleTimeUTC = round(as.numeric(SECCHI_TIME) * 24),
       DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
       sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
-      sampleDateTime = lubridate::ymd_h(sampleDate),
     ) %>%
     # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
     # However, we filter it out in the mean call
@@ -306,8 +306,7 @@
     dplyr::reframe(
       SITE_ID = toString(unique(SITE_ID)),
       ANALYTE = "Secchi",
-      DATE_COL = unique(DATE_COL),
-      sampleDateTime = mean(sampleDateTime, na.rm = T), # KV added this, was missing sampleDateTime otherwise
+      sampleTimeUTC = mean(sampleTimeUTC, na.rm = T), # KV added this, was missing sampleDateTime otherwise
       stationDepth = mean(STATION_DEPTH, na.rm = T),
 
       # MEAN_SECCHI_DEPTH is the estimated column (from Kd)
