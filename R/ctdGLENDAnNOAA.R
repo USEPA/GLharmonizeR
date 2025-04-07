@@ -1,4 +1,6 @@
-.cleanNOAAnSeabirdCTD <- function(seabirdCTD, noaaCTD){
+# Harmonize and join NOAA and GLENDA CTD
+
+.cleanNOAAnSeabirdCTD <- function(){
   filepaths <- .getFilePaths()
 
   # KV: Per comment below, any code in a script that uses the below Analytes3 tables needs to be a core package function that can accommodate changes to these tables
@@ -76,7 +78,9 @@
     # [x] KV: The above removal of par should be done in NOAA_Map for consistency and documentation, NOT hard coded here
     # a small number of dates are a century old
     # [ ] KV: This date issue probably needs to be investigated further - needs to be examined and potentially is a question for Steve Pothoven at NOAA
-    filter(sampleDateTime > lubridate::ymd("1950-01-01")) # KV: Also move this filter to the new function so that the date issue can be investigated
+    filter(sampleDateTime > lubridate::ymd("1950-01-01")) %>% # KV: Also move this filter to the new function so that the date issue can be investigated
+    dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
+  # [x] KV: Also the mutate() line editing Explicit_Units should be in the new GLNPO Seabird CTD function you will create, not added here.
 
   ctd <- dplyr::bind_rows(glenda, noaa)
   return(ctd)

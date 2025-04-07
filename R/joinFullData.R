@@ -53,17 +53,12 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     namingFile,
     Lakes = c("Lake Michigan"),
     n_max = n_max
-  ) %>%
+  )
   dplyr::mutate(Finalized = as.character(Finalized))
   # [ ] KV: Move this final mutate function to within .loadNCCA() function if still needed
 
-  print("Step 2/7: Read preprocessed GLNPO Seabird files")
-  seaBirdDf <- readr::read_rds(seaBird) %>%
-    # since pH aren't being converted, need to set the explicit units
-    dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
-  # [ ] KV: Looks like all of this code went to seaBirdProcessing.R, which is not a package function. I appreciate you moving the code to clean up this script, but we should not move code outside the core functions that would cause an update to Analytes3 to not get incorporated by running the package functions. See extensive comments in both seaBirdProcessing.R and NOAAProcessing.R regarding how to address this comment.
-  # [ ] KV: Also the mutate() line editing Explicit_Units should be in the new GLNPO Seabird CTD function you will create, not added here.
-
+  print("Step 2/7: Read preprocessed GLNPO Seabird and NOAA CTD files")
+  seabirdNnoaaCTD <- .cleanNOAAnSeabirdCTD()
 
   print("Step 3/7: Read and clean GLENDA")
   GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
@@ -102,12 +97,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
   # [ ] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
 
-  print("Step 5/7: Read and clean NOAA data")
+  print("Step 5/7: Read and clean NOAA WQ data")
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
-  noaaCTD <- readr::read_rds(noaaCTD)
-  # [ ] KV: This will need to be replaced with calling the new NOAA CTD function you will create
-  NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
-
 
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
