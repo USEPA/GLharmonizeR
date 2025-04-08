@@ -132,8 +132,8 @@
 }
 
 .imputeNearestMatchColumn <- function(df, column, outcomeColumn = Chla_ugl, dayThresh = 6, latlonThres = 0.01){
-  missing <- df %>% filter(is.na({{ column }}))
-  nonmissing <- df %>% drop_na({{ column }})
+  missing <- df %>% dplyr::filter(is.na({{ column }}))
+  nonmissing <- df %>% tidyr::drop_na({{ column }})
 
   # [ ] Add ifelse to only impute for observations that have nonmising Chla
   missing <- missing %>%

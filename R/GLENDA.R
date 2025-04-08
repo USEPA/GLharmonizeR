@@ -44,7 +44,7 @@
         readr::read_rds(.) %>%
           # This is so that everything can be pivoted, we change
           # to final datatypes later once it's in long format
-          dplyr::mutate(across(everything(), as.character)) %>%
+          dplyr::mutate(dplyr::across(dplyr::everything(), as.character)) %>%
           dplyr::mutate(
             Year = as.integer(YEAR),
             STN_DEPTH_M = as.double(STN_DEPTH_M),
@@ -312,7 +312,7 @@
     # add in the detection limits
     dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
     dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
-    dplyr::select(-c(sampleDate, dplyr::ends_with(".x"), dplyr::ends_with(".y")))
+    dplyr::select(-c(dplyr::ends_with(".x"), dplyr::ends_with(".y")))
 
     # [x] Add self reported  detection limits
     # [x] Extract the < values for all datas, join it back to the pdf extracted RL's

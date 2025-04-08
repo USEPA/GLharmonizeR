@@ -17,7 +17,7 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "CSMI_Map", na.strings = c("", "NA")) %>%
     dplyr::mutate(ANALYTE = stringr::str_remove_all(ANALYTE, "\\.")) %>%
@@ -61,7 +61,7 @@
   stisInfo <- RODBC::sqlFetch(dbi, "L3a_SampleLayerList") %>%
     dplyr::select(STIS = STISkey, SampleEventKey = SampleEventFK, sampleDepth = WQdepth_m,
       sampleType = ASTlayername) %>%
-    mutate(
+    dplyr::mutate(
       SampleEventKey = ifelse(
         STIS %in% as.character(5008:5015),
         "Fra_46_May_LE2", SampleEventKey

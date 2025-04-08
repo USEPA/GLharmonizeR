@@ -181,7 +181,7 @@
       RESULT = cpar,
     ) %>%
     dplyr::select(-c(cpar)) %>%
-    filter(SITE_ID %in% usgsCTDsites$SITE_ID)
+    dplyr::filter(SITE_ID %in% usgsCTDsites$SITE_ID)
     # mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
 
     # [X] KV: Needs UID - Use NB for Nikki Berry

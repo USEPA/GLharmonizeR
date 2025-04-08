@@ -74,6 +74,8 @@
     # KV: Keeping extra date and time columns to check working correctly
     dplyr::mutate(
       sampleDateTime = lubridate::ymd_h(sampleDateTime),
+      sampleDate = lubridate::date(sampleDateTime),
+      sampleTime = lubridate::hour(sampleDateTime),
     ) %>%
     # KV: secchi.m and PP.ugl are character - why?
     # KV: PP is character because has one "?", which is fine to have go to NA using as.numeric()

@@ -257,7 +257,7 @@
     # Do this for the joining
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "METHOD" = "Methods")) %>%
     dplyr::filter(CodeName != "Remove") %>% 
-    dplyr::left_join(key, by = join_by(CodeName)) %>%
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
@@ -390,7 +390,7 @@
     # Do this for the joining
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
     dplyr::filter(CodeName != "Remove") %>% 
-    dplyr::left_join(key, by = join_by(CodeName)) %>%
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
