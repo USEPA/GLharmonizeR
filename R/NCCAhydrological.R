@@ -59,7 +59,9 @@
     # ) %>%
     # Note: CAST_COMMENT and CAST_FLAG are all NA
     # Note: Averaging over RESULT is necessary below because sometimes multiple values present at same depth. Looking at data, this looks like due to possible data entry error due to upcasts being mislabeled, but this is a reasonable solution.
-    dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x))))
+    dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%
+    dplyr::mutate(sampleDate = lubridate::mdy(DATE_COL))
+
     # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
 
 
@@ -75,7 +77,7 @@
     dplyr::filter(ANALYTE %in% c("Ambient PAR", "Underwater PAR")) %>%
     # derive cpar
     dplyr::reframe(
-      .by = c(UID, SITE_ID, STATE, DATE_COL, sampleDepth),
+      .by = c(UID, SITE_ID, STATE, sampleDate, sampleDepth),
       APAR = mean(ifelse(ANALYTE == "Ambient PAR", RESULT, NA), na.rm = T),
       UPAR = mean(ifelse(ANALYTE == "Underwater PAR", RESULT, NA), na.rm = T),
       RESULT = UPAR / APAR,
@@ -94,11 +96,11 @@
   # [x] KV: Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
   notsecchis <- df %>%
     dplyr::filter(!grepl("secchi", ANALYTE, ignore.case= T)) %>%
-    dplyr::distinct(SITE_ID, sampleDepth, DATE_COL)
+    dplyr::distinct(SITE_ID, sampleDepth, sampleDate)
   
   secchis <- df %>%
     dplyr::filter(grepl("secchi", ANALYTE, ignore.case= T)) %>%
-    dplyr::full_join(notsecchis, by = c("SITE_ID", "DATE_COL")) %>%
+    dplyr::full_join(notsecchis, by = c("SITE_ID", "sampleDate")) %>%
     dplyr::select(-sampleDepth.x) %>%
     dplyr::rename(sampleDepth = sampleDepth.y) %>%
     dplyr::mutate(RESULT = ifelse(RESULT == -9, NA, RESULT)) %>%
@@ -111,7 +113,6 @@
     
     #### Code okay after this point ####
 
-    dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
     dplyr::mutate(
     #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
       Study = "NCCA_hydro_2010",
@@ -297,8 +298,7 @@
     # Confirmed that the reference date with Hugh and by reformatting in Excel
     dplyr::mutate(
       sampleTimeUTC = round(as.numeric(SECCHI_TIME) * 24),
-      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
-      sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
+      sampleDate = as.Date(DATE_COL, origin = "1900-1-1"),
     ) %>%
     # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
     # However, we filter it out in the mean call
@@ -317,7 +317,7 @@
       # Check to see if this works
       CLEAR_TO_BOTTOM = RESULT >= stationDepth,
       QAcomment = toString(unique(SECCHI_COMMENT)),
-      .by = c(UID)
+      .by = c(UID, sampleDate)
     ) %>%
     dplyr::mutate(
       # Looked through and saw none of the QAcomments were relevent

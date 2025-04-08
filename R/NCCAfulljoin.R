@@ -65,7 +65,9 @@
         # - this was before I added the unts within the loading files, so no longer necessary
       )
     ) %>%
-  dplyr::mutate(Finalized = as.character(Finalized))
+  dplyr::mutate(
+    Finalized = as.character(Finalized),
+    )
   # [x] KV: Move this final mutate function to within .loadNCCA() function if still needed
 
   # Turn into test
