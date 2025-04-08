@@ -354,6 +354,13 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
   }
 
+# check missingness
+# allWQ %>% 
+#   reframe(across(everything(), 
+#           function(x) round(mean(is.na(x)), 2)),
+#           .by = Study) %>%
+#   View()
+
   return(allWQ)
 }
 
