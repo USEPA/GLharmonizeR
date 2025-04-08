@@ -211,10 +211,10 @@
     dplyr::select(YEAR, SEASON, CodeName, mdl) %>%
     dplyr::bind_rows(internalRL)
 
-  test <- df %>%
+  df <- df %>%
     # Convert daylight saving TZs into standard time TZs
     dplyr::mutate(
-      SEASON = ifelse(is.na(SEASON), lubridate::month(SAMPLING_DATE, label = T), SEASON),
+      SEASON = ifelse(is.na(SEASON), lubridate::month(sampleDateTime, label = T), SEASON),
     ) %>%
     # Drop analyte number since it doesn't mean anything now
     # These columns are redundant with the "Analyte" columns
