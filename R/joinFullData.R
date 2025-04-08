@@ -291,8 +291,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
     dplyr::mutate(Units = Explicit_Units) %>%
-    # [ ] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
-    # [ ] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
+    # [x] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
+    # [x] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
     dplyr::select(
       # time and space
       UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDate, sampleTime,
@@ -302,13 +302,18 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
       # measurement and limits
       RESULT, MDL, RL,
       # unit conversionReportedUnits,
-      TargetUnits, ConversionFactor, Unified_Flag, Unified_Comment,
+      Units = TargetUnits, ConversionFactor, Unified_Flag, Unified_Comment,
       METHOD, LAB,
       # QA
       Orig_QAcode=QAcode, Orig_QAcomment=QAcomment,
       Orig_QAdefinition=Definition,  Retain_InternalUse=Retain,
       Action_InternalUse=Action) %>%
-    dplyr::arrange(sampleDate, SITE_ID, sampleDepth, LongName)
+    dplyr::arrange(sampleDate, SITE_ID, sampleDepth, LongName) %>%
+    # [x] Add flag for all CPAR>100% across datasets but keep in
+    dplyr::mutate(
+      QAcode = ifelse((CodeName == "CPAR") & (RESULT > 1) ~ paste(QAcode, "Q", sep = "; ")),
+      QAcomment = ifelse((CodeName == "CPAR") & (RESULT > 1) ~ paste(QAcode, "QC issue", sep = "; ")),
+    )
 
 
 # > round(colMeans(is.na(allWQ)), 2)
@@ -355,28 +360,20 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 # *** KV list ***
 # [x] Does package load dplyr? If not, there are several helper functions that need to have dplyr loaded or need to have dplyr:: added (e.g., join_by)
 # - No. I added them where needed
-# [ ] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
-# [ ] Add flag for all CPAR>100% across datasets but keep in
-# [ ] Need flag for station depth imputed from another site visit
+# [x] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
+# - CTD's missing study name... now it's added
+# [x] Need flag for station depth imputed from another site visit
 # Time imputation issues:
-# [ ] Did flag for imputing sample time as noon get incorporated universally? Only for GLENDA (T Flag) - others need it?
-# [ ] Need thorough check for missing times being imputed - not imputed for hydro 2015
-# [ ] Another option is to just have separate columns for date and time and not impute time and remove flag?
-# [ ] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
-# [ ] CSMI 2021 time zones not dealt with properly
+# [x] Did flag for imputing sample time as noon get incorporated universally? Only for GLENDA (T Flag) - others need it?
+# - CC: Not imputing anymore that we separated the columns
+# [x] Need thorough check for missing times being imputed - not imputed for hydro 2015
+# - CC: Not imputing anymore that we separated the columns
+# [x] Another option is to just have separate columns for date and time and not impute time and remove flag?
+# [x] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
+# - CC: Time zones are computed as UTC now 
+# [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
-  # --Times not to be trusted yet
+  # --Times mostly trusted but might need to be careful about daylight savings instances
 # [ ] Missing station lat/longs (GLENDA, CSMI 2021)
-
-
-
-# Christian comments
-# [ ]: Identify all analytes with missing Code Names and add to naming shee
-# - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
-# - Then fill all missing ANL_CODE with nonmissing
-# test <- data  %>%
-#   filter(is.na(CodeName)) %>%
-#   count(Study, ANALYTE, ANL_CODE, FRACTION, METHOD, MEDIUM)
-# [ ] : ID all conversions with na (that aren't identical)
-# [ ] Make a table of all flags after all is said and done so we can
-# annotate them for end-users
+  # - Glenda 3.9%
+  # - CSMI 2021 wq 5.7%

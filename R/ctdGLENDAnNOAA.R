@@ -105,7 +105,8 @@
     ) %>%
     dplyr::mutate(
       sampleDate = lubridate::date(sampleDateTime),
-      sampleTimeUTC = lubridate::hour(sampleDateTime)
+      sampleTimeUTC = lubridate::hour(sampleDateTime),
+      UID = paste0(Study, UID, sep = "-")
     )
   return(ctd)
 }

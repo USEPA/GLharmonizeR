@@ -236,6 +236,7 @@
       time = ifelse(time == "3:45/4:29", "4:07", time),
       sampleTimeUTC = lubridate::hm(stringr::str_remove_all(time, "[:space:]")),
       sampleTimeUTC = lubridate::hour(sampleTimeUTC),
+      sampleTimeUTC = ifelse(grepl("CDT", time, ignore.case= T), sampleTimeUTC + 1, sampleTimeUTC)
     ) %>%
 
     # [x] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise).
