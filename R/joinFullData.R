@@ -365,6 +365,10 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 #           function(x) sum(!is.na(x))),
 #           .by = Study) %>%
 #   View()
+# allWQ %>% 
+#   reframe(n = length(unique(UID)),
+#           .by = Study) %>%
+#   arrange(desc(n))
 
   return(allWQ)
 }
@@ -385,7 +389,9 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 # - CC: Time zones are computed as UTC now 
 # [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
-  # --Times mostly trusted but might need to be careful about daylight savings instances
+  # - unknown if NOAA cond is specific conductivity at 25C
+  # - Times mostly trusted but might need to be careful about daylight savings instances
+  # - unable to retrieve dates for small subset of NOAA CTD data
 # [ ] Missing station lat/longs (GLENDA, CSMI 2021)
   # - Glenda 3.9%
   # - CSMI 2021 wq 5.7%
