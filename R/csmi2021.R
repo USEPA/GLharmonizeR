@@ -213,7 +213,10 @@
     # [x] KV: Need a flag for imputing noon time above
 
 
-  ctdDat <- dplyr::bind_rows(epaCTD, usgs)
+  ctdDat <- dplyr::bind_rows(epaCTD, usgs) %>%
+  # Standardize the Longitudes to be ~  -86
+    dplyr::filter(abs(Longitude + 86) < 10)
+
 
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%

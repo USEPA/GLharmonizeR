@@ -369,9 +369,21 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 #   reframe(n = length(unique(UID)),
 #           .by = Study) %>%
 #   arrange(desc(n))
+# allWQ %>% 
+#   reframe(across(c(Latitude, Longitude),
+#             c(
+#               "max" = function(x) max(x, na.rm = T),
+#               "min" = function(x) min(x, na.rm = T)
+#               )),
+#           .by = Study) %>%
+#   View()
 
   return(allWQ)
 }
+
+# inspected every max, min and middle for each column for each Study using View(allWQ)
+# - [x]  CSMI 2021 CTD lat longs need to be standardized to -86 - -87 and  + 43
+
 
 # *** KV list ***
 # [x] Does package load dplyr? If not, there are several helper functions that need to have dplyr loaded or need to have dplyr:: added (e.g., join_by)
@@ -389,9 +401,11 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 # - CC: Time zones are computed as UTC now 
 # [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
-  # - unknown if NOAA cond is specific conductivity at 25C
-  # - Times mostly trusted but might need to be careful about daylight savings instances
-  # - unable to retrieve dates for small subset of NOAA CTD data
-# [ ] Missing station lat/longs (GLENDA, CSMI 2021)
-  # - Glenda 3.9%
-  # - CSMI 2021 wq 5.7%
+  # unknown if NOAA cond is specific conductivity at 25C
+  # Times mostly trusted but might need to be careful about daylight savings instances
+  # unable to retrieve dates for small subset of NOAA CTD data
+  # There are negatives and zeros in RESULTS column
+  # NCCA secchi 2015 has vrey poor spatial resolution
+  # Missing station lat/longs (GLENDA, CSMI 2021)
+    # Glenda 3.9%
+    # CSMI 2021 wq 5.7%
