@@ -38,6 +38,7 @@ df <- assembleData("filepath")
 
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 
+<!-->
 # Suggested workflows
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
 
@@ -70,6 +71,7 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 - Clean each dataset individually
 - Combine into a unified dataset
 - Provide utilities for processing (imputation etc.)
+--> 
 
 ## Data sources
 The data were taken from the following sources
@@ -85,6 +87,7 @@ The data were taken from the following sources
   - 2007 - 2022
   - CTD 2007 - 2022
 
+<!--
 ## Database design
 The database was designed using multiple principals that were derived from the design of the LAGOS-US research platform. Firstly, the fundamental sampling unit is defined by a unique spatial position defined by latitude, longitude, and depth. However, since multiple analytes can be measured at each position, but scarcely any position has all analytes measured, the data is arranged in a "long" format where each row represents partial observations indexed by position, time, and analyte. This dramatically reduces the size of the stored data given the data's sparse nature by not introducing large amounts of NA values.
 
@@ -94,7 +97,7 @@ Thirdly, it is designed to be amenable to extensibility and open source developm
 
 Next, we describe the design more in-depth by describing the entities, data model, variables, and schema which together comprise the database.
 
-
+-->
 
 
 # Disclaimer
