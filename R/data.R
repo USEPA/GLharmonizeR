@@ -10,13 +10,13 @@
 #' @keywords datasets
 #' @usage data(lakeMichigan)
 #' @docType data
-#' @format A data frame with 309210 rows and 28 variables:
+#' @format A data frame with 338739 rows and 28 variables:
 #' \describe{
 #'   \item{UID}{Unique ID across all sources}
 #'   \item{Study}{Name of study}
 #'   \item{SITE_ID}{Name of site}
 #'   \item{Latitude}{Latitude in degreees decimals (41.66336--55.30979)}
-#'   \item{Longitude}{Longitude in degreees decimals (41.66336--55.30979)}
+#'   \item{Longitude}{Longitude in degreees decimals (-90.14804--83.32752)}
 #'   \item{stationDepth}{Depth in meters of the station / site (0.2--273.4056)}
 #'   \item{sampleDateTime}{Date time of sampling event (1983/04/19 12:00:00 UTC--2023/08/05 04:14:54 UTC)}
 #'   \item{sampleDepth}{Depth at which sample was taken (0.1--258.5)}
@@ -43,4 +43,4 @@
 #' }
 #' 
 #' @source {LMChla} Lake Michigan water quality R package.
-"lakeMichigan"
+"allWQ"

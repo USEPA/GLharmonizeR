@@ -364,8 +364,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
 
   if (!is.null(out) & binaryOut) {
-    print(paste0("Writing data to ", out, ".Rds"))
-    save(allWQ, file = paste0(out, ".Rda"))
+    print(paste0("Writing data to ", out, ".rda"))
+    save(allWQ, file = paste0(out, ".rda"))
   } else {
     print(paste0("Writing data to ", out, ".csv"))
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())

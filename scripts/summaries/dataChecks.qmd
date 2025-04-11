@@ -8,7 +8,7 @@ library(tidyverse)
 library(fuzzyjoin)
 devtools::load_all()
 #start.time <- Sys.time()
-df <- assembleData(.test = F, out = "data/lakeMichigan", binaryOut = TRUE)
+lakeMichigan <- assembleData(.test = F, out = "data/lakeMichigan", binaryOut = TRUE)
 # assembly takes 1 minute
 # end.time <- Sys.time()
 # time.taken <- end.time - start.time
