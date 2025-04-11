@@ -35,8 +35,9 @@ df <- assembleData("filepath")
 - This will save an Rds binary version of the compiled data to the location specified by "filepath"
   - Rds files are loadable using `df <- readRDS("filepath")` in R.
 
-
+<!-->
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
+-->
 
 <!-->
 # Suggested workflows
