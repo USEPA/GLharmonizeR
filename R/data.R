@@ -3,6 +3,13 @@
 #' A dataset containing water quality measurements from NCCA, CSMI, GLENDA,
 #'  and NOAA data sources. The variables are as follows:
 #'
+#' @name lakeMichigan
+#' @author Kelsey Vitense \email{...}
+#' @author Christian Coffman \email{coffman.christian@epa.gov}
+#' @references \url{ncca}, \url{csmi}
+#' @keywords datasets
+#' @usage data(lakeMichigan)
+#' @docType data
 #' @format A data frame with 309210 rows and 28 variables:
 #' \describe{
 #'   \item{UID}{Unique ID across all sources}
@@ -34,4 +41,6 @@
 #'   \item{Retain_InternalUse}{Internal decision on what data to retain based on QC flags}
 #'   \item{Action_InternalUse}{Verbose description of decision made off of qa flags}
 #' }
-"lakeMichigan"
+#' 
+#' @source {LMChla} Lake Michigan water quality R package.
+NULL

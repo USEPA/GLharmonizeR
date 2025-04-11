@@ -75,12 +75,15 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 The data were taken from the following sources
 
 - The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
+  - 1983 - 2023
+  - Seabird CTD 2003 - 2023
 - CSMI (hosted locally)
+  - 2015, 2020 (2010 partially, but too much missing info for inclusion)
 - National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
+  - 2010, 2015
 - National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
-- [WQP](https://www.waterqualitydata.us/)
-- FVCOM (hosted locally)
-
+  - 2007 - 2022
+  - CTD 2007 - 2022
 
 ## Database design
 The database was designed using multiple principals that were derived from the design of the LAGOS-US research platform. Firstly, the fundamental sampling unit is defined by a unique spatial position defined by latitude, longitude, and depth. However, since multiple analytes can be measured at each position, but scarcely any position has all analytes measured, the data is arranged in a "long" format where each row represents partial observations indexed by position, time, and analyte. This dramatically reduces the size of the stored data given the data's sparse nature by not introducing large amounts of NA values.

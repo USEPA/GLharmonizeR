@@ -1,6 +1,24 @@
 # NOT FULLY REVIEWED
 # This file will also need to be rechecked after fixing issues in the other files
 
+#' Load and join all WQ measured on Lake Michigan from multiple sources. data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA
+#'
+#' @description
+#' `assembleData` returns a dataframe with unified reporting conventions
+#' The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
+#' - 1983 - 2023
+#' - Seabird CTD 2003 - 2023
+#' CSMI (hosted locally)
+#' - 2015, 2020 (2010 partially, but too much missing info for inclusion)
+#' National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
+#' - 2010, 2015
+#' National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
+#' - 2007 - 2022
+#' - CTD 2007 - 2022
+#'
+#' @details
+#' This is the main function of LMChla which assembles water quality for Lake Michigan
+#' across multiple decades. 
 #'
 #' @param out filepath to save the dataset to. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
