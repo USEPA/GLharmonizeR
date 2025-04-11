@@ -307,7 +307,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   dplyr::filter(!grepl("Remove", Retain) | is.na(Retain) | is.na(Unified_Flag))
 
   # recombine full dataset
-  allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
+  lakeMichigan <- dplyr::bind_rows(flagged, notflagged) %>%
     # [x] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
     # [x] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
     dplyr::select(
@@ -365,10 +365,10 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".rda"))
-    save(allWQ, file = paste0(out, ".rda"))
+    save(lakeMichigan, file = paste0(out, ".rda"))
   } else {
     print(paste0("Writing data to ", out, ".csv"))
-    readr::write_csv(allWQ, file = out, progress = readr::show_progress())
+    readr::write_csv(lakeMichigan, file = out, progress = readr::show_progress())
   }
 
 # check missingness

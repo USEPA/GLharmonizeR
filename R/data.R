@@ -43,4 +43,4 @@
 #' }
 #' 
 #' @source {LMChla} Lake Michigan water quality R package.
-"allWQ"
+"lakeMichigan"
