@@ -95,57 +95,7 @@ Thirdly, it is designed to be amenable to extensibility and open source developm
 Next, we describe the design more in-depth by describing the entities, data model, variables, and schema which together comprise the database.
 
 
-# Developer documentation
-This section provides additional details that are unnecessary for the general user. That being said, it will not contain all of the high level details that are outlined in the [User Documentation](#user-documentation).
-
-## Contributing
-The development environment is managed via "renv". To set up the development environment after cloning the repository run "renv::restore()". This will then ask to install and update packages necesssary for the development environment. If you make changes that alter the environment (i.e. add a new package dependency) please update the renv by running "renv::snapshot()"
-
-For scripts/function organization and style see the [Google r style guide](https://google.github.io/styleguide/Rguide.html). 
-For package layout see the [R-exts](https://cran.r-project.org/doc/manuals/R-exts.pdf)
-For function documentation [roxygen notes](https://roxygen2.r-lib.org/articles/rd.html)
-
-Lint the project files using R linter package (we are using the default linting choices which enforces tidyverse standards)
-```{r}
-lintr::lint(filename = "R/filename.R") 
-lintr::lint_dir(path = "R")
-```
-
-Tags in code are supported to make it easier to search when searching for things to do etc: 
-- BUG - if a bug is known to occur from a certain chunk of code
-- [ ] - For TODO's
-- [x] - to mark that necessary changes are done
-- DOCTHIS - highlight sections of code that are important to write up in the documentation for the package
-- XXX - Something else of note for developers
 
 
-## Testing
-In order to cut down time tests take to run, tests for a given data source should all be run together. To accomplish this, the data should be stored as a fixture and then tested. Tests are ran through ['testthat' R package](https://testthat.r-lib.org/). Code coverage is provided by [covr](https://covr.r-lib.org/).
-
-# Process/technical documentation 
-- Clear to Bottom as NA's
-- Assumed if measuring same analyte and method code they were similar
-  - assumption was checked by looking at marginal distributions
-- Converted silicon to silica
-- Assembled positional data from all associated documentation to fill in missing values
-
-### Entities
-The database includes four entities for which observations occur: lake, site, site/depth, and sample event. Lakes are the set of North American great lakes. A site is defined as a specific location on a lake with a unique Latitude/Longitude defining its position on the surface of the Earth. Site/depth is the depth at which a measurement was taken and together with the site define a unique 3D position for a given measurement. A sample event defines a unique site depth and the point in time which is was measured.
-
-### Data model
-The data model describes how entities are related to one another (and linked through common identifiers)......
-
-### Data tables and variables
-The <database> is comprised of analyte measurements which are also commonly refered to as features, parameters, or attributes..... We might organize is into multiple different tables when we add more sources...
-
-### Schema
-The database contains metadata (analyte descriptions and data column descriptions) along with a datatable. The datatable can be filtered by entities after downloading such as filtering by lake name, lat/lon ranges, site id, or even analyte.. Should we define it as a relational database... keeping the files separate??? 
-
-
-## Making changes to namings
-Make sure you change all occurences in the Analytes3.xlsx
-- Each of the "_Map" sheets
-- The "key" sheet
-
-# Citation
-.....
+# Disclaimer
+The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use. EPA has relinquished control of the information and no longer has responsibility to protect the integrity, confidentiality, or availability of the information. Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA. The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.

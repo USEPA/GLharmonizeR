@@ -6,7 +6,7 @@
 #' @name lakeMichigan
 #' @author Kelsey Vitense \email{...}
 #' @author Christian Coffman \email{coffman.christian@epa.gov}
-#' @references \url{ncca}, \url{csmi}
+#' @references GLENDA \url{https://cdx.epmeea.gov/}, NCCA \url{ncca}, \url{csmi}
 #' @keywords datasets
 #' @usage data(lakeMichigan)
 #' @docType data
