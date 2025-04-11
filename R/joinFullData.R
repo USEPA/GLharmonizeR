@@ -308,7 +308,6 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
   # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
-    dplyr::mutate(Units = Explicit_Units) %>%
     # [x] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
     # [x] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
     dplyr::select(
@@ -316,11 +315,11 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
       UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDate, sampleTime,
       sampleDepth, DEPTH_CODE,
       # analyte name
-      CodeName, LongName, Category, ANALYTE_Orig_Name=ANALYTE, Units,
+      CodeName, LongName, Category, ANALYTE_Orig_Name=ANALYTE,
       # measurement and limits
       RESULT, MDL, RL,
       # unit conversionReportedUnits,
-      Units = TargetUnits, ConversionFactor, Unified_Flag, Unified_Comment,
+      Units = Explicit_Units, ConversionFactor, Unified_Flag, Unified_Comment,
       METHOD, LAB,
       # QA
       Orig_QAcode=QAcode, Orig_QAcomment=QAcomment,
@@ -329,8 +328,8 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     dplyr::arrange(sampleDate, SITE_ID, sampleDepth, LongName) %>%
     # [x] Add flag for all CPAR>100% across datasets but keep in
     dplyr::mutate(
-      QAcode = ifelse((CodeName == "CPAR") & (RESULT > 1) ~ paste(QAcode, "Q", sep = "; ")),
-      QAcomment = ifelse((CodeName == "CPAR") & (RESULT > 1) ~ paste(QAcode, "QC issue", sep = "; ")),
+      Unified_Flag = ifelse((CodeName == "CPAR") & (RESULT > 1), paste(Unified_Flag, "Q", sep = "; "), Unified_Flag),
+      Unified_Comment = ifelse((CodeName == "CPAR") & (RESULT > 1), paste(Unified_Comment, "QC issue", sep = "; "), Unified_Comment),
     )
 
 
@@ -366,7 +365,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
   if (!is.null(out) & binaryOut) {
     print(paste0("Writing data to ", out, ".Rds"))
-    saveRDS(allWQ, paste0(out, ".Rds"))
+    save(allWQ, file = paste0(out, ".Rda"))
   } else {
     print(paste0("Writing data to ", out, ".csv"))
     readr::write_csv(allWQ, file = out, progress = readr::show_progress())
