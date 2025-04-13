@@ -1,5 +1,4 @@
-# NOT FULLY REVIEWED
-# This file will also need to be rechecked after fixing issues in the other files
+# This file will also need to be rechecked after fixing issues in the other files, plus addressing issues in comments below
 
 #'
 #' @param out (optional) filepath to save the dataset to
@@ -197,23 +196,23 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
 
   # [ ] KV: *** Why are there duplicated rows? This should not be the case. Check before do anything else ***
   # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDateTime, sampleDepth, CodeName)
-  # NCCA_hydro_2010 - Repeated Secchi values already noted where appropriate. Also has -9 values, which may not be noted or dealt with? Are those CTB? If so, they aren't flagged
+  # [ ] KV: NCCA_hydro_2010 - Repeated Secchi values already noted where appropriate. Also has -9 values, which may not be noted or dealt with? Are those CTB? If so, they aren't flagged
   # NOAA_WQ - Secchi repeated in a few instances - makes sense to just do distinct() here
   # NOAActd - Lots of NOAA CTD repeated twice - perhaps CTD files are in there twice. Makes sense to do distinct() here
-  # SeaBird - Lots of SeaBird CTD repeated twice, but not consistently for each parameter, like for NOAA. Seems odd???
+  # [ ] KV: SeaBird - Lots of SeaBird CTD repeated twice, but not consistently for each parameter, like for NOAA. Seems odd???
 
 
 
 
-  ### LEFT OFF HERE ###
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
   # [x] Split into flagged and unflagged values
   # [ ] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
   notflagged <- allWQ %>%
-    dplyr::filter((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study))) %>%
+    dplyr::filter((is.na(QAcode) & is.na(QAcomment)) ) %>% # KV removed: | (grepl("SeaBird|CSMI|NOAAwq", Study))
     dplyr::distinct()
 
+  # [ ] KV: Currently some QAcomment (and maybe QAcode) have NA appended to them and/or are not spaced or separated from others - see if can fix this in respective functions
 
   # [x] join flag explanations
   flags <- openxlsx::read.xlsx(flagsFile) %>%
@@ -222,26 +221,38 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       QAcode = ifelse(is.na(QAcode), Study, QAcode),
       QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     )
+  # [X] KV: Why put Study in for QAcode/QAcomment when missing instead of just repeating QAcode/QAcomment in both? Does it really need to be filled in at all?
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
 
+  # [ ] KV: Note that NOAA_WQ flags may be weird (KV addition) - time imputed as noon occurs only in QAcomment, secchi CTB appeas only in QAcode - can have both in conjunction that need to be recognized - should work with fuzzy join? Also probably getting rid of time imputation anyway, so possibly not an issue
 
-    # [ ] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
+    # [X] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
     flagged <- allWQ %>%
-    dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)) | (grepl("SeaBird|CSMI|NOAAwq", Study)))) %>%
-    dplyr::mutate(
+    dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)) )) %>% # KV removed: | (grepl("SeaBird|CSMI|NOAAwq", Study))
+      dplyr::distinct() %>%
+      dplyr::mutate(
       QAcode = stringr::str_remove_all(QAcode, "^NA;"),
       QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
       QAcode = stringr::str_replace_all(QAcode, ",", ";"),
       QAcode = ifelse(is.na(QAcode), Study, QAcode),
       QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     ) %>%
-    dplyr::distinct() %>%
     fuzzyjoin::fuzzy_join(flags,
     by=c("Study", 'QAcode', "QAcomment"),
     mode='left', #use left join
     match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
   ) %>%
+  # [ ] KV: I don't think the fuzzy_join is working in all cases
+  # [ ] KV: For NOAA_WQ secchi, QAcode==CTB and QAcomment=="time imputed as noon" does not get mapped to either flag. Needs to be dealt with differently in NOAAwq.R, but also reflects larger problem.
+  # [ ] KV: Actually, many do not appear to map correctly. These below should all have non-NA values in Retain if they mapped correctly, right? See:
+      # look_NAretain <- flagged %>% filter(is.na(Retain))
+      # lookNAretain_uniq <- look_NAretain %>% dplyr::select(Study.x, CodeName, ANALYTE, QAcode.x, QAcomment.x, Unified_Flag, Retain ) %>% distinct()
+      # I don't think there's one reason these are all not mapping correctly - they all likely need to be investigated separately.
+      # It also partly looks like it doesn't work correctly for cases where, for example, QAcode and QAcomment don't have the same values in both the data and flagsMap - meaning one column can't be NA in the data if it is not NA in flagsMap. e.g., NCCA_WChem_2010 with QAcode==J01 doesn't map correctly in the data if QAcomment is empty. Seems like both QAcode and QAcomment need to match or it doesn't work (i.e., you can't have one column be empty). Filling in with Study does not solve the problem (e.g., some flags are only found in either QAcode or QAcomment in the data).
+      # Some of these can probably be solved (like NCCA) by adding extra rows for cases where only QAcode is present in the data and not QAcomment
+      # Some are just missing in flagsMap
+      # Some need to be dealt with differently (like NOAA_wq secchi)
     dplyr::mutate(
       # grab values in the mapping file in case we filled out by hand
       Study = dplyr::coalesce(Study.x, Study.y),
@@ -265,12 +276,12 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       Action = toString(unique(Action)),
      .by = c(
       UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
-      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
-      MDL, #PQL,
-       RL, LAB
+      ANALYTE, Category, LongName, Explicit_Units, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
+      MDL,
+       RL, LAB, METHOD # KV added missing Explicit_Units and METHOD
     ))  %>%
      # handle Retain column by priority
-  # We're joining by QAcode and QAcomment so this only removes based on the ocmment as well
+  # We're joining by QAcode and QAcomment so this only removes based on the comment as well
   dplyr::mutate(
     RESULT = dplyr::case_when(
       is.na(Unified_Flag) ~ RESULT,
@@ -289,15 +300,14 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   ) %>%
   # [x] Make sure NA flag doesn't break this - this is exclusively flagged stuff so should work
   dplyr::filter(!grepl("Remove", Retain) | is.na(Retain) | is.na(Unified_Flag))
+  # [ ] KV: From above, several of these have NA in Retain because they did not map
 
   # recombine full dataset
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
-    dplyr::mutate(Units = Explicit_Units) %>%
-    # [ ] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
-    # [ ] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
+    # dplyr::mutate(Units = Explicit_Units) %>%
     dplyr::select(
       UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDateTime, sampleDepth,
-      CodeName, LongName, RESULT, Units, MDL, # PQL,
+      CodeName, LongName, RESULT, Explicit_Units, MDL, # PQL,
       RL, Unified_Flag, Unified_Comment,
       Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment,
       Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
@@ -305,13 +315,13 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       Action_InternalUse=Action) %>%
     dplyr::arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
 
-allWQ %>%
-  filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
-  reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
-  print(n = 300)
-allWQ %>%
-  reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
-  print(n = 300)
+# allWQ %>%
+#   filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
+#   reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
+#   print(n = 300)
+# allWQ %>%
+#   reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
+#   print(n = 300)
 
 
   if (!is.null(out) & binaryOut) {
@@ -339,7 +349,8 @@ allWQ %>%
 # [ ] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
   # --Times not to be trusted yet
-# [ ] Missing station lat/longs (GLENDA, CSMI 2021)
+  # --Missing station lat/longs (GLENDA, CSMI 2021)
+  # --Flags not mapping correctly currently
 
 
 

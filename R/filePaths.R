@@ -30,7 +30,9 @@
     "GLENDAsitePath" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
 
     # GLNPO SeaBird data
-    "seaBird" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/seabird.Rds",
+    "seaBird" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/seabird_Jan2025.Rds",
+    # ** Note: Added '_Jan2025' here to preserve the copy that works with this branch. In dev branch, this file is overwritten during reorg of CTD processing functions/scripts
+
 
     # %% CSMI
     "csmi2015" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
@@ -39,7 +41,9 @@
     # %% NOAA
     "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26_CORRECTED.xlsx", # This file has corrected values based on 'edits_nutrients.xlsx' Steve Pothoven sent 2024-12-13. These were manually corrected.
     "noaaWQ2" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/Additionalnutrients_NOAA.xlsx",
-    "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD.Rds",
+    "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD_Feb2025.Rds",
+    # ** Note: Added '_Feb2025' here to preserve the copy that works with this branch. In dev branch, this file is overwritten during reorg of CTD processing functions/scripts
+
     "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformationUpdated.xlsx"
   )
 
