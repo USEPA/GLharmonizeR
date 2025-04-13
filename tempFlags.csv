@@ -1,0 +1,105 @@
+Study,QAcode,QAcomment
+CSMI_2015,MDL,Below mdl
+GLENDA,NA,Field Lab Anomaly
+GLENDA,NA,Quality Control incomplete
+GLENDA,NA,Exceeded Holding Time
+GLENDA,NA,"Suspected Contamination, field"
+GLENDA,NA,"Field Reagent Blank, failed"
+GLENDA,NA,"Method Detection Limit, less than"
+GLENDA,NA,"Field Duplicate, failed"
+GLENDA,NA,"Lab Duplicate, failed"
+GLENDA,NA,Invalid
+GLENDA,NA,"Performance Check, failed"
+GLENDA,NA,"Estimated Value, outside limit of precision"
+GLENDA,NA,CTB
+GLENDA,NA,"Detection Limit, less than"
+GLENDA,NA,"Suspected Contamination, unknown"
+GLENDA,NA,"Correction Factor, lab"
+GLENDA,NA,"Suspected Contamination, lab analysis"
+GLENDA,NA,"Lab Reagent Blank, failed"
+GLENDA,NA,"No Result Reported, analysis canceled"
+GLENDA,NA,Composite Inconsistent With Sample Results
+GLENDA,NA,"Reporting Limit, less than"
+GLENDA,NA,Likely Biased High
+GLENDA,NA,"Lab Calibration Verification Solution, failed"
+GLENDA,NA,"No Result Reported, other"
+GLENDA,NA,Likely Biased Low
+GLENDA,NA,"Matrix Spike, failed"
+GLENDA,NA,Between Instrument Detection and Quantification Limits
+GLENDA,NA,"Lab Procedural Blank, failed"
+GLENDA,NA,"Lab Spike Blank, failed"
+GLENDA,NA,"CLP Flag, Estimate"
+GLENDA,NA,"No Result Reported, lab accident"
+GLENDA,NA,"Estimated Value, serial dilution difference"
+GLENDA,NA,"Known Contamination, field"
+GLENDA,NA,"Outlier, accross stations"
+GLENDA,NA,"Outlier, single station"
+NCCA_WChem_2010,J01,NA
+NCCA_WChem_2010,J02,NA
+NCCA_WChem_2010,J03,NA
+NCCA_WChem_2010,L,NA
+NCCA_WChem_2010,N,NA
+NCCA_WChem_2010,Q05,NA
+NCCA_WChem_2010,Q06,NA
+NCCA_WChem_2010,Q08,NA
+NCCA_WChem_2010,Q21,NA
+NCCA_WChem_2010,Q23,NA
+NCCA_WChem_2015,H,NA
+NCCA_WChem_2015,L,Matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,L,WSLH used large filters for Chla-A
+NCCA_WChem_2015,L,reported value is between MDL and RDL and is therefore considered an estimate
+NCCA_WChem_2015,ND,NA
+NCCA_WChem_2015,ND,WSLH used large filters for Chla-A
+NCCA_WChem_2015,ND,Reported value is between MDL and RL and therefore considered an estimate
+NCCA_WChem_2015,ND,matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,Q,Improper filter used.
+NCCA_WChem_2015,Q,WSLH used large filters for Chla-A
+NCCA_WChem_2015,Q,Total nitrogen matrix spike exceeded QC limits by 2%
+NCCA_WChem_2015,Q,Matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,Q,reported value is between MDL and RDL and is therefore considered an estimate
+NCCA_WChem_2015,Q,Total nitrogen matrix spike exceeded QC limits by 08%
+NCCA_WChem_2015,Q,Reported value is between MDL and RL and therefore considered an estimate
+NCCA_WChem_2015,Q,matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,WSLH,WSLH used large filters for Chla-A
+NCCA_WChem_2015,WSLH,Improper filter used.
+NCCA_WChem_2015,WSLH,Total nitrogen matrix spike exceeded QC limits by 2%
+NCCA_WChem_2015,WSLH,Matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,WSLH,reported value is between MDL and RDL and is therefore considered an estimate
+NCCA_WChem_2015,WSLH,Total nitrogen matrix spike exceeded QC limits by 08%
+NCCA_WChem_2015,WSLH,Reported value is between MDL and RL and therefore considered an estimate
+NCCA_WChem_2015,WSLH,matrix spike exceeded qc limits by 5%
+NCCA_WChem_2015,NA,WSLH used large filters for Chla-A
+NCCA_hydro_2010,B,NA
+NCCA_hydro_2010,B,Less than 6 total disappear/reappear measurements
+NCCA_hydro_2010,B,Clear to Bottom reading questionable
+NCCA_hydro_2010,Q01,Field equipment questionable
+NCCA_hydro_2010,Q01,pH & COND probe malfunction
+NCCA_hydro_2010,Q01,"No reported units, so assumed most common units for this given analyte-year"
+NCCA_hydro_2010,Q01,NA
+NCCA_hydro_2010,Q01,pH failed QC check
+NCCA_hydro_2010,Q01,Clear to Bottom reading questionable
+NCCA_hydro_2010,Q10,recorded mean secchi depth is greater than station depth.
+NCCA_hydro_2010,Q10,Secchi depths varied by >0.5m
+NCCA_hydro_2010,Q10,Less than 6 total disappear/reappear measurements
+NCCA_hydro_2010,Q10,NA
+NCCA_hydro_2010,Q10,UW value is suspect
+NCCA_hydro_2010,Q14,<3 Records
+NCCA_hydro_2010,Q14,Kd not calculated
+NCCA_hydro_2010,Q14,UW value is suspect
+NCCA_hydro_2010,Q14,AMB value is suspect
+NCCA_hydro_2010,Q14,NA
+NCCA_hydro_2010,Q14,No depth
+NCCA_hydro_2010,Q14,Duplicate depth
+NCCA_hydro_2010,R,recorded mean secchi depth is greater than station depth.
+NCCA_hydro_2010,R,Field equipment questionable
+NCCA_hydro_2010,R,pH & COND probe malfunction
+NCCA_hydro_2010,R,"No reported units, so assumed most common units for this given analyte-year"
+NCCA_hydro_2010,R,pH failed QC check
+NCCA_hydro_2010,R,Clear to Bottom reading questionable
+NCCA_hydro_2010,U,"No reported units, so assumed most common units for this given analyte-year"
+NCCA_hydro_2010,U,pH & COND probe malfunction
+NCCA_hydro_2010,U,pH failed QC check
+NCCA_hydro_2015,U,"No reported units, so assumed most common units for this given analyte-year"
+NCCA_secchi_2015,CTB,NA
+NCCA_secchi_2015,CTB,"No reported units, so assumed most common units for this given analyte-year"
+NCCA_secchi_2015,U,"No reported units, so assumed most common units for this given analyte-year"

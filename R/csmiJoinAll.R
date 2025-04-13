@@ -1,85 +1,58 @@
-#' Load and join CSMI water quality data from 2010, 2015, and 2021.
+#' Load and join CSMI water quality data from 2015 and 2021.
 #'
 #' @description
-#' `LoadCSMI` returns a dataframe of all of the joined water quality data relating to CSMI years 
-#' 2010, 2015, and 2021.
+#' `LoadCSMI` returns a dataframe of all of the joined water quality data relating to CSMI years
+#' 2015 and 2021.
 #'
 #' @details
 #' This is the main functions users should use to load and assemble CSMI data
-#' using this package. This function is also called in over arching functions 
+#' using this package. This function is also called in over arching functions
 #' to assemble data across multiple data sources.
-#' @param csmi2010 a string specifying the directory containing CSMI 2010 data 
-#' @param csmi2015 a string specifying the filepath of the CSMI2015 access database
-#' @param csmi2021 a string specifying the directory containing the CSMI 2021 data 
-#' @return dataframe of the fully joined water quality data from CSMI years 2010, 2015, 2021 
-#' @export
-LoadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max= Inf) {
-  # Load file to map analyte names to standard names 
-  renamingTable <- readxl::read_xlsx(namingFile, sheet= "CSMI_Map", na = c("", "NA"),
-    .name_repair = "unique_quiet") 
+#' @param csmi2015 a string specifying the directory containing CSMI 2015 data
+#' @param csmi2021 a string specifying the directory containing the CSMI 2021 data
+#' @return dataframe of the fully joined water quality data from CSMI years 2015 and 2021
+.loadCSMI <- function(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf) {
+  # Water chemistry  copied from
+  # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
+  # Contact is Annie Fosso
   CSMI <- dplyr::bind_rows(
-    .LoadCSMI2010(csmi2010, n_max = n_max),
-    .LoadCSMI2015(csmi2015),
-    # TODO Why is csmi2021 removing CodeNames and Reuslts for both WQ and CTD
-    .LoadCSMI2021(csmi2021, n_max = n_max)
-  ) %>%
-    dplyr::mutate(FRACTION = dplyr::case_when(
-      FRACTION == "F" ~ "Filtrate",
-      FRACTION == "U" ~ "Total/Bulk",
-      FRACTION == "A" ~ "Filtrate",
-      FRACTION == "M" ~ "Filtrate",
-      FRACTION == "D" ~ "Filtrate",
-      FRACTION == "V" ~ "Total/Bulk",
-      FRACTION == "PCN" ~ "Residue",
-      FRACTION == "Not applicable" ~ NA,
-      .default = FRACTION
-    )) %>%
-    # This is cleaning up mistakes I made when processing CSMI names
-    dplyr::mutate(
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove(ANALYTE, "_.*"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "\\+"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
-      ANALYTE = ifelse(Study == "CSMI_2015", stringr::str_remove_all(ANALYTE, "="), ANALYTE),
-      ANALYTE = ifelse(grepl("CSMI_2021", Study, ignore.case=T) & (ANALYTE == "chl-a"), stringr::str_remove_all(ANALYTE, "-"), ANALYTE),
-      sampleDate = lubridate::date(sampleDate),
-      # This only contains information about where along the water column 
-      # But we already have that with depth
-      ANL_CODE = NA
-      ) %>%
-
-    # Join CSMI to new names
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "FRACTION"), na_matches="na") %>%
-    dplyr::rename(ReportedUnits = Units)
-
-  conversions <- readxl::read_xlsx(namingFile, sheet = "UnitConversions", .name_repair = "unique_quiet") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))
-  key <- readxl::read_xlsx(namingFile, sheet = "Key", .name_repair = "unique_quiet") %>%
-    dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units)
-
-  CSMI %>% 
-    dplyr::left_join(key, by = "CodeName") %>% 
-    # Simplify unit strings
-    dplyr::mutate(ReportedUnits = tolower(stringr::str_remove(ReportedUnits, "/"))) %>%
-    dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
-    dplyr::mutate(RESULT = ifelse(ReportedUnits == TargetUnits, RESULT,
-                    RESULT  * ConversionFactor)) %>%
-    dplyr::rename(Units = TargetUnits) %>%
+      # We aren't including 2010 at this point
+      # .readCleanCSMI2010(csmi2010, n_max = n_max),
+      .readCleanCSMI2015(csmi2015, namingFile),
+      .readCleanCSMI2021(csmi2021, namingFile)
+    ) %>%
+    # dplyr::mutate(
+    #   QAcomment = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+    #   QAcode = ifelse(RESULT < mdl, "MDL", NA), # mdls have already been converted to correct units
+    #   RESULT = ifelse(RESULT < mdl, NA, RESULT) # mdls have already been converted to correct units
+    # ) %>%
+    # dplyr::mutate(Units = TargetUnits) %>%
+    # [X] KV: why is TargetUnits renamed here? This should not be changed.
     dplyr::mutate(
       UID = as.character(UID),
       STIS = as.character(STIS),
       `STIS#` = as.character(`STIS#`),
       UID = dplyr::coalesce(UID, STIS, `STIS#`),
-      UID = paste0("CSMI-", UID, 1:nrow(.))
-      )
+      UID = paste0("CSMI-", UID),
+      Years = as.character(Years)
+    ) %>%
+    dplyr::select(-ANL_CODE) # Not used in CSMI and causes problems in joining
+    # dplyr::select(
+    #   UID,
+    #   Study, sampleDepth, SITE_ID, Longitude, Latitude, stationDepth, sampleDateTime, Lake,
+    #   CodeName, LongName, Explicit_Units, mdl, QAcomment, TargetUnits, RESULT, LAB, METHOD)
+    # [X] KV: ***Add LAB and METHOD for CSMI 2015 data***
+    # [X] KV: A bunch of things aren't selected that should be. Do you even need to select these variables? Don't do this in other datasets. Removing above code.
 
-  # Turn into test
-  # test %>%
-  #   filter(! TargetUnits == ReportedUnits) %>%
-  #   filter(is.na(ConversionFactor)) %>%
-  #   count(ReportedUnits, TargetUnits, ConversionFactor)
+    return(CSMI)
+}
 
-# CSMI fraction labels
+# Turn into test
+# test %>%
+#   filter(! TargetUnits == ReportedUnits) %>%
+#   filter(is.na(ConversionFactor)) %>%
+#   count(ReportedUnits, TargetUnits, ConversionFactor)
+
+# CSMI 2010 fraction labels
 # From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
 # Sheet "flow_charts"
-}

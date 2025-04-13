@@ -1,0 +1,4 @@
+plugins:
+  - search
+  - macros
+  - mermaid2

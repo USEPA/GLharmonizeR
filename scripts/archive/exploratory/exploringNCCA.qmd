@@ -1,0 +1,142 @@
+---
+title: "Exploring NCCA"
+metadata-files:
+  - "../../_quarto.yml"
+---
+
+```{r loadNSetup}
+# make a conversions table for units
+# Add year to NCCA naming
+# Add method to NCCA naming
+# revisit the bimodality test
+#   stratified by depth and season
+
+
+
+source("Code/dataCleaning/readNCCA.r")
+library(sf)
+library(tidyverse)
+library(kableExtra)
+qaCodes <- readxl::read_xlsx("Data/Meta/DRAFT_NCCA_QA_Codes_05.30.2017.xlsx", sheet = 1) %>%
+  select(-...3) %>%
+  drop_na(`Unique Qualifier Code`)
+siteFiles <- "Data/Raw/NCCA"
+preFiles <- c("Data/Raw/NCCA/nca_waterchemdata.csv")
+tenFiles <- c("Data/Raw/NCCA/assessed_ncca2010_waterchem.csv", "Data/Raw/NCCA/nassessedWaterChem2010.csv")
+fifteenFiles <- c("Data/Raw/NCCA/ncca_2015_water_chemistry_great_lakes-data.csv")
+df <- readNCCA(siteFiles = siteFiles, preFiles = NULL, tenFiles = tenFiles, fifteenFiles = fifteenFiles)
+left_join(qaCodes, by = c("QACODE" = "Unique Qualifier Code")) %>%
+  filter(
+    between(LON, -88, -84.9),
+    between(LAT, 41.7, 46)
+  )
+
+# Generate summary of unique analytes
+df %>%
+  mutate(Year = year(Date)) %>%
+  reframe(
+    minY = min(Year, na.rm = T), maxY = max(Year, na.rm = T),
+    Units = toString(unique(UNITS)),
+    .by = c(ANALYTE, ANL_CODE, METHOD)
+  ) %>%
+  unite(Years, minY, maxY, sep = "-") %>%
+  arrange(ANALYTE) %>%
+  write_csv("temp.csv")
+```
+
+# Parameters
+8 parameters
+```{r}
+df %>%
+  ggplot(aes(y = ANALYTE)) +
+  geom_bar()
+```
+
+# Spatial
+- All values have a site, lat, and lon
+```{r}
+lakes <- sf::read_sf("Data/Other/ne_10m_lakes.shp")
+
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -84.9), ylim = c(41.7, 46)) +
+  theme(
+    panel.background = element_rect(fill = "#d0d890"),
+    panel.grid = element_line(color = "#00000010")
+  ) +
+  geom_jitter(data = df, aes(x = LON, y = LAT), size = 3)
+```
+
+# Temporal
+```{r}
+df %>%
+  ggplot(aes(x = Date, y = ANALYTE)) +
+  geom_point()
+```
+
+# QA codes
+- Need to find a key how to translate these codes?
+
+```{r}
+df %>%
+  count(QACODE, Considerations, Definition) %>%
+  filter(!is.na(QACODE)) %>%
+  ggplot(aes(x = n, y = Definition)) +
+  geom_bar(stat = "identity") +
+  scale_y_discrete(labels = scales::label_wrap(20)) +
+  # theme(axis.text=element_text(size=18)) +
+  xlab("")
+```
+
+# Units 
+```{r}
+df %>%
+  distinct(ANALYTE, UNITS) %>%
+  arrange(ANALYTE, UNITS) %>%
+  kable() %>%
+  kable_paper()
+```
+- all analytes have same units !!!! yay!
+
+
+
+# ANALYTES with lots of QA flags
+```{r}
+QAanalytes <- df %>%
+  count(ANALYTE, Definition) %>%
+  filter(!is.na(Definition)) %>%
+  group_by(ANALYTE) %>%
+  summarize(N = sum(n)) %>%
+  filter(N > 20) %>%
+  pull(ANALYTE)
+
+df %>%
+  filter(ANALYTE %in% QAanalytes) %>%
+  filter(!is.na(Definition)) %>%
+  ggplot(aes(y = Definition)) +
+  geom_bar() +
+  facet_wrap(~ANALYTE) +
+  scale_y_discrete(labels = scales::label_wrap(20))
+```
+
+
+# Distributions
+```{r}
+g <- df %>%
+  filter(ANALYTE %in% c(
+    "Dissolved Inorganic Nitrogen",
+    "Chlorophyll A",
+    "Ammonia",
+    "Dissolved Silica",
+    "Total Phosphorus"
+  )) %>%
+  mutate(QA = !is.na(QACODE)) %>%
+  select(ANALYTE, RESULT, QA) %>%
+  ggplot(aes(x = RESULT, y = ..density.., fill = QA, group = QA)) +
+  geom_histogram(position = "identity", alpha = 0.3) +
+  facet_wrap(~ANALYTE, scales = "free")
+g
+
+g + scale_x_log10()
+```
+- looks like imputatons were already carried out for this dataset

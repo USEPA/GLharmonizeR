@@ -1,1 +1,1 @@
-options(testthat.output_file = "test-out.xml")
+options(testthat.output_file = "tests/testthat-out.xml")

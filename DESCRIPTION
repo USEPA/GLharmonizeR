@@ -19,17 +19,21 @@ Imports:
     lubridate,
     magrittr,
     purrr,
-    readxl,
     readr,
     tidyr,
     stringr,
     tools,
-    oce
+    httr,
+    openxlsx,
+    RODBC,
+    fuzzyjoin
 Suggests: 
     knitr,
     lintr,
     rmarkdown,
     testthat (>= 3.0.0),
     withr
+Depends:
+    R (>= 3.5.0)
 Config/testthat/edition: 3
-VignetteBuilder: knitr
+VignetteBuilder: quarto 

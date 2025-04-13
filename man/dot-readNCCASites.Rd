@@ -4,7 +4,7 @@
 \alias{.readNCCASites}
 \title{Read in all NCCA site data}
 \usage{
-.readNCCASites(ncca2010sites, ncca2015sites)
+.readNCCASites(NCCAsites2010, NCCAsites2015)
 }
 \arguments{
 \item{filepath}{a string specifying the directory of the data}

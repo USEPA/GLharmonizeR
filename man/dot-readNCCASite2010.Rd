@@ -4,10 +4,10 @@
 \alias{.readNCCASite2010}
 \title{Read in NCCA site data}
 \usage{
-.readNCCASite2010(filepath)
+.readNCCASite2010(NCCAsites2010)
 }
 \arguments{
-\item{filepath}{a string specifying the filepath of the data, This is usually a url}
+\item{NCCAsites2010}{a string specifying the filepath of the data, This is usually a url}
 }
 \value{
 dataframe

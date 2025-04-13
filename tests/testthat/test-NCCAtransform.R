@@ -14,23 +14,23 @@ test_that("NCCA Site data reads in, joins to itself, and has proper expected col
 
 test_that("Full NCCA data can be loaded and joined", {
   ncca <- LoadNCCAfull(
-    ncca2010sites = ncca2010sites, ncca2015sites = ncca2015sites, tenFiles=tenFiles, tenQAfile = tenQAfile, fifteenFiles=fifteenFiles,
-    greatLakes=TRUE, Lakes=c("Lake Michigan"), NCCAhydrofiles2010 = NCCAhydrofiles2010, NCCAhydrofile2015 = NCCAhydrofile2015,
-    NCCAsecchifile2015 = NCCAsecchifile2015)
+    ncca2010sites = ncca2010sites, ncca2015sites = ncca2015sites, tenFiles = tenFiles, tenQAfile = tenQAfile, fifteenFiles = fifteenFiles,
+    greatLakes = TRUE, Lakes = c("Lake Michigan"), NCCAhydrofiles2010 = NCCAhydrofiles2010, NCCAhydrofile2015 = NCCAhydrofile2015,
+    NCCAsecchifile2015 = NCCAsecchifile2015
+  )
 
 
   expect_s3_class(ncca, "data.frame")
   expect_equal(class(ncca$Date), "Date")
   expect_equal(class(ncca$RESULT), "numeric")
   # Tests for missingness of space and time variables
-
 })
 
 
-# Generate QA codes spreadsheet to share for deliberation 
-# ncca %>% 
+# Generate QA codes spreadsheet to share for deliberation
+# ncca %>%
 #   separate_longer_delim(QAcode, ",") %>%
-#   filter(!is.na(QAcode), QAcode != "NA") %>% 
+#   filter(!is.na(QAcode), QAcode != "NA") %>%
 #   mutate(QAcode = stringr::str_remove_all(QAcode, " ")) %>%
 #   dplyr::select(-c(Definition, QAcomment, QAconsiderations)) %>%
 #   left_join(QA, by = "QAcode") %>%
@@ -40,4 +40,3 @@ test_that("Full NCCA data can be loaded and joined", {
 #           .by = c(ANALYTE, ANL_CODE, QAcode, Definition, QAconsiderations)) %>%
 #   arrange(SAMPYEAR, ANALYTE) %>%
 #   write_csv("NCCAQAcounts2.csv")
-

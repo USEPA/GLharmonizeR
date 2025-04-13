@@ -4,56 +4,17 @@
 \alias{assembleData}
 \title{Load and join all WQ data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA}
 \usage{
-assembleData(
-  NCCAhydrofiles2010,
-  NCCAhydrofile2015,
-  NCCAsecchifile2015,
-  ncca2010sites,
-  ncca2015sites,
-  tenFiles,
-  tenQAfile,
-  fifteenFiles,
-  glendaData,
-  csmi2010,
-  csmi2015,
-  csmi2021,
-  seaBirdFiles,
-  namingFile,
-  out = NULL,
-  test = FALSE,
-  binaryOut = FALSE
-)
+assembleData(out = NULL, .test = FALSE, binaryOut = FALSE)
 }
 \arguments{
-\item{tenFiles}{a string specifying the directory containing NCCA WQ 2010 data}
-
-\item{fifteenFiles}{a string specifying the directory containing NCCA wQ 2015 data}
-
-\item{glendaData}{a string specifying the directory containing GLENDA data}
-
-\item{csmi2010}{a string specifying the directory containing CSMI 2010 data}
-
-\item{csmi2015}{a string specifying the directory containing CSMI 2015 data}
-
-\item{csmi2021}{a string specifying the directory containing CSMI 2021 data}
-
 \item{out}{(optional) filepath to save the dataset to}
 
-\item{test}{(optional) boolean, if testing that data loads and joins, this flag only loads
-parts of the datasets to test it faster}
+\item{.test}{(optional) boolean, if testing that data loads and joins, this flag only loads parts of the datasets to test it faster}
 
-\item{hydrofiles2010}{a string specifying the directory containing NCCA hydrographic 2010 data}
-
-\item{hydrofile2015}{a string specifying the directory containing NCCA hydrographic 2015 data}
-
-\item{secchifile2015}{a string specifying the directory containing NCCA secchi 2015 data}
-
-\item{siteFiles}{a string specifying the directory containing NCCA Site data}
-
-\item{preFiles}{a string specifying the path containing 2010's and earlier WQ data}
+\item{binaryOut}{(optional) boolean, should saved data be RDS format for efficiency?}
 }
 \value{
-dataframe of the fully joined water quality data from CSMI, NCCA, and GLENDA over years 2010, 2015, 2021
+full, harmonized dataset
 }
 \description{
 \code{.LoadJoinAll} returns a dataframe data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA'

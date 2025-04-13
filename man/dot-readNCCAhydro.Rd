@@ -8,6 +8,7 @@
   NCCAhydrofiles2010,
   NCCAhydrofile2015,
   NCCAsecchifile2015,
+  NCCAwqQA,
   n_max = Inf
 )
 }

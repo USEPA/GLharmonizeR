@@ -4,10 +4,7 @@
 \alias{.LoadCSMI2015}
 \title{Load and join data for CSMI 2015 from access database}
 \usage{
-.LoadCSMI2015(filepath)
-}
-\arguments{
-\item{filepath}{a string specifying the filepath of the access database}
+.LoadCSMI2015()
 }
 \value{
 dataframe of the fully joined water quality data from CSMI 2015

@@ -4,7 +4,7 @@
 \alias{.readPivotGLENDA}
 \title{readPivotGLENDA}
 \usage{
-.readPivotGLENDA(glendaData, n_max = Inf, sampleIDs = NULL)
+.readPivotGLENDA(Glenda, n_max = Inf, sampleIDs = NULL)
 }
 \arguments{
 \item{n_max}{Number of rows to read in from the raw GLENDA data (this is really just for testing purposes)}

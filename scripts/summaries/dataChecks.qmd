@@ -1,0 +1,348 @@
+---
+title: "Data Checks"
+date: today
+---
+
+```{r setup}
+library(tidyverse)
+library(fuzzyjoin)
+devtools::load_all()
+df <- assembleData(.test = F, out = "fullData", binaryOut = TRUE)
+#df <- readRDS("fullData.Rds")
+processedDf <- imputeNwiden(df, latlonDigits = 4, imputeMethod = "uniform", timeBinning = "days", depthCuts = c(-0.1, 5, 15, 25, 50, max(df$sampleDepth, na.rm=T)), 
+  startDate= "2000-01-01", endDate= "2050-01-01")
+saveRDS(processedDf, "processedData.Rds")
+```
+
+# Missing Checks
+```{r}
+df %>%
+  reframe(
+    # missingness across key columns
+    across(c(CodeName, Latitude, RESULT, LongName, Units, MDL), function(x) mean(is.na(x))),
+    .by = Study)  %>%
+    arrange(Study) %>%
+    saveRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds"))
+readRDS(stringr::str_glue("tests/testthat/fixtures/dataMissingness{Sys.Date()}.Rds")) %>% View()
+
+df %>%
+  reframe(
+    # mean and SD of numeric columns
+    across(c(Latitude, Longitude, RESULT), list(mean, sd), .names ="{.col}.{.fn}", na.rm = T),
+    .by = c(Study, CodeName)) %>%
+    arrange(Study, CodeName) %>%  #View()
+    saveRDS(stringr::str_glue("tests/testthat/fixtures/dataSummary{Sys.Date()}.Rds"))
+```
+
+
+
+
+# zeros
+```{r}
+df %>% #test %>% 
+  filter(is.na(RESULT), !grepl("B|N|R", Unified_Flag, ignore.case= T)) %>%
+  # filter(is.na(RESULT), is.na(QAcode), is.na(QAcomment)) %>%
+  reframe(.by = c(Study, CodeName), 
+    Years= toString(unique(lubridate::year(sampleDateTime))), 
+    Uflags = toString(unique(Unified_Flag)),
+    QAcodes = toString(unique(QAcode)),
+    count = n(),
+    toString(unique(QAcode))
+    ) %>%
+  arrange(Study, CodeName) %>%
+  print() %>%
+  write_csv("NAs_NEW.csv")
+
+df %>% 
+  filter(RESULT <= 0) %>%
+  mutate(type = case_when(
+    RESULT < 0 ~ "Negative",
+    RESULT == 0 ~ "Zero"
+  )) %>%
+  reframe(.by = c(Study, CodeName, type), 
+    Years= toString(unique(lubridate::year(sampleDateTime))), 
+    flags = toString(unique(Unified_Flag)),
+    count = n()
+    ) %>%
+  arrange(Study, CodeName, type) %>%
+  print() %>% 
+  write_csv("zerosNegs.csv")
+
+```
+
+
+# Flags
+```{r flags}
+flags <- df %>% 
+  distinct(Study, QAcode, QAcomment) %>%
+  separate_longer_delim(QAcode, delim = ";") %>%
+  separate_longer_delim(QAcode, delim = ",") %>%
+  separate_longer_delim(QAcomment, delim = ";") %>%
+  distinct() %>%
+  mutate(
+    QAcode = str_remove_all(QAcode, "NA,"),
+    QAcode = str_remove_all(QAcode, " NA,"),
+    QAcomment = str_remove_all(QAcomment, "NA,"),
+    QAcomment = str_remove_all(QAcomment, ", NA"),
+    QAcomment = str_remove_all(QAcomment, " NA"),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    QAcode = ifelse(grepl("^NA", QAcode, ignore.case =T), NA, QAcode),
+    QAcomment = ifelse(grepl("^NA", QAcomment, ignore.case =T), NA, QAcomment),
+    QAcode = str_trim(QAcode),
+    QAcomment = str_trim(QAcomment),
+    ) %>%
+  filter((!is.na(QAcode))  | (!is.na(QAcomment))) %>%
+    dplyr::mutate(
+      QAcode = ifelse((is.na(QAcode)) & (grepl("no reported units", QAcomment, ignore.case = T)),
+      "U", QAcode),
+      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
+      "No reported units, so assumed most common units for this given analyte-year", QAcomment)
+    ) %>%
+    distinct() %>%
+    arrange(Study, QAcode)
+write_csv(flags, "tempFlags.csv")
+```
+
+# Joining flags
+```{r}
+flags <- file.path("~", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General", "Results", "flagsMap.csv")
+flags <- read_csv(flags)
+
+flaggedValues <- df %>% filter(!is.na(QAcode) | !is.na(QAcomment))
+test <- flaggedValues %>%
+```
+
+
+# Missingness
+```{r}
+df %>%
+  select(1:9, 16:21, 23:24,27) %>%
+  reframe(across(everything(), function(x) mean(is.na(x))), .by = Study) %>%
+  kable(digits=2) %>%
+  kableExtra::kable_paper()
+```
+
+Notes on missingness:
+- GLENDA
+  - Has ~50% missingness
+- SeaBird
+  - Can't locate station depth in their files
+- NCCA
+  - Secchi missing sample depth because it is an integrated sample (over water column)
+
+- CSMI
+  - 2010
+    - Lat/Lon reported only to nearest whole number 
+      - there are real Lat/ real Lon in smpstts10.xls, but not sure what they mean
+    - Lat/Lon/depth/sampleDate partially missing because odd reporting in file
+      - Can we use forward filling to fill in the missing values?
+    - Can't find sampleDepth
+      - Just report the water layer
+
+  - 2015 
+    - It actually just has a lot of missing WQ 
+      - I'm guessing this is because if CTD was measured and WQ wasn't they still record it as a NA
+  - 2021
+    - actually has ~50% missingness
+
+
+```{r}
+GLENDA %>%
+  filter(Study == "GLENDA", is.na(RESULT)) %>%
+  count(CodeName, ConversionFactor, is.na(as.numeric(RESULTstart))) %>%
+  print(n = 64)
+```
+
+# Check CodeName Missingness
+
+# Check CodeName / Analyte combos
+
+
+# Check Units missingness
+
+
+# Check target/rpoerted units and conversion factor
+
+
+# Position missingness
+
+
+# Full table of missingness
+
+# Missingness by data source
+
+# CHLA sampling
+```{r}
+chlaDF <- df %>% filter(CodeName == "Chla", sampleDateTime > as.POSIXct("2000-01-01")) %>%
+chlaDF %>% 
+  count(Study)
+
+chlaDF %>%
+  ggplot(aes(x= sampleDateTime, fill = Study)) +
+  geom_histogram(position="stack")
+
+lakes <- sf::read_sf("ne_50m_lakes.shp")
+ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= chlaDF, aes(x = Longitude, y = Latitude), size = 3, col = "red",  alpha = 0.2)
+ggsave("differencePrecisionsLM.png")
+```
+
+### rounding lat lon
+```{r}
+rounded <- df %>%
+  distinct(Study, SITE_ID, Latitude, Longitude) %>%
+  # reframe(studies = toString(unique(Study)), .by = c(SITE_ID, Latitude, Longitude)) %>%
+  mutate(
+    Lat2 = round(Latitude, digits=2),
+    Lat3 = round(Latitude, digits=3),
+    Lat4 = round(Latitude, digits=4),
+    Lat5 = round(Latitude, digits=5),
+    Long2 = round(Longitude, digits=2),
+    Long3 = round(Longitude, digits=3),
+    Long4 = round(Longitude, digits=4),
+    Long5 = round(Longitude, digits=5)
+    ) %>%
+  tidyr::unite(SITE, Study, SITE_ID, sep = "-", remove=FALSE)
+
+rounded2 <- rounded %>% 
+  distinct(SITE, Study, Lat2, Long2) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
+  reframe(
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
+    .by = c(Lat2, Long2)
+  )
+rounded3 <- rounded %>% 
+  distinct(SITE, Study, Lat3, Long3) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
+  reframe(
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
+    .by = c(Lat3, Long3)
+  ) 
+rounded4 <- rounded %>% 
+  distinct(SITE, Study, Lat4, Long4) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
+  reframe(
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
+    .by = c(Lat4, Long4)
+  ) 
+rounded5 <- rounded %>% 
+  distinct(SITE, Study, Lat5, Long5) %>%
+  mutate(Study = stringr::str_trunc(Study, 7, "right")) %>%
+  reframe(
+    multipleStudies = length(unique(Study)) > 1,
+    count = n(),
+    studies = toString(unique(SITE)),
+    .by = c(Lat5, Long5)
+  ) 
+
+write_csv(rounded2, "2digitStationOverlap.csv")
+write_csv(rounded3, "3digitStationOverlap.csv") # this matches the NCCA protocol resolution 
+write_csv(rounded4, "4digitStationOverlap.csv")
+write_csv(rounded5, "5digitStationOverlap.csv")
+```
+
+```{r}
+unzip("ne_50m_lakes.zip")
+theme_set(theme_bw())
+lakes <- sf::read_sf("ne_50m_lakes.shp")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-88, -85), ylim = c(41.5, 46.2)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black",  alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)/2))
+ggsave("differencePrecisionsLM.png")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-87, -86), ylim = c(44, 45)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black", alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)))
+ggsave("differencePrecisionsLMzoom.png")
+
+windows();ggplot(lakes) +
+  geom_sf(fill = "lightblue") +
+  coord_sf(xlim = c(-85.9, -85.3), ylim = c(44.7, 45.4)) +
+  theme(panel.background = element_rect(fill = '#d0d890'),
+        panel.grid = element_line(color = '#00000010')) +
+  geom_point(data= rounded, aes(x = Long2, y = Lat2, size = 1e-2), col = "red",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long3, y = Lat3, size = 1e-3), col = "yellow",  alpha = 0.2)+
+  geom_point(data= rounded, aes(x = Long4, y = Lat4, size = 1e-4), col = "black", alpha = 0.2) 
+  scale_radius(range = range(c(1e-2, 1e-4)))
+ggsave("differencePrecisionsLMNOAA.png")
+
+
+stations %>%
+  mutate(nch = nchar(as.character(Latitude))) %>%
+  count(nch)
+
+```
+
+# Duplicates and pivoting
+```{r duplicates}
+
+removedDup <- df %>%  # 185374 partial observations
+  drop_na(sampleDateTime, Latitude, CodeName, sampleDepth) %>%
+  dplyr::mutate(
+    Lat4 = round(Latitude, digits=4),
+    Lon4 = round(Longitude, digits=4),
+  ) %>%
+  reframe(count = n(), Study = toString(unique(Study)), .by= c(Lat4, Lon4, sampleDateTime, CodeName, sampleDepth))
+
+test <- removedDup %>%
+  filter(count >1) %>%
+  arrange(Lat4, Lon4, sampleDepth, sampleDateTime)
+
+test %>%
+  View()
+removedDup <- df %>%  # removes 10% 
+  drop_na(sampleDateTime, Latitude, CodeName, sampleDepth) %>%
+  dplyr::mutate(
+    Lat = round(Latitude, digits=3),
+    Lng = round(Longitude, digits=3),
+  ) %>%
+  reframe(
+    Result = mean(RESULT, na.rm =T), 
+    Study = toString(unique(Study)),
+    Unified_Flag = toString(unique(Unified_Flag)),
+    Unified_Comment = toString(unique(Unified_Comment)),
+    Study = toString(unique(Study)),
+    .by= c(Lat, Lng, sampleDateTime, CodeName, sampleDepth))
+
+
+tabledData <- removedDup %>%
+  pivot_wider(id_cols = c(Lat, Lng, sampleDateTime, sampleDepth), names_from = CodeName, values_from = Result)
+
+
+
+  dplyr::distinct() %>% 
+  # [ ] Round to that decimal place and do exact match
+  # [ ] Include study as another column
+  # [ ] For each lat/lon write list of stations
+    # [ ] Then do an exact match
+
+
+suspectedDup %>%
+  select(Study, Latitude, Longitude, sampleDepth, CodeName, sampleDateTime, RESULT)
+
+
+```
