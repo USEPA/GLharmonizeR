@@ -1,7 +1,5 @@
 # LMChla <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
-TEST!!!!!!!
-
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
 
 <!-- badges: start -->
