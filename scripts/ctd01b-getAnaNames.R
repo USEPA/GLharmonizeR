@@ -1,9 +1,14 @@
-# [ ] KV: Please add comments at the top of this document describing what this script does and the order in which the CTD processing files need to be run. For instance, NOAActdNameParsing.R outputs ctdFileMetaData.csv, which is read in below, and would need to be run first.
-# [ ] KV: Please edit typo in script file name, if it is a typo
+# Creates a complete list of the analyte names contained within the CTD data files
+# [x] KV: Please add comments at the top of this document describing what this script does and the order in which the CTD processing files need to be run. For instance, NOAActdNameParsing.R outputs ctdFileMetaData.csv, which is read in below, and would need to be run first.
+# [x] KV: Please edit typo in script file name, if it is a typo
 
+library(devtools)
+devtools::load_all()
+library(tidyverse)
+filepaths <- .getFilePaths()
+filepaths["seaBird"]
 
-
-# [ ] KV: Are the two functions below used anywhere else in the scripts or package functions or are they just used here? If just used in this sole script, please add a comment explaining that.
+# [x] KV: Are the two functions below used anywhere else in the scripts or package functions or are they just used here? If just used in this sole script, please add a comment explaining that.
 
 # Check to see if names are same across all seabird files
 .getCTDNames <- function(file) {
@@ -26,8 +31,11 @@
 }
 
 
-# [ ] KV: Please describe what the code below is doing and why
+# [x] KV: Please describe what the code below is doing and why
 
+# extract the list of names from each Seabird file, flatten that list
+# and count the number of occurences of each analyte name.
+# across the files in the C drive
 NAMES <- sapply(seaBird, FUN = .getCTDNames)
 table(unlist(NAMES))
 # They are not the same
@@ -36,12 +44,11 @@ noaaFiles <- read_csv("../GL_Data/NOAA/ctdFileMetaData.csv") %>%
   "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022", cnvFiles))
 
 NAMES <- pbapply::pbsapply(noaaFiles$cnvFiles, FUN = .getCTDNames)
-# [ ] check if specific conductivity (maybe conductivity2 label?)
+# conductivity2 doesn't necessaily mean spec cond just that its the second occurance of that type of measurement on a given cast
 cond2 <- pbapply::pbsapply(NAMES, function(x) "conductivity" %in% x)
 parFiles <- pbapply::pbsapply(NAMES, function(x) "par" %in% x)
 cond2Files <- noaaFiles %>% filter(parFiles) %>% pull(cnvFiles)
 # v0 - v5, v7 are just voltage
-# [ ] Double check for PAR and SPAR
 
 
 unique(unlist(NAMES))
