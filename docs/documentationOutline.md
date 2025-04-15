@@ -17,12 +17,6 @@
   - Add additional data (NOAA, CSMI)
   - Simpler naming convention
 
-- data source overview
-- GLENDA
-- CSMI
-- NCCA
-- NOAA
-
 # Usage
 ## Data permissions 
 - Certain datasets require permissions 
