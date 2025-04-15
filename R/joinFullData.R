@@ -242,10 +242,6 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
 
-  # [ ] Check that CTB didn't join (if code is missing but comments is there or vice versa) 
-    # - Retain column should always be filled in for flags
-    # - Extra eye towards NOAA
-    # [x] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
   flagged <- allWQ %>%
     dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)))) %>%
     dplyr::mutate(
@@ -257,7 +253,9 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
       QAcode = ifelse(is.na(QAcode), Study, QAcode),
       QAcode = stringr::str_remove_all(QAcode, "^; "),
       QAcomment = stringr::str_remove_all(QAcomment, "^NA; "),
+      QAcomment = stringr::str_remove_all(QAcomment, "^NA"),
       QAcomment = stringr::str_remove_all(QAcomment, "^; "),
+      QAcomment = ifelse(QAcomment == "", NA, QAcomment),
       QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     ) %>%
     fuzzyjoin::fuzzy_join(flags,
@@ -273,15 +271,20 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     ) %>%
     dplyr::select(
       -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
-    )
-flagged %>%
-  filter(is.na(Retain)) %>%
-  distinct(Study, QAcode, QAcomment)
+    ) %>%
+    # [x] Check that CTB didn't join (if code is missing but comments is there or vice versa) 
+    # - [ ] Retain column should always be filled in for flags
+      # - mostly solved there are a couple with nas that aren't mapping for some reason also one instance of a CTB with time mixed in
+    # - [x] Extra eye towards NOAA
+    # [x] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
+    # test <- flagged  %>%
+    #   filter(is.na(Retain)) %>%
+    #   count(Study, QAcode, QAcomment)
 
-  # Compress instances that were matched multiple times into sinlge observation
-  # for QA comments and codes
-  # Checked dimenisons and this preserved the number of observvations from flgagd
-  # data
+    # Compress instances that were matched multiple times into sinlge observation
+    # for QA comments and codes
+    # Checked dimenisons and this preserved the number of observvations from flgagd
+    # data
     dplyr::reframe(
       QAcode = toString(unique(QAcode)),
       QAcomment = toString(unique(QAcomment)),
