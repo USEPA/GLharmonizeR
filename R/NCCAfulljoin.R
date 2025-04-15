@@ -38,9 +38,7 @@
     # QC filters
     # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
     dplyr::mutate(
-      UID = paste0(Study, "-", as.character(UID)),
-      sampleDate = lubridate::date(sampleDateTime),
-      sampleTime = lubridate::hour(sampleDateTime),
+      UID = paste0(Study, "-", as.character(UID))
       )
 
 

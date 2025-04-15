@@ -249,10 +249,15 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   flagged <- allWQ %>%
     dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)))) %>%
     dplyr::mutate(
-      QAcode = stringr::str_remove_all(QAcode, "^NA;"),
+      QAcode = stringr::str_remove_all(QAcode, "NA"),
       QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
       QAcode = stringr::str_replace_all(QAcode, ",", ";"),
+      QAcode = stringr::str_remove_all(QAcode, "^,"),
+      QAcode = ifelse(QAcode == "", NA, QAcode),
       QAcode = ifelse(is.na(QAcode), Study, QAcode),
+      QAcode = stringr::str_remove_all(QAcode, "^; "),
+      QAcomment = stringr::str_remove_all(QAcomment, "^NA; "),
+      QAcomment = stringr::str_remove_all(QAcomment, "^; "),
       QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
     ) %>%
     fuzzyjoin::fuzzy_join(flags,
@@ -268,7 +273,11 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     ) %>%
     dplyr::select(
       -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
-    ) %>%
+    )
+flagged %>%
+  filter(is.na(Retain)) %>%
+  distinct(Study, QAcode, QAcomment)
+
   # Compress instances that were matched multiple times into sinlge observation
   # for QA comments and codes
   # Checked dimenisons and this preserved the number of observvations from flgagd

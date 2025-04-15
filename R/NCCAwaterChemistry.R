@@ -53,19 +53,18 @@
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      sampleDateTime = DATE_COL
+      sampleDate = DATE_COL
       # [x] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag.
     ) %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(paste0(sampleDateTime, " 12:00")),
+      sampleDate = lubridate::ymd(sampleDate),
       sampleDepth = 0.5,
       # [x] add this to Analytes3
       Study = "NCCA_WChem_2010",
       # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH"))
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
-      QACODE = paste(QACODE, "T", sep = "; ")
     ) %>%
     dplyr::rename(
       QAcode = QACODE,
@@ -160,7 +159,7 @@
   ) %>%
     dplyr::rename(
       siteID = SITE_ID,
-      sampleDateTime = DATE_COL,
+      sampleDate = DATE_COL,
       QAcode = NARS_FLAG,
       QAcomment = NARS_COMMENT,
       ReportedUnits = RESULT_UNITS,
@@ -169,9 +168,7 @@
     ) %>%
     dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>%
     dplyr::mutate(
-      sampleDateTime = lubridate::dmy_hm(paste(sampleDateTime, "12:00")),
-      QAcode = ifelse(is.na(QAcode), "T", paste(QAcode, "T", sep = "; ")),
-      QAcomment = ifelse(is.na(QAcomment), "Time imputed as noon", paste(QAcomment, "Time imputed as noon", sep = "; ")),
+      sampleDate = lubridate::dmy(sampleDate),
       # [x] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag
     )
   
@@ -179,7 +176,7 @@
   nhDf <- df %>%
     dplyr::filter(ANALYTE %in% c("NITRITE_N", "NITRATE_N")) %>%
     dplyr::reframe(
-      .by = c(UID, siteID, LAB, sampleDateTime, sampleID),
+      .by = c(UID, siteID, LAB, sampleDate, sampleID),
       NO3 = mean(ifelse(ANALYTE == "NITRITE_N", RESULT, NA), na.rm = T),
       NO4 = mean(ifelse(ANALYTE == "NITRATE_N", RESULT, NA), na.rm = T),
       NO3mdl = mean(ifelse(ANALYTE == "NITRITE_N", MDL, NA), na.rm = T),
@@ -241,7 +238,7 @@
     dplyr::select(
       UID,
       SITE_ID = siteID,
-      sampleDateTime,
+      sampleDate,
       LAB,
       ANALYTE,
       LRL,

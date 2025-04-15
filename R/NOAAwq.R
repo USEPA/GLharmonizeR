@@ -21,13 +21,9 @@
 
   # Supplemental NOAA data - contains SRP and SiO2
   newNOAA <- openxlsx::read.xlsx(noaaWQ2) %>%
-    dplyr::mutate(time = "12:00") %>% # No times are included
+    tidyr::unite(sampleDate, Year, Month, Day, sep = "-", remove=FALSE) %>%
     dplyr::mutate(
-      QAcomment = "time imputed as noon",
-    ) %>%
-    tidyr::unite(sampleDateTime, Year, Month, Day, time, sep = "-", remove=FALSE) %>%
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(sampleDateTime),
+      sampleDate = lubridate::ymd(sampleDate),
       SITE_ID = tolower(Station)
     ) %>%
     dplyr::select(-c(DOY, Station)) %>%
@@ -71,11 +67,10 @@
     dplyr::select(-c(SITE_ID, Keep, Justification)) %>%
     dplyr::rename(SITE_ID = SITE_ID.y) %>%
     tidyr::unite(sampleDateTime, Year, Month, Day, time, sep = "-", remove=FALSE) %>%
-    # KV: Keeping extra date and time columns to check working correctly
     dplyr::mutate(
-      sampleDateTime = lubridate::ymd_h(sampleDateTime),
+      sampleDateTime = lubridate::ymd(sampleDateTime),
       sampleDate = lubridate::date(sampleDateTime),
-      sampleTime = lubridate::hour(sampleDateTime),
+      sampleTime = lubridate::hour(sampleDateTime)
     ) %>%
     # KV: secchi.m and PP.ugl are character - why?
     # KV: PP is character because has one "?", which is fine to have go to NA using as.numeric()
