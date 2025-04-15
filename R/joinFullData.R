@@ -242,7 +242,9 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
 
-
+  # [ ] Check that CTB didn't join (if code is missing but comments is there or vice versa) 
+    # - Retain column should always be filled in for flags
+    # - Extra eye towards NOAA
     # [x] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
   flagged <- allWQ %>%
     dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)))) %>%

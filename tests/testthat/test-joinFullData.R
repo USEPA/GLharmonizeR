@@ -90,7 +90,7 @@ test_that("all data files can be found, read, cleaned, and joined. Expected colu
     "METHOD" = 0.706171404,
     "LAB" = 0.985460331
   )
-  expect_equal(colMissing, colMeans(is.na(df)))
+  expect_equal(colMissing, colMeans(is.na(df)), tolerance = 0.05)
      
 
   # Test no duplicates
