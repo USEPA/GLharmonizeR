@@ -1,20 +1,25 @@
-NAs.csv
-generalMissingness.csv
-noaaSiteInformation.csv
-zerosNegs.csv
-GL_Data*
-GL_Data-main/*
+# only include explicitly stated data files
+*.csv
 *.zip
-tallGLENDAwFLAGS.csv
-*digitStationOverlap.csv
+*.Rds
+*.Rda
+*.txt
 *.png
 *.jpeg
 *.jpg
 
+
+!docs/figsTables/*
+
+!data/lakeMichigan.Rda
+
+!docs/*
+!docs/*/*
+
 # History files
 .Rhistory
 .Rapp.history
-Data/fullData.csv
+
 # Session Data files
 .RData
 
@@ -77,22 +82,18 @@ vignettes/*.pdf
 *.rdb
 *.pdf
 
-Results/Code/*/*_files
 
-# Exceptions
-!Data/Formatted/*.csv
-!docs/*
-!docs/*/*
-!Data/Meta/*.csv
 
-desktop.ini
-
-/.quarto/
-docs/presentations/*/*_files
 # To avoid quarto files
 *_files*
+*_cache*
 .Rproj.user
 .Rdata
 .DS_Store
 .quarto
 inst/doc
+
+desktop.ini
+
+/.quarto/
+docs/presentations/*/*_files
