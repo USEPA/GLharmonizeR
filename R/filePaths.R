@@ -1,7 +1,7 @@
 .getFilePaths <- function() {
   filepaths <- c(
-    "namingFile" = "https://github.com/kvitense/GL_Data/raw/main/Meta/Analytes3.xlsx",
-    "flagsFile" = "https://github.com/kvitense/GL_Data/raw/main/Meta/flagsMap_withDecisions.xlsx",
+    "namingFile" = "https://github.com/USEPA/GL_Data/raw/main/Meta/Analytes3.xlsx",
+    "flagsFile" = "https://github.com/USEPA/GL_Data/raw/main/Meta/flagsMap_withDecisions.xlsx",
 
     # %% NCCA
     # Not using not assessed data after Hugh's suggestion
@@ -20,31 +20,31 @@
 
     # Water chemistry
     "NCCAwq2010" = "https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_waterchem.csv",
-    "NCCAqa2010" = "https://raw.githubusercontent.com/kvitense/GL_Data/main/NCCA/ncca_qa_codes.csv",
+    "NCCAqa2010" = "https://raw.githubusercontent.com/USEPA/GL_Data/main/NCCA/ncca_qa_codes.csv",
     "NCCAwq2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_great_lakes-data.csv",
     "NCCAwq2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20_waterchem_data.csv",
 
     # %% GLENDA
-    "Glenda" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDA.Rds",
-    "GLENDAlimitsPath" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
-    "GLENDAsitePath" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
+    "Glenda" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDA.Rds",
+    "GLENDAlimitsPath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
+    "GLENDAsitePath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
 
     # GLNPO SeaBird data
-    "seaBird" = "https://github.com/kvitense/GL_Data/raw/main/GLENDA/seabird_Jan2025.Rds",
+    "seaBird" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/seabird_Jan2025.Rds",
     # ** Note: Added '_Jan2025' here to preserve the copy that works with this branch. In dev branch, this file is overwritten during reorg of CTD processing functions/scripts
 
 
     # %% CSMI
-    "csmi2015" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
-    "csmi2021" = "https://github.com/kvitense/GL_Data/raw/main/CSMI_2020_2021/",
+    "csmi2015" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
+    "csmi2021" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2020_2021/",
 
     # %% NOAA
-    "noaaWQ" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26_CORRECTED.xlsx", # This file has corrected values based on 'edits_nutrients.xlsx' Steve Pothoven sent 2024-12-13. These were manually corrected.
-    "noaaWQ2" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/Additionalnutrients_NOAA.xlsx",
-    "noaaCTD" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaCTD_Feb2025.Rds",
+    "noaaWQ" = "https://github.com/USEPA/GL_Data/raw/main/NOAA/NOAA_WQ_2024_04_26_CORRECTED.xlsx", # This file has corrected values based on 'edits_nutrients.xlsx' Steve Pothoven sent 2024-12-13. These were manually corrected.
+    "noaaWQ2" = "https://github.com/USEPA/GL_Data/raw/main/NOAA/Additionalnutrients_NOAA.xlsx",
+    "noaaCTD" = "https://github.com/USEPA/GL_Data/raw/main/NOAA/noaaCTD_Feb2025.Rds",
     # ** Note: Added '_Feb2025' here to preserve the copy that works with this branch. In dev branch, this file is overwritten during reorg of CTD processing functions/scripts
 
-    "noaaWQSites" = "https://github.com/kvitense/GL_Data/raw/main/NOAA/noaaSiteInformationUpdated.xlsx"
+    "noaaWQSites" = "https://github.com/USEPA/GL_Data/raw/main/NOAA/noaaSiteInformationUpdated.xlsx"
   )
 
   return(filepaths)

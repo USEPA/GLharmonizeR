@@ -21,7 +21,7 @@ namingFile <- filepaths["namingFile"]
 #noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 n_max <- Inf
 
-noaaFiles <- readRDS(url("https://github.com/kvitense/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.Rds", "rb")) %>% # KV: This file is output from NOAActdNameParsing.R
+noaaFiles <- readRDS(url("https://github.com/USEPA/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.Rds", "rb")) %>% # KV: This file is output from NOAActdNameParsing.R
   # remove files where we don't know the station
   drop_na(SITE_ID) %>%
   select(ctdFiles, SITE_ID, sampleDateTime, stationDepth, Latitude, Longitude) %>%
