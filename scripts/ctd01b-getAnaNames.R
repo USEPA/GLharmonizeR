@@ -1,4 +1,5 @@
-# Creates a complete list of the analyte names contained within the CTD data files
+# SECOND NOAA CTD SCRIPT TO RUN
+# - figures out the analytes names listed in the full set of CTD casts
 # [x] KV: Please add comments at the top of this document describing what this script does and the order in which the CTD processing files need to be run. For instance, NOAActdNameParsing.R outputs ctdFileMetaData.csv, which is read in below, and would need to be run first.
 # [x] KV: Please edit typo in script file name, if it is a typo
 

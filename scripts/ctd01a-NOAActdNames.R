@@ -1,12 +1,14 @@
 # FIRST NOAA CTD SCRIPT TO RUN (before NOAAProcessing.R)
+# - This finds out the meta data associated with each CTD cast based on filepath
+#   - Infers station name and date
 
-# [ ] KV: Please add comments at the top of this document describing what this script does and clarifying/confirming the order in which the NOAA processing files are run
+# [x] KV: Please add comments at the top of this document describing what this script does and clarifying/confirming the order in which the NOAA processing files are run
 
 # ** Note: KV has not run or carefully checked this code **
-
 library(oce)
 library(tidyverse)
 devtools::load_all()
+source("scripts/ctd-functions.R")
 filepaths <- .getFilePaths()
 # noaaWQ <- filepaths["noaaWQ"] # KV: Doesn't appear to be used here
 noaaWQSites <- filepaths["noaaWQSites"]
