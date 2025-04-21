@@ -19,9 +19,9 @@ test_that("all data files can be found, read, cleaned, and joined. Expected colu
   expect_s3_class(df, "data.frame")
 
   # Test observations per data set
-  studyCounts <- df %>% distinct(UID, Study) %>% dplyr::count(Study) %>% dplyr::arrange(dplyr::desc(n)) %>% pull(n)
+  studyCounts <- df %>% dplyr::distinct(UID, Study) %>% dplyr::count(Study) %>% dplyr::arrange(dplyr::desc(n)) %>% dplyr::pull(n)
   testthat::expect_lt(max(studyCounts), 10000)
-  testthat::expect_gt(min(studyCounts), 10)
+  testthat::expect_gt(min(studyCounts), 100)
   
   # Test column names
   colNames <- c("UID", "Study", "SITE_ID", "Latitude",
