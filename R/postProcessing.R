@@ -1,4 +1,5 @@
 
+# KV: This file should be moved into a development folder or otherwise clearly identified as code in progress (not included as part of the core package functions here for the first version). This code has not been reviewed.
 
 # [x] Add in less than RL's here too
 # [x] Count the values that are <RL separately
@@ -17,15 +18,15 @@
   df <- df %>%
     dplyr::mutate(
       # resolve duplicates as average
-      RESULT = mean(RESULT, na.rm =T), 
+      RESULT = mean(RESULT, na.rm =T),
       # fill in missing data
       Study = toString(unique(Study)),
       Unified_Flag = toString(unique(Unified_Flag)),
       Unified_Comment = toString(unique(Unified_Comment)),
       Study = toString(unique(Study)),
-      MDL = mean(MDL, na.rm =T), 
+      MDL = mean(MDL, na.rm =T),
       # PQL = mean(PQL, na.rm =T),  dropped PQL might need to add back imputeMethodn
-      RL = mean(RL, na.rm =T), 
+      RL = mean(RL, na.rm =T),
       .by= c(Latitude, Longitude, sampleDateTime, CodeName, sampleDepth)) %>%
     # get yera for imputing
     dplyr::distinct() %>%
@@ -33,16 +34,16 @@
     dplyr::mutate(
       # impute using DLs
       # https://19january2017snapshot.epa.gov/sites/production/files/2015-06/documents/whatthel.pdf
-      # MDL < PQL 
+      # MDL < PQL
       # [x] find how to incorporate RL
       # NOTE keep those reported as below MDL because their estimate is still likely better
-      MDL = mean(MDL, na.rm =T), 
+      MDL = mean(MDL, na.rm =T),
       # PQL = mean(PQL, na.rm =T),  dropped PQL might need to add back imputeMethodn
-      RL = mean(RL, na.rm =T), 
+      RL = mean(RL, na.rm =T),
       RESULT = dplyr::case_when(
         !is.na(RESULT) ~ RESULT,
         # NOTE that taking the min of results would also include estimated values where they exist
-        # Follow up- this means that values aren't consistently imputed when comparing those that are 
+        # Follow up- this means that values aren't consistently imputed when comparing those that are
         # reported as estimates and what this program imputes
         grepl("N", Unified_Flag) & (!is.na(MDL) | sum(!is.na(RESULT)) > 1) ~ imputeFunction(min(c(MDL, RL, RESULT), na.rm=T)),
         is.na(RESULT) & !is.na(MDL) ~ imputeFunction(MDL),
@@ -80,15 +81,15 @@
   nearestMatch <- matchingSet %>%
     # only look within some box
     dplyr::filter(
-      dplyr::between(sampleDateTime, 
+      dplyr::between(sampleDateTime,
         observation$sampleDateTime - days(dayThresh),
         observation$sampleDateTime + days(dayThresh)
         ),
-      dplyr::between(Latitude, 
+      dplyr::between(Latitude,
         observation$Latitude - latlonThres,
         observation$Latitude + latlonThres
         ),
-      dplyr::between(sampleDepth, 
+      dplyr::between(sampleDepth,
         observation$sampleDepth - depthThres,
         observation$sampleDepth + depthThres
         ),
@@ -148,7 +149,7 @@
         )) %>%
     dplyr::bind_rows(nonmissing) %>%
     dplyr::ungroup()
-  
+
   return(missing)
 }
 

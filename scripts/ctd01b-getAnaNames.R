@@ -1,7 +1,14 @@
-# SECOND NOAA CTD SCRIPT TO RUN
-# - figures out the analytes names listed in the full set of CTD casts
+# SECOND NOAA CTD SCRIPT TO RUN [***delete this? Unclear. ctd-2-preprocessing.R also now says it's the second NOAA CTD script to run at the top, but that file also processes Seabird data.]
+# - figures out the analytes names listed in the full set of CTD casts [**meaning both Seabird and NOAA??**]
+
+# [ ] KV: The description is still not clear enough at the top of this file. Is this just for getting names for the mapping file? For both Seabird and NOAA? Are these functions ever used anywhere else? Please be explicit because it's hard to follow.
+
 # [x] KV: Please add comments at the top of this document describing what this script does and the order in which the CTD processing files need to be run. For instance, NOAActdNameParsing.R outputs ctdFileMetaData.csv, which is read in below, and would need to be run first.
 # [x] KV: Please edit typo in script file name, if it is a typo
+
+
+# ** Note: KV has not run or carefully checked this code **
+
 
 library(devtools)
 devtools::load_all()
@@ -34,6 +41,8 @@ filepaths["seaBird"]
 
 # [x] KV: Please describe what the code below is doing and why
 
+# [ ] KV: But what is the below code used for? Nothing is written out. Was it just used to manually create the mapping tables in Analytes3??
+
 # extract the list of names from each Seabird file, flatten that list
 # and count the number of occurences of each analyte name.
 # across the files in the C drive
@@ -61,4 +70,4 @@ table(unlist(NAMES))
 #%% META DATA
 META <- pbapply::pbsapply(noaaFiles$cnvFiles, FUN = .getCTDMeta)
 parFiles <- pbapply::pbsapply(META, function(x) "par" %in% x)
-test <- bind_rows(META) 
+test <- bind_rows(META)

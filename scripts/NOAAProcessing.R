@@ -1,4 +1,7 @@
 
+###### *** This script now appears to be defunct and relevant code was moved to ctd02-preprocessing.R. This script needs to be moved elsewhere if it's outdated so that it is not accidentally rerun and overwrites the NOAA CTD file. *** ###########
+
+
 # [ ] KV: Please add comments at the top of this document describing what this script does and the order in which the NOAA processing files are run. I noted that this appears to be the final NOAA CTD processing file.
 
 # [ ] *** Note that KV has commented on the below code but hasn't run any of it yet. Code will need to be re-checked after below issues are addressed ***
@@ -27,6 +30,8 @@ noaaFiles <- readRDS(url("https://github.com/USEPA/GL_Data/raw/refs/heads/main/N
   mutate(
     ctdFiles = file.path("/Users", "ccoffman", "Environmental Protection Agency (EPA)",
       "Lake Michigan ML - General", "Raw_data", "NOAA", "CTD 2007-2022", ctdFiles))
+# [ ] KV: Could edit path here to point to generic home directory as you did elsewhere
+
 # [ ] KV: Not a high priority, but note that the CTD file paths here are just synced files from Sharepoint and could probably be read in directly from Sharepoint, rather than having a user-specific path here. These paths can be found if you go to the files on Teams and hit 'Copy link'. https://usepa.sharepoint.com/:f:/r/sites/LakeMichiganML/Shared%20Documents/General/Raw_data/NOAA/CTD%202007-2022?csf=1&web=1&e=WmEi8R
 
 # KV: Per comment below, any code in a script that uses the below Analytes3 tables needs to be a core package function that can accommodate changes to these tables
