@@ -2,6 +2,8 @@
 # - This finds out the meta data associated with each CTD cast based on filepath
 #   - Infers station name and date
 
+# [ ] KV: Need to edit this description if NOAAProcessing.R is now defunct.
+
 # [x] KV: Please add comments at the top of this document describing what this script does and clarifying/confirming the order in which the NOAA processing files are run
 
 # ** Note: KV has not run or carefully checked this code **
@@ -15,7 +17,7 @@ noaaWQSites <- filepaths["noaaWQSites"]
 # namingFile <- filepaths["namingFile"] # KV: Doesn't appear to be used here and SHOULD NOT be used in any of these processing scripts (per comments in NOAAProcessing.R)
 noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 
-
+# [ ] KV: Could edit path here to point to generic home directory as you did elsewhere
 # [ ] KV: Not a high priority, but note that the CTD file paths here are just synced files from Sharepoint and could probably be read in directly from Sharepoint, rather than having a user-specific path here.  https://usepa.sharepoint.com/:f:/r/sites/LakeMichiganML/Shared%20Documents/General/Raw_data/NOAA/CTD%202007-2022?csf=1&web=1&e=WmEi8R
 ctdFiles <- list.files(
   path = file.path("C:", "Users", "ccoffman", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General",
@@ -35,16 +37,16 @@ parsedSites <- as.data.frame(ctdFiles) %>%
     SITE_ID = stringr::str_remove_all(SITE_ID, ".cnv|.bin"),
     SITE_ID = stringr::str_remove_all(SITE_ID, "\\s*"),
     # these first 5 took care of all names explicitly in WQ data
-    SITE_ID1 = stringr::str_extract(SITE_ID, 
+    SITE_ID1 = stringr::str_extract(SITE_ID,
       # desired station names (30% total)
       "alpha|beta|omega|gh[:digit:]{2,3}|midlk|sbe|c1|d1|e1"
       ),
     # known other names
-    SITE_ID2 = stringr::str_extract(SITE_ID, 
+    SITE_ID2 = stringr::str_extract(SITE_ID,
       # desired station names (78% total)
       "m10|m15|m20|m25|m30|m45|m110|leg_*[:alpha:][:digit:]*"),
       #|stad|leg_c1|leg_d1|leg_e1"
-    SITE_ID3 = stringr::str_extract(SITE_ID, 
+    SITE_ID3 = stringr::str_extract(SITE_ID,
       # desired station names (78% total)
       "station*[abcd]1*|sta_*[abcd]1*|raw0[0-9]*"),
       #|stad|leg_c1|leg_d1|leg_e1"
@@ -52,12 +54,12 @@ parsedSites <- as.data.frame(ctdFiles) %>%
       # slight alterations (79% total)
       "100mbuoy|ds-7|ds7"
     ),
-    SITE_ID5 = stringr::str_extract(SITE_ID, 
+    SITE_ID5 = stringr::str_extract(SITE_ID,
       # guessing musk Lake (80% total)
       "muskegon|muskla*k|muskmid|midmusk|musk|ml"
       #"muskegon21"
     ),
-    SITE_ID6 = stringr::str_extract(SITE_ID, 
+    SITE_ID6 = stringr::str_extract(SITE_ID,
       # guessing musk Lake (80% total)
       "m*offshor|x2|gvsubuoy|hope[:digit:]*|raw|tb|temp"
       #"muskegon21"
@@ -76,13 +78,13 @@ parsedDates <- parsedSites %>%
     DateArea2 = tools::file_path_sans_ext(stringr::str_split_i(ctdFiles, "/", -1)),
     DateArea3 = stringr::str_split_i(ctdFiles, "/", 3),
     DateArea4 = stringr::str_split_i(ctdFiles, "/", 4),
-    dplyr::across(dplyr::starts_with("DateArea"), 
-      function(x) stringr::str_replace_all(tolower(x), 
+    dplyr::across(dplyr::starts_with("DateArea"),
+      function(x) stringr::str_replace_all(tolower(x),
       c("january" = "-01-", "february" = "-02-", "march" = "-03-", "april" = "-04-", "may" = "-05-", "june" = "-06-",
       "july" = "-07-", "august" = "-08-", "september" = "-09-", "october" = "-10-", "november" = "-11-", "december" = "-12-"))
       ),
-    dplyr::across(dplyr::starts_with("DateArea"), 
-      function(x) stringr::str_replace_all(tolower(x), c("jan" = "-01-", "feb" = "-02-", "mar" = "-03-", "apr" = "-04-", "may" = "-05-", "jun" = "-06-", "jul" = "-07-", 
+    dplyr::across(dplyr::starts_with("DateArea"),
+      function(x) stringr::str_replace_all(tolower(x), c("jan" = "-01-", "feb" = "-02-", "mar" = "-03-", "apr" = "-04-", "may" = "-05-", "jun" = "-06-", "jul" = "-07-",
       "aug" = "-08-", "sep" = "-09-", "oct" = "-10-", "nov" = "-11-", "dec" = "-12-"))
       ),
 
@@ -130,7 +132,7 @@ test <- parsedDates %>%
       Date4.1, Date4.2, Date4.3, Date4.4)
   )
 
-test2 <- test%>% 
+test2 <- test%>%
   filter(is.na(sampleDateTime)) %>%
   mutate(
     across(starts_with("DateArea"), function(x) str_remove_all(x, "[:alpha:]")),
@@ -144,18 +146,18 @@ test2 <- test%>%
   ) %>%
   select(ctdFiles, siteID, sampleDateTime)
 
-totalParsedDates <- test %>% 
+totalParsedDates <- test %>%
   select(ctdFiles, siteID, sampleDateTime) %>%
   # drop because dealt with in test2
   drop_na(sampleDateTime) %>%
   bind_rows(test2) %>%
-  left_join(noaaSites, by = c("siteID" = "Other.names")) %>% 
+  left_join(noaaSites, by = c("siteID" = "Other.names")) %>%
   right_join(as.data.frame(ctdFiles), by = "ctdFiles") %>%
   filter(Keep == "T") %>%
   select(-c(Keep, Justification))
 
 saveRDS(totalParsedDates, "../GL_Data/NOAA/ctdFileMetaData.Rds")
 
-totalParsedDates %>% 
+totalParsedDates %>%
   filter(is.na(SITE_ID)) %>%
   distinct(siteID)
