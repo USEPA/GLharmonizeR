@@ -30,7 +30,7 @@ filepaths["seaBird"]
   try(meta$date <- data@metadata$date)
   return(meta)
 }
-
+C:\Users\ccoffman\OneDrive - Environmental Protection Agency (EPA)\Profile\Desktop
 
 # [x] KV: Please describe what the code below is doing and why
 
