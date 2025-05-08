@@ -1,9 +1,9 @@
-# SECOND NOAA CTD PROCESSING FILE TO RUN
+# COMPILE AND PROCESS NOAA AND SEABIRD CTD AND SAVE AS DATA TABLES
 # - 1m depth bins
 # - standardizes names via oce
 # - saves compressed output to rds
 
-# [ ] KV: Need to edit description above to also emcompass GLNPO Seabird data, correct? That is, this is not just NOAA-specific. Also ctd01b-getAnaNames.R still says it's the second NOAA script to run, which is confusing. Please edit the CTD file descriptions very explicitly for clarity.
+# [x] KV: Need to edit description above to also emcompass GLNPO Seabird data, correct? That is, this is not just NOAA-specific. Also ctd01b-getAnaNames.R still says it's the second NOAA script to run, which is confusing. Please edit the CTD file descriptions very explicitly for clarity.
 
 # ** Note: KV has not run or carefully checked this code **
 
@@ -50,9 +50,9 @@ seaBirdDf <- seaBird %>%
  saveRDS(file.path("..", "GL_Data", "GLENDA", "seabird.Rds"))
  # NOTE: GL_Data is a GitHub repository and changes to this file need to be pushed to the repo
 
-noaaFiles <- readRDS(url("https://github.com/kvitense/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.Rds", "rb")) %>% # KV: This file is output from ctd01a-NOAActdNames.R
+noaaFiles <- readRDS(url("https://github.com/USEPA/GL_Data/raw/refs/heads/main/NOAA/ctdFileMetaData.Rds", "rb")) %>% # KV: This file is output from ctd01a-NOAActdNames.R
 
-  # [ ] KV: Above github repo URL needs to be changed to the USEPA migrated repo. Please check nothing needs to be rerun.
+  # [x] KV: Above github repo URL needs to be changed to the USEPA migrated repo. Please check nothing needs to be rerun.
 
 
   # remove files where we don't know the station

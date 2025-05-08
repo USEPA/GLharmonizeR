@@ -2,22 +2,20 @@
 # This function isn't explicitly used in the package. Instead, it was used to
 # preprocess CTD data (specifically data stored on SeaBird and shared from NOAA). The preprocessing script is - scripts/ctd02-preprocessing.R
 
-# [ ] KV: I am surprised a single function could be written to cover both GLNPO's and NOAA's CTD data - please carefully ensure that the function is working correctly for both
+# [x] KV: I am surprised a single function could be written to cover both GLNPO's and NOAA's CTD data - please carefully ensure that the function is working correctly for both
 # - this is more of a function that the seabird scientific CTD devices have stricter data reporting protocols
 #   and, over a couple decades, Dan Kelley's oce package has anticipated and converted the names into a
 #   common subset. But, nonetheless I will double check
-
-# [ ] KV: Was the above issue checked?
-
 
 # Note: KV will need to recheck function after clarifications/checks are made
 
 
 # Convert conductance with the following (suggested by James Gerads)
 # [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
-.oce2df <- function(data, studyName = NULL, bin = TRUE, downcast = TRUE) {
+.oce2df <- function(data, bin = TRUE, downcast = TRUE) {
 
-  # [ ] KV: Where is studyName used? It's not in the function
+  # [x] KV: Where is studyName used? It's not in the function
+  # - took it out. that was an artifact of the old design
 
   # load data as oce object
   # get Date, Lat, Lon, stationDepth # Station Name
