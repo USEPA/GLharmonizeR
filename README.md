@@ -1,4 +1,4 @@
-# LMChla <img src="man/figures/logo.png" align="right" height="139" alt="" />
+# LM_Chla <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
 
@@ -6,10 +6,10 @@
 <!--[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)-->
 <!-- badges: end -->
 
-This repository contains R functions to merge Lake Michigan Chlorophyll-A (Chla) and predictor data from diverse sources. It also contains workflows for pivoting and imputing the data in preparation for analysis.
+This R package contains functions to integrate Lake Michigan water quality data from different federal (EPA and NOAA) sources. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes. 
 
 # Installation
-This package can be install directly from the Github source code as follows.
+This package can be installed directly from the Github source code as follows.
 
 ```r
 devtools::github_install("kvitense/LM_Chla")
@@ -19,28 +19,40 @@ Note: This requires the package "devtools" which can be installed as `r install.
 
 
 # Aquiring data
-This package aids users in getting fully assembled and harmonized water quality data for Lake Michigan in two different ways:
+This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
 
-1) Downloading preassembled data
-  - From 
-  - Accessing after R package install (reccommeded) using `data("lakeMichigan")
+1) Loading preassembled data
+- Access after R package install using `data("lakeMichigan")
+- Note: this comes from a static realization of the source data and therefore may not be up to date.
 
-Note: That this comes from a frozen realization of the source data and therefore may not be up to date.
-
-2) Assembling using functions provided by the package
+2) Using functions provided by the package
 
 ```r
-df <- assembleData("filepath")
+df <- assembleData()
 ```
-- This will save an Rds binary version of the compiled data to the location specified by "filepath"
-  - Rds files are loadable using `df <- readRDS("filepath")` in R.
+- Creates R object `df` for use in current R session
+- Does not write output
+  
+```r
+df <- assembleData(out="filepath", binaryOut = TRUE)
+```
+- This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
+- RData/rda files can be loaded in R using `load("filepath.rda")`
+- Also creates an R object `df` for use in current R session
+
+```r
+df <- assembleData(out="filepath", binaryOut = FALSE)
+```
+- This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
+- CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
+- Also creates an R object `df` for use in current R session
 
 <!-->
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 -->
 
 <!-->
-# Suggested workflows
+# Suggested workflows -- IN DEVELOPMENT
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
 
 - Impute censored data based on detection limits
@@ -55,16 +67,16 @@ Suggested workflows (still in development) are included with the package. [These
   ```
 - Impute missing observations based on a nearest neighbor search
 - Naively impute remaining missingness using a random forest model
+--> 
 
-## Intended use
-This data source is intended for ....
 
-## Reccomendations for users
-- Use the documentation
-- Utilize measurent remarks
-- Careful of censored
+## Recommendations for users
+- Utilize QC flags and remarks
+- Be aware of censored data (see QC flags)
 - Report any issues via Github either as a discussion or open an issue
 
+
+<!-->
 ## [General functionality](docs/useNdesign.md)
 In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
 
@@ -75,30 +87,25 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 --> 
 
 ## Data sources
-The data were taken from the following sources
+Data were taken from the following sources
 
-- The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
+- EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
   - 1983 - 2023
-  - Seabird CTD 2003 - 2023
-- CSMI (hosted locally)
-  - 2015, 2020 (2010 partially, but too much missing info for inclusion)
-- National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
+- EPA's Great Lakes National Program Office (GLNPO) Seabird Database Application available through the [Great Lakes Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
+  - 2003 - 2023
+- EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
   - 2010, 2015
-- National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
+- Cooperative Science Monitoring Initiative (CSMI)
+  - 2015, 2020 
+  - Originally available on EPA and USGS internal drives
+- National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
   - 2007 - 2022
-  - CTD 2007 - 2022
+  - Originally available on NOAA internal drives (contact: Steve Pothoven)
 
-<!--
-## Database design
-The database was designed using multiple principals that were derived from the design of the LAGOS-US research platform. Firstly, the fundamental sampling unit is defined by a unique spatial position defined by latitude, longitude, and depth. However, since multiple analytes can be measured at each position, but scarcely any position has all analytes measured, the data is arranged in a "long" format where each row represents partial observations indexed by position, time, and analyte. This dramatically reduces the size of the stored data given the data's sparse nature by not introducing large amounts of NA values.
 
-Second, the design is exhaustive given the sourced data. This means that for the chosen data sources, data from all positions, analytes, and periods in time were kept unless they didn't pass a rudimentary quality check (outlined later). This is intended to allow this data source to be a comprehensive resource for researchers who may have specific data needs with respect to time, space, or analytes.
+## Dataset design
+The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single analyte indexed by position and time. Functions to pivot the data to wide format based on closeness in time and space are in progress.
 
-Thirdly, it is designed to be amenable to extensibility and open source development. To this end, rigourous documentation including this user document, principaled database design, open source access on Github, and in depth code commenting and formatting are all with the objective of inviting researchers to extend this work.
-
-Next, we describe the design more in-depth by describing the entities, data model, variables, and schema which together comprise the database.
-
--->
 
 
 # Disclaimer

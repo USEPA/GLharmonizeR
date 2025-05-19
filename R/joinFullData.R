@@ -18,7 +18,7 @@
 #'
 #' @details
 #' This is the main function of LMChla which assembles water quality for Lake Michigan
-#' across multiple decades. 
+#' across multiple decades.
 #'
 #' @param out filepath to save the dataset to. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
@@ -28,7 +28,7 @@
 #' @examples
 #' assembleData("filepath", binaryOut = FALSE)
 #' assembleData("filepath")
-assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
+assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   # Load up the filepaths
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
@@ -97,7 +97,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
             # ℹ In group 24: `STATION_ID = "MI9552n"`.
             # Caused by warning in `max()`:
             #   ! no non-missing arguments to max; returning -Inf
-  
+
   print("Step 4/7: Read and clean CSMI data")
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
   # [x] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
@@ -114,7 +114,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     ) %>%
     dplyr::select(
       # time and space
-      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth", 
+      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth",
       "sampleDepth",  "sampleDate", "sampleTime", "DEPTH_CODE",
       # [x] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
       # analyte name
@@ -194,12 +194,12 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
 
 # > round(colMeans(is.na(allWQ)), 2)
-#              UID            Study          SITE_ID         Latitude 
+#              UID            Study          SITE_ID         Latitude
 #             0.00             0.00             0.00             0.01
 #        Longitude     stationDepth      sampleDepth       sampleDate
 #             0.01             0.02             0.01             0.01
 #       sampleTime       DEPTH_CODE         CodeName          ANALYTE
-#             0.97             0.72             0.00             0.00 
+#             0.97             0.72             0.00             0.00
 #         Category         LongName   Explicit_Units           RESULT
 #             0.00             0.00             0.00             0.02
 #              MDL               RL      TargetUnits    ReportedUnits
@@ -284,7 +284,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
     dplyr::select(
       -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
     ) %>%
-    # [x] Check that CTB didn't join (if code is missing but comments is there or vice versa) 
+    # [x] Check that CTB didn't join (if code is missing but comments is there or vice versa)
     # - [ ] Retain column should always be filled in for flags
       # - mostly solved there are a couple with nas that aren't mapping for some reason also one instance of a CTB with time mixed in
     # - [x] Extra eye towards NOAA
@@ -361,22 +361,22 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 
 
 # > round(colMeans(is.na(allWQ)), 2)
-#                UID              Study            SITE_ID           Latitude 
+#                UID              Study            SITE_ID           Latitude
 #               0.00               0.00               0.00               0.01
 #          Longitude       stationDepth         sampleDate         sampleTime
-#               0.01               0.02               0.01               0.97 
+#               0.01               0.02               0.01               0.97
 #        sampleDepth         DEPTH_CODE           CodeName           LongName
 #               0.01               0.75               0.00               0.00
 #           Category  ANALYTE_Orig_Name              Units             RESULT
 #               0.00               0.00               0.37               0.03
-#                MDL                 RL        TargetUnits   ConversionFactor 
+#                MDL                 RL        TargetUnits   ConversionFactor
 #               0.91               1.00               0.00               0.73
 #       Unified_Flag    Unified_Comment             METHOD                LAB
 #               0.95               0.63               0.75               0.98
 #        Orig_QAcode     Orig_QAcomment  Orig_QAdefinition Retain_InternalUse
 #               0.63               0.63               0.63               0.63
 # Action_InternalUse
-#               0.63 
+#               0.63
 
 
 
@@ -389,31 +389,33 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 #   reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
 #   print(n = 300)
 
-
-  if (!is.null(out) & binaryOut) {
+# [ ] KV: Note that I edited this (and added out=NULL to function) - make sure it works
+  if (!is.null(out) & binaryOut == TRUE) {
     print(paste0("Writing data to ", out, ".rda"))
     save(lakeMichigan, file = paste0(out, ".rda"))
-  } else {
+  }
+
+  if (!is.null(out) & binaryOut == FALSE) {
     print(paste0("Writing data to ", out, ".csv"))
     readr::write_csv(lakeMichigan, file = out, progress = readr::show_progress())
   }
 
 # check missingness
-# allWQ %>% 
-#   reframe(across(everything(), 
+# allWQ %>%
+#   reframe(across(everything(),
 #           function(x) round(mean(is.na(x)), 2)),
 #           .by = Study) %>%
 #   View()
-# allWQ %>% 
-#   reframe(across(everything(), 
+# allWQ %>%
+#   reframe(across(everything(),
 #           function(x) sum(!is.na(x))),
 #           .by = Study) %>%
 #   View()
-# allWQ %>% 
+# allWQ %>%
 #   reframe(n = length(unique(UID)),
 #           .by = Study) %>%
 #   arrange(desc(n))
-# allWQ %>% 
+# allWQ %>%
 #   reframe(across(c(Latitude, Longitude),
 #             c(
 #               "max" = function(x) max(x, na.rm = T),
@@ -442,7 +444,7 @@ assembleData <- function(out, .test = FALSE, binaryOut = TRUE) {
 # - CC: Not imputing anymore that we separated the columns
 # [x] Another option is to just have separate columns for date and time and not impute time and remove flag?
 # [x] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
-# - CC: Time zones are computed as UTC now 
+# - CC: Time zones are computed as UTC now
 # [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
   # unknown if NOAA cond is specific conductivity at 25C
