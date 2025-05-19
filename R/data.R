@@ -4,8 +4,8 @@
 #'  and NOAA data sources. The variables are as follows:
 #'
 #' @name lakeMichigan
-#' @author Kelsey Vitense \email{...}
-#' @author Christian Coffman \email{coffman.christian@epa.gov}
+#' @author Kelsey Vitense \email{vitense.kelsey@epa.gov}
+#' @author Christian Coffman
 #' @references GLENDA \url{https://cdx.epmeea.gov/}, NCCA \url{ncca}, \url{csmi}
 #' @keywords datasets
 #' @usage data(lakeMichigan)
@@ -41,6 +41,6 @@
 #'   \item{Retain_InternalUse}{Internal decision on what data to retain based on QC flags}
 #'   \item{Action_InternalUse}{Verbose description of decision made off of qa flags}
 #' }
-#' 
+#'
 #' @source {LMChla} Lake Michigan water quality R package.
 "lakeMichigan"

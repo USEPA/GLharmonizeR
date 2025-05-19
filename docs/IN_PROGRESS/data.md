@@ -1,8 +1,11 @@
+# [ ] KV: Need to revisit this documentation and where to reference it
+
+
 # Data
-The data were taken from the following sources. Here we summarize how the data was gathered from each source, the data contained within each source, as well as the cleaning results.
+The data were taken from the following sources. Here we summarize how the data were gathered from each source, the data contained within each source, as well as the cleaning results.
 
 ## The Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
-Credentials were requested for querying GLENDA (Great Lakes Environmental Database Query System) hosted through the central data exchange by the EPA. We directly queried the database using the GLENDA Query System and based our query off of the following criteria: 
+Credentials were requested for querying GLENDA (Great Lakes Environmental Database Query System) hosted through the central data exchange by the EPA. We directly queried the database on 2023/10/23 using the GLENDA Query System and based our query off of the following criteria: 
 
 - Select Query: Water Quality Survey Data
 - Analyte Code: "Selected every analyte"

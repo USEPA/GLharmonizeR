@@ -72,7 +72,7 @@
   return(df_wide)
 }
 
-# nearest neighbor imputation
+# Match observations in time and space
 .imputeNearestMatch <- function(..., CodeName, matchingSet = NULL, dayThresh = 3, latlonThres = 0.01){
   observation <- tibble::tibble(...)
   # different threshold depending on depth
@@ -153,6 +153,5 @@
   return(missing)
 }
 
-# naive imputation
 
 
