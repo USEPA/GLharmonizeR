@@ -1,10 +1,14 @@
-# LM_Chla <img src="man/figures/logo.png" align="right" height="139" alt="" />
+# LM_Chla 
 
+<!---<img src="man/figures/logo.png" align="right" height="139" alt="" /> -->
+
+<!---
 ![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
 
 <!-- badges: start -->
 <!--[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)-->
 <!-- badges: end -->
+
 
 This R package contains functions to integrate Lake Michigan water quality data from different federal (EPA and NOAA) sources. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes. 
 
@@ -12,46 +16,46 @@ This R package contains functions to integrate Lake Michigan water quality data 
 This package can be installed directly from the Github source code as follows.
 
 ```r
-devtools::github_install("kvitense/LM_Chla")
+devtools::github_install("USEPA/LM_Chla")
 ```
 
-Note: This requires the package "devtools" which can be installed as `r install.packages("devtools")`.
+Note: This requires the package "devtools" which can be installed as `install.packages("devtools")`.
 
 
 # Aquiring data
 This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
 
 1) Loading preassembled data
-- Access after R package install using `data("lakeMichigan")
-- Note: this comes from a static realization of the source data and therefore may not be up to date.
+  - Access after R package install using `data("lakeMichigan")
+  - Note: this comes from a static realization of the source data and therefore may not be up to date.
 
 2) Using functions provided by the package
 
 ```r
 df <- assembleData()
 ```
-- Creates R object `df` for use in current R session
-- Does not write output
+  - Creates R object `df` for use in current R session
+  - Does not write output
   
 ```r
 df <- assembleData(out="filepath", binaryOut = TRUE)
 ```
-- This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
-- RData/rda files can be loaded in R using `load("filepath.rda")`
-- Also creates an R object `df` for use in current R session
+  - This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
+  - RData/rda files can be loaded in R using `load("filepath.rda")`
+  - Also creates an R object `df` for use in current R session
 
 ```r
 df <- assembleData(out="filepath", binaryOut = FALSE)
 ```
-- This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
-- CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
-- Also creates an R object `df` for use in current R session
+  - This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
+  - CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
+  - Also creates an R object `df` for use in current R session
 
-<!-->
+<!---
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 -->
 
-<!-->
+<!---
 # Suggested workflows -- IN DEVELOPMENT
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
 
@@ -70,13 +74,13 @@ Suggested workflows (still in development) are included with the package. [These
 --> 
 
 
-## Recommendations for users
+# Recommendations for users
 - Utilize QC flags and remarks
 - Be aware of censored data (see QC flags)
 - Report any issues via Github either as a discussion or open an issue
 
 
-<!-->
+<!---
 ## [General functionality](docs/useNdesign.md)
 In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
 
@@ -86,7 +90,7 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 - Provide utilities for processing (imputation etc.)
 --> 
 
-## Data sources
+# Data sources
 Data were taken from the following sources
 
 - EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
@@ -95,7 +99,7 @@ Data were taken from the following sources
   - 2003 - 2023
 - EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
   - 2010, 2015
-- Cooperative Science Monitoring Initiative (CSMI)
+- Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
   - 2015, 2020 
   - Originally available on EPA and USGS internal drives
 - National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
@@ -103,7 +107,7 @@ Data were taken from the following sources
   - Originally available on NOAA internal drives (contact: Steve Pothoven)
 
 
-## Dataset design
+# Dataset design
 The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single analyte indexed by position and time. Functions to pivot the data to wide format based on closeness in time and space are in progress.
 
 
