@@ -1,4 +1,4 @@
-# LM_Chla 
+# LMChla 
 
 <!---<img src="man/figures/logo.png" align="right" height="139" alt="" /> -->
 
@@ -69,8 +69,6 @@ Suggested workflows (still in development) are included with the package. [These
   ```r
   dfshort <- .exactPivot(dflong)
   ```
-- Impute missing observations based on a nearest neighbor search
-- Naively impute remaining missingness using a random forest model
 --> 
 
 
