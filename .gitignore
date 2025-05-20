@@ -96,4 +96,7 @@ inst/doc
 desktop.ini
 
 /.quarto/
+/.quarto/**
+/.vscode/**
+
 docs/presentations/*/*_files
