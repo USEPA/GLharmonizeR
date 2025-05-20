@@ -1,21 +1,11 @@
+# This function is used to preprocess CTD data (specifically data stored on GLNPO SeaBird app and shared from NOAA)
+# The preprocessing script is ctd02-preprocessing.R
+# Data are saved as .rds files on GL_Data repo for further use in the package
 
-# This function isn't explicitly used in the package. Instead, it was used to
-# preprocess CTD data (specifically data stored on SeaBird and shared from NOAA). The preprocessing script is - scripts/ctd02-preprocessing.R
-
-# [x] KV: I am surprised a single function could be written to cover both GLNPO's and NOAA's CTD data - please carefully ensure that the function is working correctly for both
-# - this is more of a function that the seabird scientific CTD devices have stricter data reporting protocols
-#   and, over a couple decades, Dan Kelley's oce package has anticipated and converted the names into a
-#   common subset. But, nonetheless I will double check
-
-# Note: KV will need to recheck function after clarifications/checks are made
+# ** Using oce 1.8-3 **
 
 
-# Convert conductance with the following (suggested by James Gerads)
-# [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity
 .oce2df <- function(data, bin = TRUE, downcast = TRUE) {
-
-  # [x] KV: Where is studyName used? It's not in the function
-  # - took it out. that was an artifact of the old design
 
   # load data as oce object
   # get Date, Lat, Lon, stationDepth # Station Name
@@ -115,3 +105,6 @@
 
   return(df)
 }
+
+# Convert conductance with the following (suggested by James Gerads)
+# [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity

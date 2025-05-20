@@ -1,28 +1,20 @@
-# FIRST NOAA CTD SCRIPT TO RUN (before ctd-functions.R)
-# - This finds out the meta data associated with each CTD cast based on filepath
+# FIRST CTD SCRIPT TO RUN
+# - This finds the meta data associated with each NOAA CTD cast based on filepath and noaaWQSites (GL_Data/NOAA/noaaSiteInformationUpdated.xlsx)
 #   - Infers station name and date
 
-# [x] KV: Need to edit this description if NOAAProcessing.R is now defunct.
-
-# [x] KV: Please add comments at the top of this document describing what this script does and clarifying/confirming the order in which the NOAA processing files are run
-
-# ** Note: KV has not run or carefully checked this code **
-library(oce)
+# library(oce) # KV: Not actually used in this script?
 library(tidyverse)
 devtools::load_all()
-source("scripts/ctd-functions.R")
 filepaths <- .getFilePaths()
 # noaaWQ <- filepaths["noaaWQ"] # KV: Doesn't appear to be used here
 noaaWQSites <- filepaths["noaaWQSites"]
-# namingFile <- filepaths["namingFile"] # KV: Doesn't appear to be used here and SHOULD NOT be used in any of these processing scripts (per comments in NOAAProcessing.R)
 noaaSites <- openxlsx::read.xlsx(filepaths["noaaWQSites"])
 
-# [x] KV: Could edit path here to point to generic home directory as you did elsewhere
-# [ ] KV: Not a high priority, but note that the CTD file paths here are just synced files from Sharepoint and could probably be read in directly from Sharepoint, rather than having a user-specific path here.  https://usepa.sharepoint.com/:f:/r/sites/LakeMichiganML/Shared%20Documents/General/Raw_data/NOAA/CTD%202007-2022?csf=1&web=1&e=WmEi8R
-# - this might be hard with ctd data because we'd have to call a download function first.
+
+teamsFolder <- file.path(fs::path_home(), "Environmental Protection Agency (EPA)", "Lake Michigan ML - General")
+
 ctdFiles <- list.files(
-  path = file.path(normalizePath("~"), "..","..", "..", "Environmental Protection Agency (EPA)", "Lake Michigan ML - General",
-   "Raw_data", "NOAA", "CTD 2007-2022"), recursive = T, pattern = "*.cnv$", full.names = F, ignore.case =T) %>%
+  path = file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022"), recursive = T, pattern = "*.cnv$", full.names = F, ignore.case =T) %>%
   .[grepl("^20.*/[[:digit:]*].*", ., ignore.case=T)]
 sum(grepl("21700", ctdFiles, ignore.case = T))
 ctdFiles[grepl("21700", ctdFiles, ignore.case = T)]
@@ -158,6 +150,10 @@ totalParsedDates <- test %>%
   select(-c(Keep, Justification))
 
 saveRDS(totalParsedDates, "../GL_Data/NOAA/ctdFileMetaData.Rds")
+# NOTE: GL_Data is a GitHub repository and changes to this file need to be pushed to the repo
+write.csv(totalParsedDates, "../GL_Data/NOAA/ctdFileMetaData.csv", row.names = F)
+
+
 
 totalParsedDates %>%
   filter(is.na(SITE_ID)) %>%
