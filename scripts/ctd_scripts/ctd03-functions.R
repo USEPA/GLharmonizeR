@@ -2,7 +2,8 @@
 # The preprocessing script is ctd02-preprocessing.R
 # Data are saved as .rds files on GL_Data repo for further use in the package
 
-# ** Using oce 1.8-3 **
+# ** Using oce 1.8-4 **
+# Note PAR is now capitalized in this version
 
 
 .oce2df <- function(data, bin = TRUE, downcast = TRUE) {
@@ -39,24 +40,28 @@
     .@data %>%
     as.data.frame()
 
-  if (("par" %in% names(df)) & ("spar" %in% names(df))) {
+  if (("PAR" %in% names(df)) & ("spar" %in% names(df))) {
     df <- df %>%
       dplyr::mutate(
         # Derivatives
-        cpar = par / spar
+        cpar = PAR / spar
       )
   }
 
   df <- df %>%
     dplyr::filter(depth > 0.1) %>%
     # Select which sensor for each type of data
-    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH", "conductivity", "par")))
+    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH", "conductivity", "PAR")))
     # Note that this selects data from the first sensor - additional sensors have the same name followed by an integer
+  # *** Note that you need to be careful about the names here and check how they appear in ctd02-exploreNamesAndMeta.R because PAR, for example, was changed to all caps in oce 1.8-4
 
 
-  # possible names
-  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH", "par")
-  # [ ] KV: Does this list of possible names really work for both GLNPO and NOAA CTD? Please double check that all applicable analytes are being selected across both datasets - e.g., when specific conductivity is available for NOAA, is it called specificConductance exactly?
+  # possible names - excludes temperature here because data.frame is started with temperature included below
+  # *** Note that you need to be careful about the names here and check how they appear in ctd02-exploreNamesAndMeta.R because PAR, for example, was changed to all caps in oce 1.8-4
+  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH") # Remove par, only want cpar
+
+  # [X] KV: What happens below if temperature is not included? Is this ever the case?
+  # Temp is always included for Seabird and NOAA, but this is something to keep an eye on for new datasets
 
   if (bin) {
     # Bin data

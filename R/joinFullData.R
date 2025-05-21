@@ -447,11 +447,12 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 # - CC: Time zones are computed as UTC now
 # [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
-  # unknown if NOAA cond is specific conductivity at 25C
+  # unknown if NOAA cond is specific conductivity at 25C (is this true?? Only keeping specificConductance from specc right?)
   # Times mostly trusted but might need to be careful about daylight savings instances
   # unable to retrieve dates for small subset of NOAA CTD data
+  # NOAA CTD files with temperature only not being read in by oce 1.8-4 current version (or 1.8-3)
   # There are negatives and zeros in RESULTS column
-  # NCCA secchi 2015 has vrey poor spatial resolution
+  # NCCA secchi 2015 has vrey poor spatial resolution (??)
   # Missing station lat/longs (GLENDA, CSMI 2021)
     # Glenda 3.9%
     # CSMI 2021 wq 5.7%

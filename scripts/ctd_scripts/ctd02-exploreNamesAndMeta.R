@@ -2,7 +2,7 @@
 # Should be run after ctd01-NOAAstationFromFileName.R
 # This script was used to inform the names that go into ctd03-functions.R
 
-# ** Using oce 1.8-3 **
+# ** Using oce 1.8-4 **
 
 library(devtools)
 devtools::load_all()
@@ -19,12 +19,12 @@ seaBird <- seaBird[grepl("_MI", seaBird, ignore.case = t)]
 
 # Check to see if names are same across all seabird files
 .getCTDNames <- function(file) {
-  try(oce::read.oce(file) |>
+  try(oce::read.oce(file, requireSalinity=FALSE) |>
     _@data |>
     names())
 }
 .getCTDMeta <- function(file) {
-  try(data <- oce::read.oce(file))
+  try(data <- oce::read.oce(file, requireSalinity=FALSE))
   #meta <- data@metadata
   meta <- data.frame("latitude" = NA, "longitude" = NA, "station" = NA, "date" = NA, "startTime" = NA, "waterDepth" = NA)
   try(meta$latitude <- data@metadata$latitude)
@@ -52,17 +52,17 @@ table(unlist(NAMES))
 # 46                 411                 411                 411                  19
 # depth                flag        fluorescence       fluorescence2              oxygen
 # 411                 411                 411                   8                 411
-# oxygen2           oxygenRaw          oxygenRaw2                 par                  pH
+# oxygen2           oxygenRaw          oxygenRaw2                 PAR                  pH
 # 19                 365                  19                 411                   8
 # pressure         pressurePSI pressureTemperature            salinity                spar
 # 411                  46                  46                 411                 403
 # specificConductance         temperature        temperature2               upoly              upoly2
-# 411                 411                  19                 403                  17
+# 411                         411                  19                 403                  17
 # upoly3
 # 17
 
-# depth, oxygen, par, spar, temperature, conductivity, specificConductance, pH
-
+# depth, oxygen, PAR, spar, temperature, conductivity, specificConductance, pH
+# all have temperature
 
 # repeat the process for noaa CTD
 # get list of noaa CTD filepaths
@@ -78,20 +78,20 @@ NAMES_NOAA <- pbapply::pbsapply(noaaFiles$ctdFiles, FUN = .getCTDNames)
 noaaFiles$ctdFiles[1]
 .getCTDNames(noaaFiles$ctdFiles[1])
 
-# table(unlist(NAMES_NOAA)
+data.frame(table(unlist(NAMES_NOAA))) # 5, 8, 19 have 1078, which is depth, flag, and temp, so temp always available
 c(unique(unlist(NAMES_NOAA)))
 # [1] "depth"
 # [2] "temperature"
 # [3] "conductivity"
 # [4] "fluorescence"
-# [5] "par"
+# [5] "PAR"
 # [6] "oxygen"
 # [7] "beamTransmission"
 # [8] "flag"
 # [9] "nbin"
 # [10] "salinity"
 # [11] "pressure"
-# [12] "Error in .nextMethod(x = x, i = i) : \n  the object's data slot lacks \"salinity\", and it cannot be calculated since \"conductivity\" is also missing\n"
+# [12] "Error in read.ctd.sbe(file, encoding = encoding, processingLog = processingLog,  : \n  no salinity or conductivity in file; use 'columns' if either is present with an unrecognized names\n"
 # [13] "beamAttenuation"
 # [14] "depth2"
 # [15] "specificConductance"
@@ -108,7 +108,7 @@ c(unique(unlist(NAMES_NOAA)))
 # [26] "v7"
 # [27] "fluorescence2"
 
-# depth, oxygen, par,  temperature, conductivity (no specificConductance?)
+# depth, oxygen, PAR,  temperature, conductivity (no specificConductance?)
 # no pH, no spar
 
 
