@@ -1,17 +1,15 @@
 #' readPivotGLENDA
 #'
 #' @description
-#' A function to read the full GLENDA csv file and convert it to a more user friendly long format.
+#' A function to read the full GLENDA data file downloaded 2023/10/23 and convert to long format.
 #'
 #' @details
 #' `.readFormatGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
-#' this function implicitly when assembling their full water quality dataset. This function contains some
-#' of the filtering functions in order to easily be compatible with the testing schema because
-#' when we filtered later on, we lost too many sample ids that would be included in the test data.
+#' this function implicitly when assembling their full water quality dataset.
 #'
 #'
-#' @param filepath a filepath to the GLENDA csv
-#' @param n_max Number of rows to read in from the raw GLENDA data (this is really just for testing purposes)
+#' @param filepath a filepath to the GLENDA RDS or CSV file
+#' @param n_max Number of rows to read in from the raw GLENDA data (this is just for testing purposes)
 #' @param sampleIDs a list of sampleIDs to keep in the final dataset
 #'
 #' @return a dataframe
@@ -85,28 +83,44 @@
       SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
       QC_TYPE == "routine field sample",
       # If value and remarks are missing, we assume sample was never taken
-      !is.na(VALUE) | !is.na(RESULT_REMARK) # ,
-      # The only QA Codes worth removing "Invalid" and "Known Contamination".
-      # The rest already passed an initial QA screening before being entered
-      # !grepl("Invalid", RESULT_REMARK, ignore.case = T),
-      # RESULT_REMARK != "Known Contamination"
+      !is.na(VALUE) | !is.na(RESULT_REMARK)
+      # Additional filtering based on RESULT_REMARK is done in joinFullData.R based on flagsMap_withDecisions.xlsx file
     ) %>%
     dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
+
+    # [ ] KV: Note that this time zone code was moved up to this function from the cleaning function - unclear why? Probably should be moved below again after fixing it.
+
     dplyr::mutate(
-        # [x] KV: Are you sure this is in always in standard time using 'Canada/Newfoundland', or that it adjusts for daylight saving time? Newfoundland does observe daylights savings, so I'm not sure how this works. Here is an example of how I previously handled EDT, if it's helpful (basically call it EST and subtract an hour from the time): Chl_EDT <- Chl %>% filter(TIME_ZONE=="EDT") %>% mutate(Sample_Date=ymd_hm(SAMPLING_DATE, tz = "EST")-hours(1))
       SAMPLING_DATE = lubridate::as_datetime(ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE)),
-      # [x] Check if remove RESULTstart - verified it's gone
       TIME_ZONE = dplyr::case_when(
         TIME_ZONE == "EDT" ~ "EST",
         TIME_ZONE == "CDT" ~ "EST",
         .default = TIME_ZONE
       )) %>%
+
+
+
     tidyr::unite(sampleDateTime, SAMPLING_DATE, TIME_ZONE) %>%
+
+    # Examples to explore behavior below:
+    # "2003-04-10_EST"  -- Produces NA using parse_datetime - Need to pull out date first
+    # "2002-04-01 00:15:00_EST"
+    # "2000-08-27 10:04:00_EST"
+    # "2015-04-17 05:32:00_GMT"
+    # "2015-07-26 00:40:00_GMT"
+    # readr::parse_datetime("2003-04-10_EST", format = "%Y-%m-%d %H:%M:%S_%Z")
+
+    # [ ] KV: Format doesn't work below if time is missing, so need to pull out date first to store in sampleDate, then deal with times?
+    # [ ] KV: Need to check how GMT is handled and/or convert to EST
+    # [ ] KV: How does lubridate::hour work below - is it converting to UTC?? Does sampleDateTime get converted to UTC automatically  in parse_datetime? Need to investigate cases.
+    # Prefer all to be in EST rather than UTC?
+
     dplyr::mutate(
       sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y-%m-%d %H:%M:%S_%Z"),
       sampleDate = lubridate::date(sampleDateTime),
       sampleTimeUTC = lubridate::hour(sampleDateTime),
       sampleTimeUTC = ifelse(sampleTimeUTC ==0, NA, sampleTimeUTC)
+      # [ ] KV: Check that sampleTimeUTC==0 could be midnight, and thus above code is incorrect?
     )
   return(df)
 }
@@ -131,7 +145,7 @@
 .cleanGLENDA <- function(
     df, namingFile, imputeCoordinates = TRUE, GLENDAsitePath = NULL,
     GLENDAlimitsPath = NULL) {
-  
+
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "GLENDA_Map", na.strings = c("", "NA")) %>%
     tidyr::separate_wider_delim(Years, "-", names = c("minYear", "maxYear")) %>%
     dplyr::mutate(minYear = as.numeric(minYear), maxYear = as.numeric(maxYear))
@@ -142,7 +156,7 @@
 
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
     dplyr::distinct() # Duplicate rows
 
   # all rl not mdls
@@ -151,11 +165,11 @@
     dplyr::filter(grepl("^<", VALUE))
 
   if (mean(grepl("reporting limit", internalRL$RESULT_REMARK, ignore.case=T)) != 1) {
-    stop("At least one of the GLENDA values reported as less than some number 
+    stop("At least one of the GLENDA values reported as less than some number
           isn't also reported as being less than reporting limit in the RESULT_REMARK
           column. Investigate these comments to see how to deal with them.")
   }
-  
+
   internalRL <- internalRL %>%
     dplyr::distinct(YEAR, SEASON, ANALYTE, VALUE, MEDIUM, FRACTION, METHOD, RESULT_REMARK) %>%
     dplyr::left_join(renamingTable, by = c("MEDIUM", "ANALYTE", "FRACTION", "METHOD" = "Methods")) %>%
@@ -277,14 +291,14 @@
     # sum(is.na(df$Units)) == 0
     # [x] KV: Need to recheck this for ReportedUnits=="none" instead of NA. See GitHub comment on PR
     # If so, we will assume on a given year analytes have same units **KV comment: suggest imputing by year-season combo, rather than just by year**
-    # PR comment: In checking that the unit conversions mapped correctly below, I noticed that 
+    # PR comment: In checking that the unit conversions mapped correctly below, I noticed that
     # there are several observations where ReportedUnits is "none" rather than NA, so those aren't
-    # being picked up with the check here for NA units. When you look at the GLENDA_Map tab in 
-    # Analytes3.xlsx, you can see these analytes that sometimes have 'none' for units. 
+    # being picked up with the check here for NA units. When you look at the GLENDA_Map tab in
+    # Analytes3.xlsx, you can see these analytes that sometimes have 'none' for units.
     # In these cases, there is only ever one type of unit reported for that analyte for the rest
     # of the dataset, so it should be reasonable to impute these missing units. It would be worth
-    # doing this in case there are analytes that need to have their units converted (I actually 
-    # don't think there are, but just in case). You could just impute units by Year/Season to make 
+    # doing this in case there are analytes that need to have their units converted (I actually
+    # don't think there are, but just in case). You could just impute units by Year/Season to make
     # it general.
     dplyr::mutate(
       ReportedUnits = ifelse(ReportedUnits != "none", ReportedUnits,

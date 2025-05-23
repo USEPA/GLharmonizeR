@@ -29,9 +29,7 @@
     "Glenda" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDA.Rds",
     "GLENDAlimitsPath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
     "GLENDAsitePath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
-    "Glenda" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDA.Rds",
-    "GLENDAlimitsPath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
-    "GLENDAsitePath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
+
 
     # GLNPO SeaBird data
     "seaBird" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/seabird.Rds",
