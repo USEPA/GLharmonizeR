@@ -29,6 +29,10 @@
 #' assembleData("filepath", binaryOut = FALSE)
 #' assembleData("filepath")
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
+
+  # [ ] make argument for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
+  # [ ] water body name argument
+
   # Load up the filepaths
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
@@ -58,11 +62,10 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   noaaWQ2 <- filepaths["noaaWQ2"]
   noaaCTD <- filepaths["noaaCTD"]
   noaaWQSites <- filepaths["noaaWQSites"]
-  # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
-  # [ ] Minyear maxyear arguments
-  # [ ] water body name argument
+
+
   n_max <- ifelse(.test, 1000, Inf)
-  # [x] report sample DateTime not just date
+
   print("Step 1/7: Read and clean NCCA")
   ncca <- .loadNCCA(
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
@@ -73,8 +76,9 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
     n_max = n_max
   )
 
-  print("Step 2/7: Read preprocessed GLNPO Seabird and NOAA CTD files")
-  seabirdNnoaaCTD <- .cleanNOAAnSeabirdCTD()
+  print("Step 2/7: Read and clean preprocessed GLNPO Seabird and NOAA CTD files")
+  GLNPOseabirdCTD <- .cleanGLNPOSeabirdCTD()
+  noaaCTD <- .cleanNOAACTD()
 
   print("Step 3/7: Read and clean GLENDA")
   GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
@@ -82,14 +86,24 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       namingFile = namingFile, imputeCoordinates = TRUE,
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
     )
-      # [x] KV: If we're going to impute stationDepth from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen.
+
+  # Use GLENDA to impute stationDepth for GLNPOseabirdCTD (coalesce(stationDepth, maxCTDdepth))
+  # Then use GLNPOseabirdCTD to fill in GLENDA stationDepth if needed (coalesce(stationDepth, maxCTDdepth)
+  # Make sure add appropriate flag depending on which one is used
+
+
+        # [x] KV: If we're going to impute stationDepth from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen.
           # CC: Taken care of by separating out SeaBird data
+  # [ ] KV: ** Check above note from Christian - separating out SeaBird data would likely not allow for first imputing from stationDepth from other site visits first, then using maxDepth for CTD stationDepth. Probably would need to coalesce after joining?
+
           # Suggest first imputing stationDepth from other site visits
           # Then use Study ID to only impute CTD stationDepth by maxDepth separately, adding a flag
           # Then do another round of imputing stationDepth from other site visits, preserving the flag from other original maxDepth imputation
-      # [x] KV: Also need to add formal flag for imputing stationDepth in flagsMap
+
+  # [x] KV: Also need to add formal flag for imputing stationDepth in flagsMap
           # - CC: added "D" and associated comment
-      # [x] KV: Also get warning that it's replacing with -Inf for the max argument.
+
+  # [x] KV: Also get warning that it's replacing with -Inf for the max argument.
         # CC: solved by separating out CTD
             # 3: There were 113 warnings in `dplyr::mutate()`.
             # The first warning was:
@@ -98,6 +112,8 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
             # Caused by warning in `max()`:
             #   ! no non-missing arguments to max; returning -Inf
 
+
+
   print("Step 4/7: Read and clean CSMI data")
   CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
   # [x] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
@@ -105,8 +121,9 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   print("Step 5/7: Read and clean NOAA WQ data")
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
 
+
   print("Step 6/7: Combine and return full data")
-  allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA, seabirdNnoaaCTD) %>%
+  allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA, GLNPOseabirdCTD, noaaCTD) %>%
     dplyr::mutate(
       SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID),
       RL = dplyr::coalesce(LRL, MRL, rl),

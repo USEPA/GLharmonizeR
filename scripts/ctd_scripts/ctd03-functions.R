@@ -86,10 +86,10 @@
       sampleDateTime = meta$sampleDateTime,
       stationDepth = meta$waterDepth,
       # Make station names similar to how they appear in GLENDA
-      Station = stringr::str_remove_all(Station, ","),
-      Station = stringr::str_remove_all(Station, " "),
-      Station = stringr::str_remove_all(Station, "-"),
-      Station = stringr::str_remove_all(Station, "_"),
+      # Station = stringr::str_remove_all(Station, ","),
+      # Station = stringr::str_remove_all(Station, " "),
+      # Station = stringr::str_remove_all(Station, "-"),
+      # Station = stringr::str_remove_all(Station, "_"),
       Station = toupper(Station)
     ) %>%
     dplyr::rename(sampleDepth = depth) %>%
@@ -103,7 +103,6 @@
       stringr::str_remove_all(UNITS, pattern = "/"),
       stringr::str_extract(UNITS, pattern = "C$")
     ))
-  # [ ] KV: Double check this  units code works across both GLNPO and NOAA CTD
 
   df <- df %>%
     dplyr::left_join(unitTable, by = "ANALYTE")

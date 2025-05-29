@@ -20,6 +20,9 @@ seaBird <- list.files(path = file.path(teamsFolder, "Raw_data", "Seabird"),
   pattern = , ".cnv$", full.names=T)
 seaBird <- seaBird[grepl("_MI", seaBird, ignore.case = t)]
 
+# seaBird2 <- seaBird[grepl("_MB", seaBird, ignore.case = t)] # No sites with MB
+
+
 test <- F
 if (test) {
    seaBird <- seaBird[c(1:5, (length(seaBird) - 5): length(seaBird))]
@@ -69,4 +72,3 @@ noaaCTDdf <- noaaFiles %>%
   tidyr::unnest(cols = data) %>%
   saveRDS(file.path("..", "GL_Data", "NOAA", "noaaCTD.Rds"))
 # NOTE: GL_Data is a GitHub repository and changes to this file need to be pushed to the repo
-
