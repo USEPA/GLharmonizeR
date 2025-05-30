@@ -1,4 +1,5 @@
 # Note that we are not including CSMI 2010 data currently because key details are unclear and not documented - commented out in csmiJoinAll.R
+# Code below will need review if it this dataset is eventually included
 
     # XXX this is for csmi 2010, since it's not included, leaving it commented out
     # dplyr::mutate(

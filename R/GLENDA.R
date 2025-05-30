@@ -90,6 +90,9 @@
 
     # [ ] KV: Note that this time zone code was moved up to this function from the cleaning function - unclear why? Probably should be moved below again after fixing it.
 
+
+    # Convert all to UTC for consistency
+
     dplyr::mutate(
       SAMPLING_DATE = lubridate::as_datetime(ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE)),
       TIME_ZONE = dplyr::case_when(
@@ -101,6 +104,8 @@
 
 
     tidyr::unite(sampleDateTime, SAMPLING_DATE, TIME_ZONE) %>%
+
+    # Find examples missing times and determine if they are midnight
 
     # Examples to explore behavior below:
     # "2003-04-10_EST"  -- Produces NA using parse_datetime - Need to pull out date first
@@ -121,6 +126,7 @@
       sampleTimeUTC = lubridate::hour(sampleDateTime),
       sampleTimeUTC = ifelse(sampleTimeUTC ==0, NA, sampleTimeUTC)
       # [ ] KV: Check that sampleTimeUTC==0 could be midnight, and thus above code is incorrect?
+      # Yes - midnight is pulled out as 0 so should be preserved
     )
   return(df)
 }

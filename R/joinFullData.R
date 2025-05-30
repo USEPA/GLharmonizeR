@@ -87,6 +87,29 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
     )
 
+  # If add options to ask for specific datasets, note than both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned
+
+  # Note that ALL GLNPOseabirdCTD are missing stationDepth
+
+  # Pasted from .cleanGLNPOSeabirdCTD()
+  # dplyr::mutate(
+  #   # This is mostly intended to fill in missing values for seabird
+  #   QAcomment = dplyr::case_when(
+  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "Station depth imputed from another site visit",
+  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "Station depth imputed from maximum sample depth",
+  #     .default = NA),
+  #   QAcode = dplyr::case_when(
+  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "D",
+  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "D",
+  #     .default = NA),
+  #   stationDepth = dplyr::case_when(
+  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ mean(stationDepth, na.rm=TRUE),
+  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
+  #     .default = stationDepth),
+  #   .by = SITE_ID
+  # ) %>%
+
+
   # Use GLENDA to impute stationDepth for GLNPOseabirdCTD (coalesce(stationDepth, maxCTDdepth))
   # Then use GLNPOseabirdCTD to fill in GLENDA stationDepth if needed (coalesce(stationDepth, maxCTDdepth)
   # Make sure add appropriate flag depending on which one is used
@@ -132,7 +155,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
     dplyr::select(
       # time and space
       "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth",
-      "sampleDepth",  "sampleDate", "sampleTime", "DEPTH_CODE",
+      "sampleDepth",  "sampleDate", "sampleTimeUTC", "DEPTH_CODE",
       # [x] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
       # analyte name
       "CodeName", "ANALYTE", "Category", "LongName", "Explicit_Units",
@@ -464,12 +487,17 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 # - CC: Time zones are computed as UTC now
 # [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
-  # unknown if NOAA cond is specific conductivity at 25C (is this true?? Only keeping specificConductance from specc right?)
   # Times mostly trusted but might need to be careful about daylight savings instances
   # unable to retrieve dates for small subset of NOAA CTD data
-  # NOAA CTD files with temperature only not being read in by oce 1.8-4 current version (or 1.8-3)
   # There are negatives and zeros in RESULTS column
-  # NCCA secchi 2015 has vrey poor spatial resolution (??)
+  # NCCA secchi 2015 has very poor spatial resolution (??)
   # Missing station lat/longs (GLENDA, CSMI 2021)
     # Glenda 3.9%
     # CSMI 2021 wq 5.7%
+
+# CTD: sampleTimeUTC is hour of time, not closest hour of time to avoid conflicts with date (i.e., times rounded up to midnight and thus the following day). So times are always rounded down
+# If didn't have time, assumed reported date was same as date in UTC
+  # In EDT, this will only be a problem for samples collected between 8pm-midnight EDT, which technically falls on the next day in UTC (4 hour ahead)
+# sampleDate is the date for UTC time if time is available, otherwise it is the provided date with the dataset. This potentially has the same conflict between dates in EDT and UTC as noted above if the EDT time was actually between 8pm-midnight, but this is unknown and is a small window in the 24-hour day
+
+# NOAA CTD has a lot of data dropped at 1-2 m. Some look like they exist but are dropped, some seem like they don't exist anyway (already binned values and they were removed). For depths that exist but are dropped, seems to be caused by oce::ctdTrim(., method="downcast") in .oce2df() in ctd03_functions.R
