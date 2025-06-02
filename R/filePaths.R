@@ -21,7 +21,6 @@
     # Water chemistry
     "NCCAwq2010" = "https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_waterchem.csv",
     "NCCAqa2010" = "https://raw.githubusercontent.com/USEPA/GL_Data/main/NCCA/ncca_qa_codes.csv",
-    "NCCAqa2010" = "https://raw.githubusercontent.com/USEPA/GL_Data/main/NCCA/ncca_qa_codes.csv",
     "NCCAwq2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_great_lakes-data.csv",
     "NCCAwq2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20_waterchem_data.csv",
 
@@ -30,13 +29,10 @@
     "GLENDAlimitsPath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
     "GLENDAsitePath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
 
-
     # GLNPO SeaBird data
     "seaBird" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/seabird.Rds",
 
     # %% CSMI
-    "csmi2015" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
-    "csmi2021" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2020_2021/",
     "csmi2015" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2015/CSMI2015_newQuery.zip",
     "csmi2021" = "https://github.com/USEPA/GL_Data/raw/main/CSMI_2020_2021/",
 

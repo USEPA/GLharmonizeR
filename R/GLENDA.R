@@ -14,7 +14,7 @@
 #'
 #' @return a dataframe
 .readFormatGLENDA <- function(Glenda, n_max = Inf, sampleIDs = NULL) {
-  # [x] Make glendaData the argument for load anssemble data function
+
   df <- Glenda %>%
     {
       if (grepl(tools::file_ext(Glenda), ".csv", ignore.case = TRUE)) {
@@ -26,7 +26,7 @@
             LONGITUDE = "d",
             SAMPLE_DEPTH_M = "d",
             SAMPLING_DATE = col_datetime(format = "%Y/%m/%d %H:%M"),
-            # Skip useless or redundant columns
+            ## *** NOTE: UNSURE IF ABOVE col_datetime() CODE WORKS CORRECTLY BUT CURRENTLY USING RDS FILE. IF THERE IS A PROBLEM IF SWITCH TO CSV, CHECK HERE ***
             Row = "-",
             .default = "c"
           ),
@@ -49,7 +49,9 @@
             Latitude = as.double(LATITUDE),
             Longitude = as.double(LONGITUDE),
             SAMPLE_DEPTH_M = as.double(SAMPLE_DEPTH_M),
-            SAMPLING_DATE = lubridate::ymd_hm(SAMPLING_DATE)
+            # SAMPLING_DATE = lubridate::ymd_hm(SAMPLING_DATE)
+            SAMPLING_DATE = as.character(SAMPLING_DATE)
+
           ) %>%
           dplyr::select(-Row)
       } else {
@@ -87,55 +89,38 @@
       # Additional filtering based on RESULT_REMARK is done in joinFullData.R based on flagsMap_withDecisions.xlsx file
     ) %>%
     dplyr::filter(!grepl("^integrated", DEPTH_CODE, ignore.case = T)) %>%
-
-    # [ ] KV: Note that this time zone code was moved up to this function from the cleaning function - unclear why? Probably should be moved below again after fixing it.
-
-
-    # Convert all to UTC for consistency
-
+    # Convert all TZ relative to UTC for consistency
+    # "EST" "EDT" "CDT" "GMT"
+    # "EST" to "Etc/GMT+5" # 5 hr behind GMT using POSIX-style signs for time zones (opposite of UTC standard)
+    # "EDT" to "Etc/GMT+4"
+    # "CDT" to "Etc/GMT+5"
     dplyr::mutate(
-      SAMPLING_DATE = lubridate::as_datetime(ifelse(TIME_ZONE=="EDT", SAMPLING_DATE - lubridate::hours(1), SAMPLING_DATE)),
-      TIME_ZONE = dplyr::case_when(
-        TIME_ZONE == "EDT" ~ "EST",
-        TIME_ZONE == "CDT" ~ "EST",
-        .default = TIME_ZONE
-      )) %>%
-
-
-
-    tidyr::unite(sampleDateTime, SAMPLING_DATE, TIME_ZONE) %>%
-
-    # Find examples missing times and determine if they are midnight
-
-    # Examples to explore behavior below:
-    # "2003-04-10_EST"  -- Produces NA using parse_datetime - Need to pull out date first
-    # "2002-04-01 00:15:00_EST"
-    # "2000-08-27 10:04:00_EST"
-    # "2015-04-17 05:32:00_GMT"
-    # "2015-07-26 00:40:00_GMT"
-    # readr::parse_datetime("2003-04-10_EST", format = "%Y-%m-%d %H:%M:%S_%Z")
-
-    # [ ] KV: Format doesn't work below if time is missing, so need to pull out date first to store in sampleDate, then deal with times?
-    # [ ] KV: Need to check how GMT is handled and/or convert to EST
-    # [ ] KV: How does lubridate::hour work below - is it converting to UTC?? Does sampleDateTime get converted to UTC automatically  in parse_datetime? Need to investigate cases.
-    # Prefer all to be in EST rather than UTC?
-
+        TIME_ZONE = dplyr::case_when(
+          TIME_ZONE == "EST" ~ "Etc/GMT+5",
+          TIME_ZONE == "EDT" ~ "Etc/GMT+4",
+          TIME_ZONE == "CDT" ~ "Etc/GMT+5",
+          .default = TIME_ZONE), # GMT stays as GMT
+        sampleDateTime = paste(SAMPLING_DATE, TIME_ZONE, sep = " ")
+        ) %>%
     dplyr::mutate(
-      sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y-%m-%d %H:%M:%S_%Z"),
+      sampleDateTime = readr::parse_datetime(sampleDateTime, format = "%Y/%m/%d %H:%M %Z"),
       sampleDate = lubridate::date(sampleDateTime),
       sampleTimeUTC = lubridate::hour(sampleDateTime),
-      sampleTimeUTC = ifelse(sampleTimeUTC ==0, NA, sampleTimeUTC)
-      # [ ] KV: Check that sampleTimeUTC==0 could be midnight, and thus above code is incorrect?
-      # Yes - midnight is pulled out as 0 so should be preserved
+      sampleTimeUTC = ifelse(is.na(sampleTimeUTC), 0, sampleTimeUTC) # NAs are midnight (i.e., 0)
     )
   return(df)
 }
 
 
+
+# [ ] KV: Note that the time zone code was moved up to this function from the cleaning function - unclear why? Probably should be moved below again after fixing it. (line 221)
+
+##### LEFT OFF HERE #####
+
 #' cleanGLENDA
 #'
 #' @description
-#' A function to perform automated QC on the GLENDA data
+#' A function to perform QC on the GLENDA data
 #'
 #' @details
 #' `.cleanGLENDA` This is a hidden function, this should be used for development purposes only, users will only call

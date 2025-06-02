@@ -156,7 +156,7 @@
     tidyr::drop_na(RESULT) %>%
     dplyr::mutate(
       sampleDate = lubridate::date(sampleDateTime),
-      sampleTimeUTC = lubridate::hour(sampleDateTime),
+      sampleTimeUTC = lubridate::hour(sampleDateTime), # note CTD time is already in UTC
     ) %>%
     # Based on maxCTDdepth code below in comparison to stationDepth, found that M45 and M110 were mislabeled/swapped on 2019-12-16. Change Site_ID here
     # sampleDate=="2019-12-16" & grepl("M45", ctdFiles) & SITE_ID == "beta"
