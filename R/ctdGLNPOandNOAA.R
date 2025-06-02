@@ -163,10 +163,6 @@
     # Change to "omega"
     # And sampleDate=="2019-12-16" & grepl("M110", ctdFiles) & SITE_ID == "omega"
     # Change to "beta"
-
-    ### *** Looks like there are more - see code below function ****
-    # ********** There's another that needs fixed!!!!!!! **********
-
     dplyr::mutate(
       SITE_ID = dplyr::case_when(
         sampleDate=="2019-12-16" & grepl("M45", ctdFiles) & SITE_ID == "beta" ~ "omega",
@@ -189,8 +185,37 @@
         .default = Longitude)
     ) %>%
 
+    # Remove problem files with unclear site (in ~\Lake Michigan ML - General\Raw_data\NOAA\CTD 2007-2022\2013 CTD files\758\302-13\cnv) - could make guesses based on depth but won't
+    dplyr::filter(!grepl("302_102913_0758_M45_day", ctdFiles)) %>%
+    dplyr::filter(!grepl("302_10292013_0758_M45_night", ctdFiles)) %>%
+    dplyr::filter(!grepl("302_102913_0758_M110x", ctdFiles)) %>%
+
+    # Fix two that mapped incorrectly because has "d1" in the .cnv file name
+    #"C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2010_CTD/laurentian/200_7-19-10_laurentian/Raw/M15d1730.cnv"
+    # Change to alpha
+    # [2] "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2010_CTD/laurentian/200_7-19-10_laurentian/Raw/M45d1925.cnv"
+    # Change to beta
+    dplyr::mutate(
+      SITE_ID = dplyr::case_when(
+        grepl("M15d1730.cnv", ctdFiles) ~ "alpha",
+        grepl("M45d1925.cnv", ctdFiles) ~ "beta",
+        .default = SITE_ID),
+      stationDepth = dplyr::case_when(
+        grepl("M15d1730.cnv", ctdFiles) ~ 18,
+        grepl("M45d1925.cnv", ctdFiles) ~ 45,
+        .default = stationDepth),
+      Latitude = dplyr::case_when(
+        grepl("M15d1730.cnv", ctdFiles) ~ 43.18816667,
+        grepl("M45d1925.cnv", ctdFiles) ~ 43.20616667,
+        .default = Latitude),
+      Longitude = dplyr::case_when(
+        grepl("M15d1730.cnv", ctdFiles) ~ -86.344,
+        grepl("M45d1925.cnv", ctdFiles) ~ -86.44966667,
+        .default = Longitude)
+    ) %>%
 
     # Imputation for stationDepth isn't needed for NOAA (already have from water chem site data via Steve Pothoven) but computing maxCTD depth by site anyway for comparison
+    # Note: This was really helpful in finding errors (see below)
     dplyr::mutate(
       maxCTDdepth = max(sampleDepth, na.rm = TRUE),
       .by = SITE_ID
@@ -205,37 +230,47 @@
 }
 
 
-# There's another one for beta that looks wrong - max depth of 99
+# Checks
+# depths <- noaa %>% dplyr::select(stationDepth, SITE_ID, maxCTDdepth) %>% unique()
+# plot(maxCTDdepth~stationDepth, data=depths)
+# abline(0, 1)
+#
+# # d1 (d1, legd, legd1, raw005) has stationDepth 12 but maxCTDdepth 43
+#
+#
+#
+# d1_data <- noaa %>% filter(SITE_ID == "d1")
+#
+# uniq_date_depth <- d1_data %>% group_by(sampleDate) %>%
+#   summarize(maxDepthbyDate=max(sampleDepth, na.rm=T)) %>%
+#   arrange(desc(maxDepthbyDate))
+#   # dplyr::select(sampleDate, maxCTDdepth) %>% unique()
+#
+#
+#
+# # The outlier with maxDepth=43 is
+# # 2010-07-19
+# d1_bad <- d1_data %>% filter(sampleDate=="2010-07-19") #
+# unique(d1_bad$ctdFiles)
+# # These two mapped incorrectly because has "d1" in the name
+# # [1] "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2010_CTD/laurentian/200_7-19-10_laurentian/Raw/M15d1730.cnv"
+# # Change to alpha
+#
+# # [2] "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2010_CTD/laurentian/200_7-19-10_laurentian/Raw/M45d1925.cnv"
+# # Change to beta
+#
+# all_20100719 <- noaa %>% filter(grepl("200_7-19-10_laurentian", ctdFiles)) #
+# all_d1 <- noaa %>% filter(grepl("d1", ctdFiles)) # These are only instances of this
+# unique(all_d1$ctdFiles)
+# unique(d1_data$ctdFiles)
 
-depths <- noaa %>% dplyr::select(stationDepth, SITE_ID, maxCTDdepth) %>% unique()
-plot(maxCTDdepth~stationDepth, data=depths)
-abline(0, 1)
-
-# Looks like one site is ~45 m but has maxCTDdepth of ~100 m
-# This is beta  45 beta            104
-
-beta_data <- noaa %>% filter(SITE_ID == "beta")
-
-uniq_date_depth <- beta_data %>% group_by(sampleDate) %>%
-  summarize(maxDepthbyDate=max(sampleDepth, na.rm=T)) %>%
-  arrange(desc(maxDepthbyDate))
-  # dplyr::select(sampleDate, maxCTDdepth) %>% unique()
-
-# 2 2013-10-29             99
-
-# ********** There's another that needs fixed!!!!!!! **********
 
 
-# The outlier with maxDepth=104 is
-# 2019-12-16
-# 104
-# Must be wrong site
-# M45 has 106
-
-beta_bad <- beta_data %>% filter(sampleDate=="2019-12-16") # M45
-unique(beta_bad$ctdFiles)
-
-m45_data <- noaa %>% filter(grepl("M45", ctdFiles))
+# beta_bad <- beta_data %>% filter(sampleDate=="2013-10-29") # M45
+# unique(beta_bad$ctdFiles)
+#
+# m45_data <- noaa %>% filter(grepl("M45", ctdFiles))
+# M110x_data <- noaa %>% filter(grepl("M110x", ctdFiles))
 
 # So sampleDate=="2019-12-16" & grepl("M45", ctdFiles) & SITE_ID == "beta"
 # Change to "omega"
