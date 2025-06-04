@@ -353,6 +353,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
     ))  %>%
      # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the comment as well
+    # [ ] KV: Check that all GLENDA "Method Detection Limit, less than" were replaced with NA
   dplyr::mutate(
     RESULT = dplyr::case_when(
       is.na(Unified_Flag) ~ RESULT,
@@ -489,7 +490,6 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 # [ ] Add known issues to documentation
   # Times mostly trusted but might need to be careful about daylight savings instances
   # unable to retrieve dates for small subset of NOAA CTD data
-  # There are negatives and zeros in RESULTS column
   # NCCA secchi 2015 has very poor spatial resolution (??)
   # Missing station lat/longs (GLENDA, CSMI 2021)
     # Glenda 3.9%

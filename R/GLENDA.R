@@ -318,7 +318,42 @@
     ) %>%
     # add in the detection limits
     dplyr::mutate(YEAR = as.numeric(YEAR)) %>%
-    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON"))
+    dplyr::left_join(., Mdls, by = c("CodeName", "YEAR", "SEASON")) %>%
+
+  # Investigate zeros/negatives - should be treated as non-detects for water chem per GLNPO conversations
+  # NAs <- df %>% dplyr::filter(is.na(df$RESULT)) # all < reporting limit, OK
+  # unique(NAs$QAcomment)
+
+  # Zeros <- df %>% dplyr::filter(RESULT==0) # QAcomment indicates <MDLs, NA, or Quality control incomplete. <MDLs will be dealt with in joinFullData.R
+  # unique(Zeros$QAcomment)
+  # Zeros_ND <- Zeros %>% dplyr::filter(grepl("Method Detection Limit", QAcomment)) # Ammonium and SRP, all 1994-1995
+  # Zeros_NA <- Zeros %>% dplyr::filter(is.na(QAcomment))
+  # unique(Zeros_NA$CodeName)
+  # "Turb_NTU" "Temp"     "SRP"      "Diss_P"   "Chla"     "Diss_NHx" "Turb_FTU"
+  # Leave turb and temp as 0; for SRP, Diss_P, Chla, and Diss_NHx, add "Method Detection Limit, less than" to QAcomment. In joinFullData.R, this will cause RESULT to be replaced with NA
+  # Zeros_QCinc <- df %>% dplyr::filter(RESULT==0 & grepl("Quality", QAcomment)) # All Turb - leaving as is
+
+  # Negatives <- df %>% dplyr::filter(RESULT<0)
+  # unique(Negatives$QAcomment)
+  # # NA     "Method Detection Limit, less than"
+  # Negs_NA <- Negatives %>% dplyr::filter(is.na(QAcomment))
+  # unique(Negs_NA$CodeName)
+  # "Tot_P"    "SRP"      "Diss_NHx" "Diss_P"   "Chla"     "Turb_NTU"
+  # All should be nondetects except Turb_NTU - negative Turb_NTU should be replaced with 0
+
+  # Code to address above investigated cases
+  dplyr::mutate(
+    QAcomment = dplyr::case_when(
+      RESULT==0 & is.na(QAcomment) & (CodeName %in% c("SRP","Diss_P","Chla","Diss_NHx")) ~ "Method Detection Limit, less than",
+      .default = QAcomment
+    ),
+    QAcomment = dplyr::case_when(
+      RESULT<0 & is.na(QAcomment) & (CodeName %in% c("Tot_P", "SRP", "Diss_NHx", "Diss_P", "Chla")) ~ "Method Detection Limit, less than",
+      .default = QAcomment
+    ),
+    RESULT = replace(RESULT, CodeName=="Turb_NTU" & RESULT<0, 0) # Replace negative Turb_NTU with 0
+  )
+
 
   return(df)
 }
