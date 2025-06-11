@@ -4,7 +4,7 @@
     "flagsFile" = "https://github.com/USEPA/GL_Data/raw/main/Meta/flagsMap_withDecisions.xlsx",
 
     # %% NCCA
-    # Not using not assessed data after Hugh's suggestion
+    # Not using 'not assessed' data after Hugh's suggestion
 
     # Hydrographic
     "NCCAhydrofiles2010" = c("https://www.epa.gov/sites/default/files/2016-01/assessed_ncca2010_hydrolab.csv"),

@@ -150,7 +150,7 @@
     # Convert all TZ relative to GMT for consistency
     # "EST" "EDT" "CDT" "GMT"
     # "EST" to "Etc/GMT+5" # 5 hr behind GMT using POSIX-style signs for time zones (opposite of UTC standard)
-    # "EDT" to "Etc/GMT+4"
+    # "EDT" to "Etc/GMT+4" # 4 hr behind
     # "CDT" to "Etc/GMT+5"
     dplyr::mutate(
       TIME_ZONE = dplyr::case_when(
