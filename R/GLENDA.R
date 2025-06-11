@@ -80,11 +80,11 @@
     # there are a lot of empty columns because of the data storage method
     # so once they are pivoted they are appear as missing
     tidyr::drop_na(ANALYTE) %>%
-    # No preliminary filtering to reduce data size
+    # Preliminary filtering to reduce data size
     dplyr::filter(
       SAMPLE_TYPE %in% c("Individual", "INSITU_MEAS"),
       QC_TYPE == "routine field sample",
-      # If value and remarks are missing, we assume sample was never taken
+      # If value and remarks are missing, we assume sample was not taken
       !is.na(VALUE) | !is.na(RESULT_REMARK),
       !grepl("inv", VALUE, ignore.case = T),
       !grepl("no result", VALUE, ignore.case = T),
@@ -229,7 +229,7 @@
     # Make units match what is expected
     dplyr::mutate(
       ReportedUnits = tolower(stringr::str_remove(ReportedUnits," .*/")),
-      ReportedUnits = ifelse(ReportedUnits == "mgl", "mgl", "ugl") # Forced solution b/c of ug/l
+      ReportedUnits = ifelse(ReportedUnits == "mgl", "mgl", "ugl") # Forced solution b/c of mu in ug/l
       ) %>%
     dplyr::left_join(key) %>%
     dplyr::left_join(conversions) %>%
