@@ -156,6 +156,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       # time and space
       "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth",
       "sampleDepth",  "sampleDate", "sampleTimeUTC", "DEPTH_CODE",
+      # [ ] *** KV: Actually probably keep sampleDate and sampleDateTime (rename as sampleDateTimeUTC) ***
       # [x] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
       # analyte name
       "CodeName", "ANALYTE", "Category", "LongName", "Explicit_Units",
