@@ -66,7 +66,7 @@
     dplyr::mutate(
       sampleDateTimetemp = as.POSIXct(sampleDateTimetemp * 86400, origin = "1899-12-30", tz = "UTC"),
       # KV: corrected origin as in WQ function
-      # [] KV: **** Times are in 'Station Reference' tab. Need to join in. ****
+      # [ ] KV: **** Times are in 'Station Reference' tab. Need to join in. ****
       # After adding times in, make sure to select sampleDateTime below
       sampleDate = lubridate::date(sampleDateTimetemp),
     ) %>%
@@ -105,7 +105,28 @@
                   SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
     dplyr::mutate(
       UID = paste0("EPActd-", SITE_ID, "-", sampleDepth)
-    )
+    ) %>%
+    # Replace EPA lat/longs with median by site and date to deal with wonky lat/long readings
+    # Replace bad lat/longs with NA
+    dplyr::mutate(
+      Latitude = ifelse(Latitude<41 | Latitude >47, NA, Latitude),
+      Longitude = ifelse(Longitude < -88 | Longitude > -84, NA, Longitude)
+    ) %>%
+    # Calculate lat/long medians by site-date
+    dplyr::mutate(
+      Lat_median = median(Latitude, na.rm = T),
+      Long_median = median(Longitude, na.rm = T),
+      .by = c(SITE_ID, sampleDate)
+    ) %>%
+    dplyr::select(-Latitude, -Longitude) %>%
+    dplyr::rename(Latitude = Lat_median,
+                  Longitude = Long_median)
+
+  # Longitudes should be approx -88 to -85
+  # Latitudes should be approx 41.5 to 46
+
+  range(epaCTD$Longitude) # -87.28920 -85.48558
+  range(epaCTD$Latitude) # 44.48672 45.92122
 
 
   # USGS CTD
@@ -219,18 +240,9 @@
     dplyr::left_join(usgsCTDsites)
 
 
+  # Join all CTD
+  ctdDat <- dplyr::bind_rows(epaCTD, usgs)
 
-
-
-  ########### LEFT OFF HERE ###############
-
-  ## ***** What is up with the code below for fixing EPA longitudes? Why are they -155? Look into this *******************
-
-
-
-  ctdDat <- dplyr::bind_rows(epaCTD, usgs) %>%
-  # Standardize the Longitudes to be ~  -86
-    dplyr::filter(abs(Longitude + 86) < 10)
 
 
   # Additional site data from zooplankton files
@@ -244,6 +256,13 @@
   #   ) %>%
   #   dplyr::mutate(SITE_ID = tolower(SITE_ID),
   #                 SITE_ID = stringr::str_remove_all(SITE_ID, "_"))  # Adding b/c of capitalization
+
+
+
+
+
+
+  ########### LEFT OFF HERE ###############
 
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
