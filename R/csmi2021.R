@@ -125,8 +125,8 @@
   # Longitudes should be approx -88 to -85
   # Latitudes should be approx 41.5 to 46
 
-  range(epaCTD$Longitude) # -87.28920 -85.48558
-  range(epaCTD$Latitude) # 44.48672 45.92122
+  # range(epaCTD$Longitude) # -87.28920 -85.48558
+  # range(epaCTD$Latitude) # 44.48672 45.92122
 
 
   # USGS CTD
@@ -262,41 +262,48 @@
 
 
 
-  ########### LEFT OFF HERE ###############
 
 
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
     openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
-    dplyr::mutate(dplyr::across(dplyr::ends_with("L"), ~ as.numeric(.))) %>%
-    # KV: Thought this might help with the time as decimal issue, but it did not
-    # Add (EST) if not present in Time
-    # dplyr::rename(Time.EST=`Time.(EST)`) %>%
-    # dplyr::mutate(
-    #   Time.EST = case_when(
-    #     str_detect(Time.EST, pattern="\\(")==TRUE ~ Time.EST,
-    #     str_detect(Time.EST, pattern="\\(")==FALSE ~ paste(Time.EST, " (EST)"))
-    # )
+    dplyr::mutate(dplyr::across("NH4.ug.N/L":"VSS.mg/L" , ~ as.numeric(.))) %>%
     tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start")  %>%
     # [x] parse the time column along with date
     dplyr::mutate(
       sampleDate = as.POSIXct(Date * 86400, origin = "1899-12-30", tz = "UTC"),
       # one date is reported funkily so we use the average
-      time = ifelse(time == "3:45/4:29", "4:07", time),
-      sampleTimeUTC = lubridate::hm(stringr::str_remove_all(time, "[:space:]")),
-      sampleTimeUTC = lubridate::hour(sampleTimeUTC),
-      sampleTimeUTC = ifelse(grepl("CDT", time, ignore.case= T), sampleTimeUTC + 1, sampleTimeUTC)
-    ) %>%
+      time = ifelse(time == "3:45 / 4:29", "4:07", time),
+      # Deal with times read in as h:m vs. decimals separately
+      time.char = ifelse(is.na(as.numeric(time)), time, NA),
+      tim.num = ifelse(!is.na(as.numeric(time)), as.numeric(time)*24, NA),
+      tim.hr = ifelse(!is.na(time.char), lubridate::hour(lubridate::hm(time.char)), NA),
+      tim.hr = ifelse(!is.na(tim.num), floor(tim.num), tim.hr),
+      tim.min =  ifelse(!is.na(time.char), lubridate::minute(lubridate::hm(time.char)), NA),
+      tim.min =  ifelse(!is.na(tim.num), floor(60*(tim.num-floor(tim.num))), tim.min),
+      # TZ is "Etc/GMT+5" for all (CDT and EST are both "Etc/GMT+5")
+      sampleDateTimeEST =   lubridate::ymd_hm(paste0(lubridate::date(sampleDate), " ", tim.hr, ":", tim.min), tz = "Etc/GMT+5"),
+      sampleDateTime =  lubridate::with_tz(sampleDateTimeEST, tzone = "UTC"),
+      sampleTimeUTC = lubridate::hour(sampleDateTime),
+      # Had to do shenanigans below because kept converting date to integer in combining the date columns together
+      sampleDateNew = as.character(lubridate::date(sampleDateTime)),
+      sampleDateNew = ifelse(is.na(sampleDateNew), as.character(sampleDate), sampleDateNew),
+      sampleDateNew = lubridate::date(lubridate::ymd(sampleDateNew))
+      ) %>%
+    dplyr::select(-sampleDate, -sampleDateTimeEST, -tim.min, -tim.hr, -time.char) %>%
+    dplyr::rename(sampleDate=sampleDateNew) %>%
 
-    # [x] **** KV: The above date and time code no longer works. Simply running the code up to here shows several NAs for sampleDateTime. Time zones are no longer being respected - i.e., you're not dealing with the times that are labeled as CDT (and are assumed EST otherwise).
+
+
+  ########### LEFT OFF HERE ###############
+
 
     dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
     dplyr::select(-c(
-      Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`,
-      Station, tz, Date, time
-    )) %>%
+      Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`, Station, tz, Date, time)
+    ) %>%
     dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, "-", `STIS#`)) %>%
-    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDate, sampleTimeUTC, stationDepth, sampleDepth, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDate, sampleDateTime, sampleTimeUTC, stationDepth, sampleDepth, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
     # NA's and non-reports are the only NA's in this dataset
     tidyr::drop_na(RESULT) %>%
     # KV: No, need to extract units from name, not use units from renamingTable! Edited accordingly
