@@ -91,12 +91,15 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
   # Note that ALL GLNPOseabirdCTD are missing stationDepth
 
+  ## NOTE: DO NOT ADD FLAG FOR IMPUTING STATION DEPTH FROM ANOTHER VISIT
+  ## ** ONLY ADD FLAG IF ESTIMATING STATION DEPTH BY MAX OF CTD DATA **
+
   # Pasted from .cleanGLNPOSeabirdCTD()
   # dplyr::mutate(
   #   # This is mostly intended to fill in missing values for seabird
   #   QAcomment = dplyr::case_when(
-  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "Station depth imputed from another site visit",
-  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "Station depth imputed from maximum sample depth",
+  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "Station depth imputed from another site visit", ## REMOVED THIS FLAG
+  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "station Depth estimated as the maximum CTD Depth",
   #     .default = NA),
   #   QAcode = dplyr::case_when(
   #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "D",

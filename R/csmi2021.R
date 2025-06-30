@@ -120,7 +120,12 @@
     ) %>%
     dplyr::select(-Latitude, -Longitude) %>%
     dplyr::rename(Latitude = Lat_median,
-                  Longitude = Long_median)
+                  Longitude = Long_median) %>%
+    # Calculate max CTD for each site for possible estimation of site depth (
+    dplyr::mutate(
+      SiteMaxCTDdepth = max(sampleDepth, na.rm = T),
+      .by = c(SITE_ID)
+    )
 
   # Longitudes should be approx -88 to -85
   # Latitudes should be approx 41.5 to 46
@@ -245,6 +250,8 @@
 
 
 
+
+
   # Additional site data from zooplankton files
   # Commenting out because these don't actually end up providing additional lat/longs for imputation
   # zooPlank <- file.path(csmi2021, "LakeMichigan_CSMI_2021_Zooplankton_Taxonomy_Densities.csv") %>%
@@ -260,16 +267,11 @@
 
 
 
-
-
-
-
   WQ <- file.path(csmi2021, "Chem2021_FinalShare.xlsx") %>%
     openxlsx::read.xlsx(sheet = "DetLimitCorr") %>%
     dplyr::select(-30) %>%
     dplyr::mutate(dplyr::across("NH4.ug.N/L":"VSS.mg/L" , ~ as.numeric(.))) %>%
     tidyr::separate_wider_regex(`Time.(EST)`, patterns = c("time" = ".*", "tz" = "\\(.*\\)"), too_few = "align_start")  %>%
-    # [x] parse the time column along with date
     dplyr::mutate(
       sampleDate = as.POSIXct(Date * 86400, origin = "1899-12-30", tz = "UTC"),
       # one date is reported funkily so we use the average
@@ -290,29 +292,26 @@
       sampleDateNew = ifelse(is.na(sampleDateNew), as.character(sampleDate), sampleDateNew),
       sampleDateNew = lubridate::date(lubridate::ymd(sampleDateNew))
       ) %>%
-    dplyr::select(-sampleDate, -sampleDateTimeEST, -tim.min, -tim.hr, -time.char) %>%
+    dplyr::select(-sampleDate, -sampleDateTimeEST, -tim.min, -tim.hr, -time.char, -tim.num) %>%
     dplyr::rename(sampleDate=sampleDateNew) %>%
 
-
-
-  ########### LEFT OFF HERE ###############
-
-
-    dplyr::rename(stationDepth = `Site.Depth.(m)`, sampleDepth = `Separate.depths.(m)`) %>%
-    dplyr::select(-c(
-      Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`, Station, tz, Date, time)
+    dplyr::rename(stationDepth = `Site.Depth.(m)`,
+                  sampleDepth = `Separate.depths.(m)`,
+                  SITE_ID = Site) %>%
+    dplyr::select(-c(Month, Ship, `Research.Project`, `Integrated.depths.(m)`, `DCL?`, `Stratified/.Unstratified?`, Station, tz, Date, time, Lake)
     ) %>%
-    dplyr::mutate(Study = "CSMI_2021_WQ", UID = paste0(Study, "-", `STIS#`)) %>%
-    tidyr::pivot_longer(-c(Study, UID, `STIS#`, Site, sampleDate, sampleDateTime, sampleTimeUTC, stationDepth, sampleDepth, Lake), names_to = "ANALYTE", values_to = "RESULT") %>%
-    # NA's and non-reports are the only NA's in this dataset
+    dplyr::mutate(Study = "CSMI_2021_WQ",
+                  UID = paste0(Study, "-", `STIS#`)) %>%
+    tidyr::pivot_longer(-c(Study, UID, `STIS#`, SITE_ID, sampleDate, sampleDateTime, sampleTimeUTC, stationDepth, sampleDepth), names_to = "ANALYTE", values_to = "RESULT") %>%
+    # non-reports are the only NAs in this dataset
     tidyr::drop_na(RESULT) %>%
-    # KV: No, need to extract units from name, not use units from renamingTable! Edited accordingly
     tidyr::separate_wider_delim(ANALYTE, delim = ".", names= c("ANALYTE", "UNITS"), too_many = "merge", too_few = "align_start") %>%
     dplyr::mutate(
       ANALYTE = stringr::str_extract(ANALYTE, "^[:alnum:]*"),
       ANALYTE = ifelse(ANALYTE == "chl", "chla", ANALYTE),
     ) %>%
-    dplyr::rename(SITE_ID = Site) %>%
+    # Remove TSS values - all TSS that were flagged in original dataset
+    dplyr::filter(!RESULT<0) %>%
     # Join CTD data
     dplyr::bind_rows(., ctdDat) %>%
     # Deal with capitalization and underscore diffs across datasets
@@ -324,59 +323,52 @@
       SITE_ID = stringr::str_replace(SITE_ID, "^pwa", "pw"),
       SITE_ID = stringr::str_replace(SITE_ID, "^lvd", "lud")
     ) %>%
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
-    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>% # sum(is.na(WQ$CodeName))
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))  %>%
+
+    # All water chem data have station depth - none of CTD data do
+    # All CTD have lat/long, but none of the water chem data do
+    # So first, fill in station depths for CTD data, and lat/longs for water chem data using available information
     dplyr::mutate(
-      Year = 2021,
-    ) %>%
-    # water chem contains station depth, ctd contains lat lon, so for those sites that
-    # have both types of measurement taking the group mean of those values will simply
-    # replace the na values
-    dplyr::mutate(
-      # [x] replace CTD station depth with Wchem station depth by taking gruoped mean
-          # NOTE: THIS WAS NOT ACTUALLY DONE BELOW
-      # [x] Then do max depth if there are still missing - flag it if this needs to be done
-      Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude), # fills in some EPA water chem lat/longs but not all
+      Latitude = ifelse(is.na(Latitude), mean(Latitude, na.rm = T), Latitude), # fills in EPA water chem lat/longs except STO
       Longitude = ifelse(is.na(Longitude), mean(Longitude, na.rm = T), Longitude),
-      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth), # This was missing
-      QAcode = ifelse(is.na(stationDepth), "B", NA),
-      QAcomment = ifelse(is.na(stationDepth), "station Depth estimated as the maximum sample Depth", NA),
-      stationDepth = ifelse(is.na(stationDepth), max(sampleDepth, na.rm = T), stationDepth), # Fills in the rest of the EPA CTD max depths - need a flag
+      stationDepth = ifelse(is.na(stationDepth), mean(stationDepth, na.rm = T), stationDepth),
       .by = SITE_ID
     ) %>%
-    # [x] KV: Need an actual flag for imputing station depth in flagsMap, not just in QAcomment
-
-    # All stationDepths are filled in at this point, but many CTD stationDepths were filled in by max CTD depth
-    # Only missing Lat/Longs are for STO sites (sto5, sto23, sto30)
-    # None of these are actually in the zooPlank file, so not needed below
+    ## Only missing Lat/Longs are for STO sites (sto5, sto23, sto30)
     # Ryan Lepak: RVLG sampled STO5 (Stony lake), STO23 and STO30 yet their shoreline differences were 7, 10.5, 20.5, 27, 34.5 and 43kms from shore. It would take curious rounding if we were to trust these at face value. Or, these coordinates are from another cruise.
     # So something seems off with these sites
     # [ ] KV: Follow up with Ryan to get lat/longs for STO or else remove these sites
-    # [ ] KV: Check whether reasonable to impute stationDepth with max CTD depth
-    # - I remember Ryan mentioning that most CTD have a cutoff of 200m ? and some with a
-    #   more complex relay go up to 30m. so I think we certainly can on the interval (30,200)
 
-    # After adding site info from zooplank, missing lat/lons is 2%
-    # KV: Zooplank file doesn't actually fill anything extra in after moving the SITE_ID mods further up in the code so that lat/longs were imputed correctly. But will keep in because it doesn't hurt anything
+    ## Check whether reasonable to estimate stationDepth with max CTD depth
+    # missDep <- WQ %>% dplyr::filter(is.na(stationDepth)) # All EPA CTD data
+    # unique(missDep$SITE_ID) # Missing station depth EAS, EMP, GTB, MNQ, ROW, STU
+    # haveDep <- WQ %>% dplyr::filter(!is.na(stationDepth))
+    # plot(stationDepth~SiteMaxCTDdepth, data=WQ)
+    # abline(0, 1)
+    # Exact match between stationDepth in wq file and max CTD depth, so this must be where it came from. So yes, reasonable to use max CTD depth to estimate stationDepth
+    dplyr::mutate(
+      QAcode = ifelse(is.na(stationDepth) & !is.na(SiteMaxCTDdepth), "D", NA),
+      QAcomment = ifelse(is.na(stationDepth) & !is.na(SiteMaxCTDdepth), "station Depth estimated as the maximum CTD Depth", NA),
+    stationDepth = ifelse(is.na(stationDepth) & !is.na(SiteMaxCTDdepth), SiteMaxCTDdepth, stationDepth),
+    .by = SITE_ID
+    ) %>%
+    # All stationDepths are now filled in
+    # No longer joining zooPlank dat because doesn't fill in any additional spatial info
     #dplyr::left_join(zooPlank, by = "SITE_ID") %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::mutate(
       ReportedUnits = stringr::str_replace(ReportedUnits, "[.]", " "),
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = tolower(ReportedUnits)) %>%
-    # KV: conversions was not joining correctly because ReportedUnits hadn't been modified
-    dplyr::left_join(key) %>%
+    dplyr::left_join(key) %>% # sum(is.na(WQ$TargetUnits))
     dplyr::left_join(conversions) %>%
+    # WQ %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
     dplyr::left_join(mdls)
 
-  # return the joined data
-  # missingness/joining checks in output:
-  # mean(is.na(df$CodeName)): 0
-  # mean(df$CodeName == "Remove"): 0
-  # mean(is.na(df$TargetUnits)): 0
-  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
-  # mean(is.na(df$sampleDateTime))  # 0
+
+
   return(WQ)
 }
 
