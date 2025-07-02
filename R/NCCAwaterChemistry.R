@@ -9,13 +9,12 @@
 #' @param NCCAwq2010 a string specifying the directory of the data
 #' @return dataframe
 .loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
-  sites <- .loadNCCASite2010(NCCAsites2010) %>%
-    dplyr::distinct()
+
+  sites <- .loadNCCASite2010(NCCAsites2010)
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units) %>%
-    dplyr::distinct()
+    dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
@@ -29,8 +28,8 @@
       # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
       # KV: Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
       # KV: Here and elsewhere, prefer not to fill in Methods with Study - just leave blank. Joins fine.
-    ) %>%
-    dplyr::distinct()
+    )  %>%
+    dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
 
   df <- readr::read_csv(
     NCCAwq2010,
@@ -45,7 +44,6 @@
       "HOLDING_TIME" = "-",
       "MDL" = "d",
       "MRL" = "d"
-      # "PQL" = "d", # No PQLs for GL
     )
     ) %>%
     # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
@@ -71,14 +69,15 @@
       ReportedUnits = UNITS
     ) %>%
     # Note that methods are all NA for GL sites but leaving as-is for generality
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>%
-    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>% # sum(is.na(df$CodeName))
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>% # sum(is.na(df$TargetUnits))
     dplyr::filter(CodeName != "Remove") %>%
     # KV: conversions did not join correctly without editing ReportedUnits
     dplyr::mutate(
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = tolower(ReportedUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    # df %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(
       RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
       MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
@@ -86,14 +85,12 @@
       ) %>%
     dplyr::left_join(sites)
 
-  # missingness/joining checks in output:
-  # mean(is.na(df$CodeName)): 0
-  # mean(df$CodeName == "Remove"): 0
-  # mean(is.na(df$TargetUnits)): 0
-  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0
-  # mean(is.na(df$sampleDateTime))  # 0
+
   return(df)
 }
+
+
+
 
 #' Read in all NCCA water chemistry from 2015
 #'
@@ -106,13 +103,12 @@
 #' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
 .loadNCCAwq2015 <- function(NCCAwq2015, NCCAsites2015, namingFile, n_max = Inf) {
-  sites <- .loadNCCASite2015(NCCAsites2015)
 
+  sites <- .loadNCCASite2015(NCCAsites2015)
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
-    dplyr::rename(TargetUnits = Units) %>%
-    dplyr::distinct()
+    dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
@@ -124,8 +120,10 @@
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
       # Methods = ifelse(is.na(Methods), Study, Methods) # Removing to see if still works - prefer to not fill in Methods if not available (keep as NA - don't seem to need it, joins fine.
-    ) %>%
-    dplyr::distinct()
+    )  %>%
+    dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
+
+
 
   df <- readr::read_csv(NCCAwq2015,
     n_max = n_max,
@@ -242,23 +240,30 @@
     ) %>%
     dplyr::left_join(sites) %>%
     # Do this for the joining
-    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "METHOD" = "Methods")) %>%
+    dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "METHOD" = "Methods")) %>% # sum(is.na(df$CodeName))
     dplyr::filter(CodeName != "Remove") %>%
-    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>% # sum(is.na(df$TargetUnits))
     dplyr::mutate(
-      ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
+      ReportedUnits = tolower(ReportedUnits)) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
+    # df %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
                   MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
                   LRL = ifelse(!is.na(ConversionFactor), LRL * ConversionFactor, LRL))
-  # missingness/joining checks in output:
-  # mean(is.na(df$CodeName)): 0
-  # mean(df$CodeName == "Remove"): 0
-  # mean(is.na(df$TargetUnits)): 0
-  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0
-  # mean(is.na(df$sampleDateTime))  # 0
-  return(df)
+
+    return(df)
 }
+
+
+
+
+
+
+
+
+
+##### NOTE KV HAS NOT REVIEWED THE 2020 WATER CHEMISTRY FUNCTION BELOW ####
+# *It is not currently being used in the package*
 
 
 
@@ -268,7 +273,7 @@
 #' `.loadNCCAwq2020` returns water chemistry data measured during the NCCA study in 2020
 #'
 #' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
+#' THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAwq2020 a string specifying the directory of the data
 #' @param NCCAsites2020 a string specifying the directory of the data
