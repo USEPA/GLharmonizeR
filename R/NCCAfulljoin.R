@@ -1,27 +1,29 @@
-#' Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data
+#' Read in NCCA 2010 and 2015 water chemistry and hydrographic data
 #'
 #' @description
 #' `.loadNCCA` returns water quality data along with spatial data from the
-#'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
+#'  site information measured through NCCA study in 2010 and 2015
 #'
 #' @details
-#' The spatial information for sites is read in using the .readSites helper functions, this is then
-#' joined to the water quality and hydrographic data and ultimately output as a data table.
+#' Join the water quality and hydrographic data and filter to specified lakes.
 #' @param NCCAsites2010 filepath to site files
 #' @param NCCAsites2015 filepath to site files
-#' @param NCCAwq2010 filepath to 2010's data
+#' @param NCCAwq2010 filepath to 2010 data
 #' @param NCCAwq2015 filepaht to 2015 data
-#' @param NCCAhydrofiles2010 filepath to hydrogrpahic 2010 data
-#' @param NCCAhydrofile2015 filepath to hydrogarphic 2015 data
-#' @param NCCAjsecchifile2015  filepaht to secchi 2015 data
+#' @param NCCAhydrofiles2010 filepath to hydrographic 2010 data
+#' @param NCCAhydrofile2015 filepath to hydrographic 2015 data
+#' @param NCCAjsecchifile2015  filepath to Secchi 2015 data
 #' @param Lakes List of Lakes to output
-#' @param namingFile filepath to Analytes3.xlsx which conatains names and conversions
+#' @param namingFile filepath to a file containing mappings for analyte names and conversions
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
 .loadNCCA <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                          namingFile, 
+                          namingFile,
                           Lakes = NULL, n_max = Inf) {
+
+  # Note that all GL are included and have been cleaned
+
   NCCAhydro <- .loadNCCAhydro(
     NCCAhydrofiles2010, NCCAsites2010,
     NCCAhydrofile2015, NCCAsites2015,

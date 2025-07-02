@@ -11,14 +11,14 @@
 .loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
   sites <- .loadNCCASite2010(NCCAsites2010) %>%
     dplyr::distinct()
-  
+
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units) %>%
     dplyr::distinct()
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
     dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
@@ -106,18 +106,8 @@
 #' @param NCCAwq2015 a string specifying the directory of the data
 #' @return dataframe
 .loadNCCAwq2015 <- function(NCCAwq2015, NCCAsites2015, namingFile, n_max = Inf) {
-  sites <- readr::read_csv(NCCAsites2015, show_col_types = FALSE) %>%
-    # cutdown number of lats and longs
-    dplyr::select(
-      UID,
-      SITE_ID,
-      Latitude = LAT_DD83,
-      Longitude = LON_DD83,
-      stationDepth = STATION_DEPTH,
-      WTBDY_NM = GREAT_LAKE
-    ) %>%
-    tidyr::drop_na() %>%
-    dplyr::distinct()
+  sites <- .loadNCCASite2015(NCCAsites2015)
+
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -171,7 +161,7 @@
       sampleDate = lubridate::dmy(sampleDate),
       # [x] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag
     )
-  
+
   # Derive NH3 + NH4 for consistency across datasets
   nhDf <- df %>%
     dplyr::filter(ANALYTE %in% c("NITRITE_N", "NITRATE_N")) %>%
@@ -193,13 +183,13 @@
       LAB = toString(unique(LAB)),
       QAcode = toString(unique(QAcode)),
       QAcomment = toString(unique(QAcomment)),
-    ) %>% 
+    ) %>%
     dplyr::select(-c(NO3, NO4, NO3mdl, NO4mdl, NO3lrl, NO4lrl))
     # check <- df %>% filter(!is.na(MDL_NITRITE_N) & !is.na(MDL_NITRATE_N))
     # You can see these cases and that they are non-detects. Please add together the MDLs in the same manner as RESULT.
     # - saw that the mdls appear to be adding up correctly
-  
-  df <- df %>% 
+
+  df <- df %>%
     dplyr::filter(! ANALYTE %in% c("NITRITE_N", "NITRATE_N")) %>%
     dplyr::bind_rows(nhDf) %>%
     # [x] KV: Redo/address the pivoting issues here, per comments above.
@@ -211,11 +201,11 @@
         ANALYTE == "Alkalinity" ~ "mgL",
         ANALYTE == "SULFATE" ~ "mgL",
         ANALYTE == "PH" ~ "unitless",
-        ANALYTE == "SILICA" ~ "mgL", 
-        ANALYTE == "Diss_NOx" ~ "mgL", 
-        ANALYTE == "SRP" ~ "mgL", 
+        ANALYTE == "SILICA" ~ "mgL",
+        ANALYTE == "Diss_NOx" ~ "mgL",
+        ANALYTE == "SRP" ~ "mgL",
         ANALYTE == "CHLA" ~ "ugL",
-        ANALYTE == "AMMONIA_N" ~ "mgL", 
+        ANALYTE == "AMMONIA_N" ~ "mgL",
         ANALYTE == "PTL" ~ "mgL",
         ANALYTE == "DIN" ~ "mgL",
         ANALYTE == "NTL" ~ "mgL"
@@ -253,7 +243,7 @@
     dplyr::left_join(sites) %>%
     # Do this for the joining
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "METHOD" = "Methods")) %>%
-    dplyr::filter(CodeName != "Remove") %>% 
+    dplyr::filter(CodeName != "Remove") %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case
@@ -293,9 +283,9 @@
     dplyr::distinct() # Duplicate rows
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
-    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>% 
+    dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor))%>%
     dplyr::distinct()
-  
+
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(
@@ -386,7 +376,7 @@
     tidyr::drop_na(LON_DD) %>%
     # Do this for the joining
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE")) %>%
-    dplyr::filter(CodeName != "Remove") %>% 
+    dplyr::filter(CodeName != "Remove") %>%
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>%
     dplyr::mutate(
       ReportedUnits = tolower(ReportedUnits)) %>%  # Adding this because I don't understand why it's not failing based on matching on case

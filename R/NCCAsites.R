@@ -22,7 +22,7 @@
       Longitude = ALON_DD,
       stationDepth = STATION_DEPTH,
       WTBDY_NM
-    )  %>% 
+    )  %>%
     # file 3 has a bunch of empty rows at the end
     # file 2 has missing lat/lons for some reason
     tidyr::drop_na()
@@ -45,17 +45,15 @@
   sites <- readr::read_csv(NCCAsites2015, show_col_types = FALSE) %>%
     # cutdown number of lats and longs
     dplyr::select(
+      UID,
       SITE_ID,
-      # [x] how to choose the best projection here (DD vs DD83) is this constient across sources?
-      # This only applies to targetted sites, actual coordinates are unique and settles this problem
-      # No missingness, so no need to coalesce
       Latitude = LAT_DD83,
       Longitude = LON_DD83,
       stationDepth = STATION_DEPTH,
       WTBDY_NM = GREAT_LAKE
     ) %>%
-    tidyr::drop_na() %>% 
-    unique()
-  
+    tidyr::drop_na() %>%
+    dplyr::distinct()
+
   return(sites)
 }
