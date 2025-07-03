@@ -6,7 +6,7 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAsites2010 a string specifying the filepath of the data, This is usually a url
+#' @param NCCAsites2010 a string specifying the filepath of the data. This is usually a url.
 #' @return dataframe
 .loadNCCASite2010 <- function(NCCAsites2010) {
   # all depths are reported in meters
@@ -38,7 +38,7 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAsites2015 a string specifying the directory of the data
+#' @param NCCAsites2015 a string specifying the filepath of the data. This is usually a url.
 #' @return dataframe
 .loadNCCASite2015 <- function(NCCAsites2015) {
   # all depths are reported in meters

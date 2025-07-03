@@ -1,4 +1,4 @@
-#' Read in all NCCA water chemistry from 2010
+#' Read in NCCA water chemistry from 2010
 #'
 #' @description
 #' `.loadNCCAwq2010` returns water chemistry data measured during the NCCA study in 2010
@@ -6,11 +6,16 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAwq2010 a string specifying the directory of the data
+#' @param NCCAwq2010 a string specifying the URL for the data
+#' @param NCCAsites2010 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAwq2010 <- function(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf) {
 
   sites <- .loadNCCASite2010(NCCAsites2010)
+  # Instead of joining site info, will fill in NCCAwq2010 site info using NCCAhydrofiles2010 data in NCCAfulljoin.R (.loadNCCA) because the stationDepths were checked for accuracy in the 2010 hydro data (compared to CTD depths) and want station info to match
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -25,54 +30,50 @@
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
-      # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
       # KV: Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
-      # KV: Here and elsewhere, prefer not to fill in Methods with Study - just leave blank. Joins fine.
     )  %>%
     dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
 
+
+
   df <- readr::read_csv(
-    NCCAwq2010,
-    n_max = n_max,
-    show_col_types = FALSE,
-    col_types = readr::cols(
-      "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
-      "LAB_SAMPLE_ID" = "-",
-      "SAMPLE_ID" = "-",
-      "BATCH_ID" = "-",
-      "DATE_ANALYZED" = "-",
-      "HOLDING_TIME" = "-",
-      "MDL" = "d",
-      "MRL" = "d"
-    )
+      NCCAwq2010,
+      n_max = n_max,
+      show_col_types = FALSE,
+      col_types = readr::cols(
+        "DATE_COL" = readr::col_date(format = "%m/%d/%Y"),
+        "LAB_SAMPLE_ID" = "-",
+        "SAMPLE_ID" = "-",
+        "BATCH_ID" = "-",
+        "DATE_ANALYZED" = "-",
+        "HOLDING_TIME" = "-",
+        "MDL" = "d",
+        "MRL" = "d"
+      )
     ) %>%
     # Remove sites that aren't Great Lakes (i.e., do not have "GL" in the SITE_ID)
     dplyr::filter(grepl("GL",SITE_ID)) %>%
     dplyr::rename(
       ANL_CODE = PARAMETER,
       ANALYTE = PARAMETER_NAME,
-      sampleDate = DATE_COL
-      # [x] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag.
+      sampleDate = DATE_COL,
+      QAcode = QACODE,
+      ReportedUnits = UNITS
     ) %>%
     # All NCCA WQ samples at 0.5m
     dplyr::mutate(
       sampleDate = lubridate::ymd(sampleDate),
       sampleDepth = 0.5,
-      # [x] add this to Analytes3
       Study = "NCCA_WChem_2010",
-      # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH"))
+      # QACODE =ifelse((STATE=="WI") & (PARAMETER == "CHLA"), QACODE, paste(QACODE, sep = "; ", "WSLH")) # See flagsMap: likely will not be able to flag pore size issue for Chla for WSLH data because these data don't have lab, and we don't want to flag all WI samples
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE),
-      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
+      ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)
     ) %>%
-    dplyr::rename(
-      QAcode = QACODE,
-      ReportedUnits = UNITS
-    ) %>%
+    dplyr::select(-PQL) %>% # No PQLs for GLs
     # Note that methods are all NA for GL sites but leaving as-is for generality
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "ANL_CODE", "METHOD" = "Methods")) %>% # sum(is.na(df$CodeName))
-    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>% # sum(is.na(df$TargetUnits))
     dplyr::filter(CodeName != "Remove") %>%
-    # KV: conversions did not join correctly without editing ReportedUnits
+    dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>% # sum(is.na(df$TargetUnits))
     dplyr::mutate(
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = tolower(ReportedUnits)) %>%
@@ -82,9 +83,12 @@
       RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
       MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
       MRL = ifelse(!is.na(ConversionFactor), MRL * ConversionFactor, MRL)
-      ) %>%
-    dplyr::left_join(sites)
+      ) #%>%
+    # dplyr::left_join(sites)
 
+  # Instead of joining site info, will fill in NCCAwq2010 site info using NCCAhydrofiles2010 data in NCCAfulljoin.R (.loadNCCA) because the stationDepths were checked for accuracy in the 2010 hydro data  (compared to CTD depths) and want station info to match
+
+  # Note that I used hydro file for station depth in all cases except 2
 
   return(df)
 }
@@ -100,7 +104,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAwq2015 a string specifying the directory of the data
+#' @param NCCAwq2015 a string specifying the URL for the data
+#' @param NCCAsites2015 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAwq2015 <- function(NCCAwq2015, NCCAsites2015, namingFile, n_max = Inf) {
 
@@ -119,7 +127,6 @@
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
-      # Methods = ifelse(is.na(Methods), Study, Methods) # Removing to see if still works - prefer to not fill in Methods if not available (keep as NA - don't seem to need it, joins fine.
     )  %>%
     dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
 
@@ -154,13 +161,14 @@
       sampleID = SAMPLE_ID,
       batchID = BATCH_ID,
     ) %>%
-    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG) %>%
+    dplyr::select(-STUDY, -VISIT_NO, -YEAR, -INDEX_NCCA15, -PUBLICATION_DATE, -PSTL_CODE, -NCCA_REG, -batchID) %>%
     dplyr::mutate(
       sampleDate = lubridate::dmy(sampleDate),
-      # [x] KV: Note that sampleDateTime here does not have a time, only a date. Is time imputed somewhere? If so, it needs a flag
     )
 
-  # Derive NH3 + NH4 for consistency across datasets
+
+
+  # Derive Diss_NOx as NH3 + NH4 for consistency across datasets
   nhDf <- df %>%
     dplyr::filter(ANALYTE %in% c("NITRITE_N", "NITRATE_N")) %>%
     dplyr::reframe(
@@ -171,10 +179,10 @@
       NO4mdl = mean(ifelse(ANALYTE == "NITRATE_N", MDL, NA), na.rm = T),
       NO3lrl = mean(ifelse(ANALYTE == "NITRITE_N", LRL, NA), na.rm = T),
       NO4lrl = mean(ifelse(ANALYTE == "NITRATE_N", LRL, NA), na.rm = T),
-      # [x] KV: Add together the MDLs for nitrate and nitrite here, too. Looks like there are 15 cases where they both exist, and where they are both non-detects. Doesn't look like LRL are available for both, so just do MDL.
+      # Add together the MDLs for nitrate and nitrite here, too. Looks like there are 15 cases where they both exist, and where they are both non-detects.
       RESULT = NO3 + NO4,
       MDL = NO3mdl + NO4mdl,
-      LRL = NO3lrl + NO4lrl,
+      LRL = NO3lrl + NO4lrl, # All NA - doesn't look like LRL are ever available for both
       ANALYTE = "Diss_NOx",
       ReportedUnits = "mgL",
       METHOD = toString(unique(METHOD)),
@@ -182,15 +190,22 @@
       QAcode = toString(unique(QAcode)),
       QAcomment = toString(unique(QAcomment)),
     ) %>%
-    dplyr::select(-c(NO3, NO4, NO3mdl, NO4mdl, NO3lrl, NO4lrl))
-    # check <- df %>% filter(!is.na(MDL_NITRITE_N) & !is.na(MDL_NITRATE_N))
-    # You can see these cases and that they are non-detects. Please add together the MDLs in the same manner as RESULT.
-    # - saw that the mdls appear to be adding up correctly
+    # Remove values where only NO3 or NO4 was a nondetect but not both, or where only one value was available (all WSLH have only nitrate). So remove cases where one is NA and the other isn't - need to either both be missing with an MDL reported, or both have measured values.
+    dplyr::filter( !( (!is.na(NO3) & is.na(NO4)) |  (is.na(NO3) & !is.na(NO4))  ) ) %>%
+    # Confirmed no QAcodes with 'ND, NA'
+    # Confirmed if RESULT is NA, should have an ND QAcode and an MDL
+    # check <- nhDf %>% dplyr::filter(is.na(RESULT) )
+    dplyr::select(-c(NO3, NO4, NO3mdl, NO4mdl, NO3lrl, NO4lrl)) %>%
+    # Need to replace METHOD "NA" with NA - renamingTable join was failing
+    dplyr::mutate(
+      METHOD = ifelse(METHOD=="NA", NA, METHOD)
+    )
+
+
 
   df <- df %>%
     dplyr::filter(! ANALYTE %in% c("NITRITE_N", "NITRATE_N")) %>%
     dplyr::bind_rows(nhDf) %>%
-    # [x] KV: Redo/address the pivoting issues here, per comments above.
     dplyr::mutate(
       ReportedUnits = dplyr::case_when(
         ANALYTE == "COND" ~ "uscm", # this is specific conductance at 25C
@@ -238,18 +253,22 @@
       sampleDepth,
       Study
     ) %>%
-    dplyr::left_join(sites) %>%
-    # Do this for the joining
+    # add station info
+    dplyr::left_join(sites, by = c("UID", "SITE_ID")) %>%
+    # Note that there are cases where the stationDepth in the secchi and hydro files do not match the sites file. Sites file stationDepth appears to be more accurate and lines up with original secchi CTB flags, so use this one
+    # Used sites stationDepth for hydro and secchi, so fine to use it here. Note that stationDepth is not a column in the 2015 water chem dataset, so don't need to choose between them
     dplyr::left_join(renamingTable, by = c("Study", "ANALYTE", "METHOD" = "Methods")) %>% # sum(is.na(df$CodeName))
-    dplyr::filter(CodeName != "Remove") %>%
+    dplyr::filter(CodeName != "Remove") %>% # Pretty sure this removes analytes not mapping so need to do the check for missing CodeNames first
     dplyr::left_join(key, by = dplyr::join_by(CodeName)) %>% # sum(is.na(df$TargetUnits))
     dplyr::mutate(
-      ReportedUnits = tolower(ReportedUnits)) %>%
+      ReportedUnits = tolower(ReportedUnits)
+      ) %>%
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     # df %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor),
                   MDL = ifelse(!is.na(ConversionFactor), MDL * ConversionFactor, MDL),
                   LRL = ifelse(!is.na(ConversionFactor), LRL * ConversionFactor, LRL))
+
 
     return(df)
 }
@@ -275,8 +294,10 @@
 #' @details
 #' THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAwq2020 a string specifying the directory of the data
-#' @param NCCAsites2020 a string specifying the directory of the data
+#' @param NCCAwq2020 a string specifying the URL for the data
+#' @param NCCAsites2020 a string specifying the URL for the data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #' @return dataframe
 .loadNCCAwq2020 <- function(NCCAwq2020, NCCAsites2020, namingFile, n_max = Inf) {
   sites <- readr::read_csv(NCCAsites2020, show_col_types = FALSE) %>%

@@ -6,15 +6,15 @@
 #'
 #' @details
 #' Join the water quality and hydrographic data and filter to specified lakes.
-#' @param NCCAsites2010 filepath to site files
-#' @param NCCAsites2015 filepath to site files
-#' @param NCCAwq2010 filepath to 2010 data
-#' @param NCCAwq2015 filepaht to 2015 data
-#' @param NCCAhydrofiles2010 filepath to hydrographic 2010 data
-#' @param NCCAhydrofile2015 filepath to hydrographic 2015 data
-#' @param NCCAjsecchifile2015  filepath to Secchi 2015 data
-#' @param Lakes List of Lakes to output
-#' @param namingFile filepath to a file containing mappings for analyte names and conversions
+#' @param NCCAsites2010 a string specifying the URL for the 2010 site data
+#' @param NCCAsites2015 a string specifying the URL for the 2015 site data
+#' @param NCCAwq2010 a string specifying the URL for the 2010 water chemistry data
+#' @param NCCAwq2015 a string specifying the URL for the 2015 water chemistry data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the 2010 hydrographic data
+#' @param NCCAhydrofile2015 a string specifying the URL for the 2015 hydrographic data
+#' @param NCCAsecchifile2015 a string specifying the URL for the 2015 Secchi data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param Lakes List of Great Lakes to output
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
 .loadNCCA <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
@@ -30,6 +30,11 @@
     NCCAsecchifile2015, namingFile,
     n_max = n_max) %>%
     dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
+
+  # [ ] KV: Need to fill in NCCAwq2010 site info using NCCAhydrofiles2010 data because the stationDepths were checked for accuracy in the 2010 hydro data  (compared to CTD depths) and want station info to match
+
+  # Pull out 2010 hydro site info here and join it below to wq data below
+  # lat, long, stationDepth, WTBDY_NM
 
   # Read NCCA Water chemistry files
   # [x] Make the wqQA argument name consistent over all levels
@@ -74,13 +79,6 @@
     )
   # [x] KV: Move this final mutate function to within .loadNCCA() function if still needed
 
-  # Turn into test
-  # final %>%
-  #   filter(TargetUnits != ReportedUnits) %>%
-  #   filter(is.na(ConversionFactor)) %>%
-  #   count(ReportedUnits, Units, ConversionFactor)
-  # test %>%
-  #   filter(is.na(CodeName)) %>%
-  #   count(Study, ANALYTE, ANL_CODE, METHOD)
+
   return(final)
 }

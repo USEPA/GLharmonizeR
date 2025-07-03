@@ -8,8 +8,8 @@
 #' this function implicitly when assembling their full water quality dataset.
 #'
 #'
-#' @param filepath a filepath to the GLENDA RDS or CSV file
-#' @param n_max Number of rows to read in from the raw GLENDA data (this is just for testing purposes)
+#' @param Glenda a filepath to the GLENDA RDS or CSV file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #' @param sampleIDs a list of sampleIDs to keep in the final dataset
 #'
 #' @return a dataframe
@@ -115,7 +115,7 @@
 #' `.cleanGLENDA` This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #'
-#' @param df GLENDA dataframe in long format
+#' @param df GLENDA dataframe in long format, output from .readFormatGLENDA
 #' @param namingFile filepath to a file containing mappings for analyte names
 #' @param imputeCoordinates (optional) Boolean specifying whether to impute missing station coordinates,
 #' @param GLENDAsitePath filepath to list of site coordinates to fill in missing lats/lons

@@ -7,7 +7,10 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the data
+#' @param NCCAsites2010 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #'
 #' @return dataframe
 .loadNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max) {
@@ -136,7 +139,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAhydrofile2015 a string specifying the filepath of the data
+#' @param NCCAhydrofile2015 a string specifying the URL for the data
+#' @param NCCAsites2015 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAhydro2015 <- function(NCCAhydrofile2015, NCCAsites2015, namingFile, n_max = Inf) {
 
@@ -223,7 +230,11 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAsecchifile2015 a string specifying the filepath of the data
+#' @param NCCAsites2015 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe of the fully joined Secchi data from NCCA 2015
 .loadNCCAsecchi2015 <- function(NCCAsecchifile2015, NCCAsites2015, namingFile, n_max = Inf) {
 
@@ -282,7 +293,7 @@
       UNITS = "m"
     ) %>%
     dplyr::left_join(sites, by = c("UID", "SITE_ID")) %>%
-    # Note that there are cases where the stationDepth in the secchi and hydro files do not match the sites file. Sites file statinDepth appears to be more accurate and lines up with original secchi CTB flags, so use this one
+    # Note that there are cases where the stationDepth in the secchi and hydro files do not match the sites file. Sites file stationDepth appears to be more accurate and lines up with original secchi CTB flags, so use this one
     # look <- df %>% dplyr::filter(stationDepth.x !=stationDepth.y) %>% dplyr::select(UID, SITE_ID, stationDepth.x, stationDepth.y, RESULT, QAcode) %>% dplyr::arrange(SITE_ID)
     dplyr::select(-stationDepth.x) %>%
     dplyr::rename(stationDepth=stationDepth.y) %>%
@@ -320,7 +331,14 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the 2010 hydrographic data
+#' @param NCCAsites2010 a string specifying the URL for the 2010 site data
+#' @param NCCAhydrofile2015 a string specifying the URL for the 2015 hydrographic data
+#' @param NCCAsites2015 a string specifying the URL for the 2015 site data
+#' @param NCCAsecchifile2015 a string specifying the URL for the 2015 Secchi data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAhydro <- function(
     NCCAhydrofiles2010, NCCAsites2010,
@@ -347,6 +365,9 @@
 #' THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAhydrofile2020 a string specifying the filepath of the data
+#' @param NCCAsites2020 a string specifying the URL for the 2020 site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #' @return dataframe
 .loadNCCAhydro2020 <- function(NCCAhydrofile2020, NCCAsites2020, namingFile, n_max = Inf) {
   sites <- .loadNCCASite2020(NCCAsites2020)
