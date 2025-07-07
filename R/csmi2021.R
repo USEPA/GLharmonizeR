@@ -7,6 +7,7 @@
 #m' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param csmi2021 a string specifying the directory to CSMI 2021 data
+#' @param namingFile filepath to a file containing mappings for analyte names
 #' @return dataframe of the fully joined water quality data from CSMI 2021
 .readCleanCSMI2021 <- function(csmi2021, namingFile) {
 

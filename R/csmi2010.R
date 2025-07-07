@@ -19,6 +19,10 @@
     # )) %>%
 
 
+# CSMI 2010 fraction labels
+# From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
+# Sheet "flow_charts"
+
 
 
 

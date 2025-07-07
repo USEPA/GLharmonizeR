@@ -31,7 +31,7 @@
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
   # [ ] make argument for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
-  # [ ] water body name argument
+  # [ ] water body name argument once other lakes added in
 
   # Load up the filepaths
   filepaths <- .getFilePaths()
@@ -170,9 +170,8 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       # QA
       "QAcode", "QAcomment", "METHOD", "LAB", dplyr::contains("QAconsiderations")
     ) %>%
-    # [x] KV: Could add in DEPTH_CODE eventually if decide need it at some point, and could add in any depth codes from CSMI (2015 at least)
-    # catching some where units were inferred
-    # KV: I don't think there are any cases of inferred units anymore below. From flagsMap, looks like they previously were used for NCCA_hydro_2010, NCCA_hydro_2015, NCCA_secchi_2015, but these unit issues have likely been resolved elsewhere.
+
+    # [ ] KV: Check whether anything lost in Methods not contained in METHOD above
 
     # [x] KV: De-duplicate here after resolving duplicate issues below Step 6 - i.e., add distinct() here
     dplyr::distinct() %>%

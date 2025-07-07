@@ -6,6 +6,8 @@
 #' @details
 #' This is a hidden function, users will only call
 #' this function implicitly when assembling their full water quality dataset
+#' @param csmi2015 a string specifying the URL for CSMI 2015 zipped database
+#' @param namingFile filepath to a file containing mappings for analyte names
 #' @return dataframe of the fully joined water quality data from CSMI 2015
 .readCleanCSMI2015 <- function(csmi2015, namingFile) {
 

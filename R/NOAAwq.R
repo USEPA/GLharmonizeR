@@ -1,4 +1,17 @@
-
+#' Read in NOAA water chemistry data
+#'
+#' @description
+#' `.loadNOAAwq` returns water chemistry data provided by NOAA GLERL
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param noaaWQ a string specifying the URL for the corrected data based on 'edits_nutrients.xlsx' sent 2024-12-13. These were manually corrected.
+#' @param noaaWQ2 a string specifying the URL for additional nutrient data provided by GLERL.
+#' @param noaaWQSites a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#'
+#' @return dataframe
 .loadNOAAwq <- function(noaaWQ, noaaWQ2, namingFile, noaaWQSites) {
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
