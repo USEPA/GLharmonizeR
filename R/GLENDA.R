@@ -138,12 +138,22 @@
 
 
 
-  # First fix analytes that have "none" units (pH correctly has 'none' for all)
-  # Some analytes with no result reported or <RL have 'none' units. Many cases removed already from initial filtering, but manganese <RL still have 'none' units
-  # Impute by ANALYTE, MEDIUM, FRACTION, METHOD, YEAR for general solution
-  df <- df %>% dplyr::mutate(
-    UNITS = ifelse(UNITS != "none", UNITS,
-                   names(sort(table(UNITS), decreasing = TRUE))[1]),
+
+
+  df <- df %>%
+    # First fix analytes that have "none" units (pH correctly has 'none' for all)
+    # Some analytes with no result reported or <RL have 'none' units. Many cases removed already from initial filtering, but manganese <RL still have 'none' units
+    # Impute by ANALYTE, MEDIUM, FRACTION, METHOD, YEAR for general solution
+
+    # look <- df %>% dplyr::filter(UNITS=="none" & ANALYTE != "pH")
+    # manga <- df %>% dplyr::filter(ANALYTE=="Manganese")
+    # unique(manga$UNITS)
+    # # All manganese units are ug/l, even those that are none, based on other observations
+    # These units can be confirmed to be ug/l like the others.
+    # So NOT adding a flag for imputing units in flagsMap
+    dplyr::mutate(
+      UNITS = ifelse(UNITS != "none", UNITS,
+                     names(sort(table(UNITS), decreasing = TRUE))[1]),
       .by = c(ANALYTE, MEDIUM, FRACTION, METHOD, YEAR)
     ) %>%
     # *AND FIX TIME ZONES*
