@@ -176,6 +176,8 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
     # [x] KV: De-duplicate here after resolving duplicate issues below Step 6 - i.e., add distinct() here
     dplyr::distinct() %>%
+    # [ ] KV: Check if this is still necessary below - not needed for NCCA, flag added for GLENDA
+
     dplyr::mutate(
       QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
         paste0(QAcode, sep = "; ", "U"), QAcode),

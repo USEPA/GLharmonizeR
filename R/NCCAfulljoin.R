@@ -29,32 +29,30 @@
     NCCAhydrofile2015, NCCAsites2015,
     NCCAsecchifile2015, namingFile,
     n_max = n_max) %>%
-    dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
+    dplyr::select(-STUDY, -PUBLICATION_DATE, -YEAR, -INDEX_NCCA15, -SAMPLE_TYPE, -CLEAR_TO_BOTTOM, -NCCA_REG, -CAST)
 
-  # [ ] KV: Need to fill in NCCAwq2010 site info using NCCAhydrofiles2010 data because the stationDepths were checked for accuracy in the 2010 hydro data  (compared to CTD depths) and want station info to match
+
+  # Fill in NCCAwq2010 site info using NCCAhydrofiles2010 data because the stationDepths were checked for accuracy in the 2010 hydro data  (compared to CTD depths) and want station info to match
 
   # Pull out 2010 hydro site info here and join it below to wq data below
-  # lat, long, stationDepth, WTBDY_NM
+  hydro2010_sitedat <- NCCAhydro %>% dplyr::filter(Study == "NCCA_hydro_2010") %>%
+    dplyr::select(SITE_ID, UID, Latitude, Longitude, stationDepth, WTBDY_NM) %>%
+    dplyr::distinct()
+
 
   # Read NCCA Water chemistry files
-  # [x] Make the wqQA argument name consistent over all levels
+  wq2010 <- .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = n_max) %>%
+    dplyr::left_join(hydro2010_sitedat) # Join in
+
+  wq2015 <- .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = n_max)
+
   nccaWQ <- dplyr::bind_rows(
-    .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = n_max),
-    .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = n_max)
-  ) %>%
-    # QC filters
-    # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
-    dplyr::mutate(
-      UID = paste0(Study, "-", as.character(UID))
-      )
-
-
+      wq2010,
+      wq2015
+  )
 
 
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
-    # [x] Fix filter for region and lake
-    # Great lakes get's priority over spcifying each lake
-    #dplyr::filter(NCCA_REG == "Great Lakes") %>%
     {
      if (!is.null(Lakes)) {
        dplyr::filter(., WTBDY_NM %in% Lakes)
@@ -62,23 +60,9 @@
        .
      }
     } %>%
-    dplyr::mutate(
-      QAcode = dplyr::case_when(
-        is.na(ReportedUnits) ~ paste0(QAcode, "; U"),
-        .default = QAcode
-      ),
-      QAcomment = dplyr::case_when(
-        is.na(ReportedUnits) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
-        .default = QAcomment
-        # [x] KV: Not sure why this code isn't applied to hydro or secchi study types?
-        # - this was before I added the unts within the loading files, so no longer necessary
-      )
-    ) %>%
   dplyr::mutate(
-    Finalized = as.character(Finalized),
+    Finalized = as.character(Finalized) # Not sure if this is really necessary anymore?
     )
-  # [x] KV: Move this final mutate function to within .loadNCCA() function if still needed
-
 
   return(final)
 }
