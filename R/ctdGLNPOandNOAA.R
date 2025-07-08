@@ -82,7 +82,12 @@
     dplyr::mutate(
       maxCTDdepthYR = max(sampleDepth, na.rm = TRUE),
       .by = c(SITE_ID, YEAR)
+    ) %>%
+    # convert CPAR to percent
+    dplyr::mutate(
+      RESULT = ifelse(CodeName == "CPAR", 100*RESULT, RESULT)
     )
+
   return(glnpo_seabird)
 }
 

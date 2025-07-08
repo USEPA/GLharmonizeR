@@ -77,7 +77,7 @@
       .by = -c(RESULT, ANALYTE, UNITS, QAcode, QAcomment),
       APAR = mean(ifelse(ANALYTE == "Ambient PAR", RESULT, NA), na.rm = T),
       UPAR = mean(ifelse(ANALYTE == "Underwater PAR", RESULT, NA), na.rm = T),
-      RESULT = UPAR / APAR,
+      RESULT = 100 * (UPAR / APAR),
       ANALYTE = "Corrected PAR",
       # stationDepth = mean(stationDepth, na.rm = T),
       UNITS = "percent",
@@ -170,7 +170,7 @@
   df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
-      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
+      `Corrected PAR` = 100 * (LIGHT_UW / LIGHT_AMB),
       sampleDate = as.Date(DATE_COL, origin = "1899-12-30"),
       Study = "NCCA_hydro_2015"
     ) %>%

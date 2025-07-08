@@ -84,7 +84,7 @@
       Latitude..deg.,
       Longitude..deg.) %>%
     dplyr::rename(cpar = CPAR.Corrected.Irradiance....) %>%
-    dplyr::mutate(cpar = cpar /100) %>%
+    # dplyr::mutate(cpar = cpar /100) %>% # leave as percent
     tidyr::pivot_longer(
       cols = Temperature..deg.C.:pH,
       names_to = "ANALYTE",
@@ -195,7 +195,7 @@
       sampleDateTimeEST = lubridate::ymd_hm(paste0(sampleDateEST, " ", sampleHourEST, ":", sampleMinuteEST), tz = "Etc/GMT+5"),
       sampleDateTime =  lubridate::with_tz(sampleDateTimeEST, tzone = "UTC"),
       sampleDate = lubridate::date(sampleDateTime),
-      cpar = dc.pc.PAR / 100,
+      cpar = dc.pc.PAR, # leave as percent
       # rebinned with evertyhing +/- 0.5 going to nearest whole number
       sampleDepth = round(as.numeric(Depth_m)),
       SITE_ID = Transect

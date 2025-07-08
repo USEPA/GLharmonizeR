@@ -169,9 +169,6 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
 
 
-  ###### LEFT OFF HERE #########
-
-
   print("Step 6/7: Combine and return full data")
   allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA, GLNPOseabirdCTD, noaaCTD) %>%
     dplyr::mutate(
@@ -182,9 +179,8 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
     dplyr::select(
       # time and space
       "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth",
-      "sampleDepth",  "sampleDate", "sampleTimeUTC", "DEPTH_CODE",
-      # [ ] *** KV: Actually probably keep sampleDate and sampleDateTime (rename as sampleDateTimeUTC) ***
-      # [x] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
+      "sampleDepth",  "sampleDate", "sampleDateTime", "DEPTH_CODE",
+      # Dropping sampleTimeUTC and keeping sampleDateTime instead (in UTC)
       # analyte name
       "CodeName", "ANALYTE", "Category", "LongName", "Explicit_Units",
       # measurement and limits
@@ -194,22 +190,16 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       # QA
       "QAcode", "QAcomment", "METHOD", "LAB", dplyr::contains("QAconsiderations")
     ) %>%
+    dplyr::rename(sampleDateTimeUTC = sampleDateTime) %>%
+    # Look at duplicated observations
+    # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDate, sampleDateTimeUTC, sampleDepth, CodeName)
+    # unique(dupes$Study)
+    # NOAA secchi repeated in a few instances
+    # NOAActd has lots of repeated data - perhaps CTD files are in there twice.
+    # SeaBird - Lots of SeaBird CTD repeated twice
 
-    # [ ] KV: Check whether anything lost in Methods not contained in METHOD above
-
-    # [x] KV: De-duplicate here after resolving duplicate issues below Step 6 - i.e., add distinct() here
+    # Remove duplicates
     dplyr::distinct() %>%
-    # [ ] KV: Check if this is still necessary below - not needed for NCCA, flag added for GLENDA
-
-    dplyr::mutate(
-      QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
-        paste0(QAcode, sep = "; ", "U"), QAcode),
-      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-        "No reported units, assumed most common units in analyte-year", QAcomment
-      )
-    ) %>%
-
-    # [x] KV: note that SeaBird and NOAActd are missing some unit information (e.g., TargetUnits) - likely will be fixed when code is updated and table joins are refreshed dynamically
 
     # Add in flags to catch limit issues
     dplyr::mutate(
@@ -257,40 +247,37 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
         (RESULT >= MDL) & (RESULT <= RL) ~ paste(QAcomment, "Estimated", sep = "; "),
         .default = QAcomment
       )
-      # [X] KV: Note that there are some NCCA_WChem_2015 ammonium values between MDL and RL that didn't get flag as estimated -- need to add flag
-      # [X] KV: Add Estimated and RL flags for all studies to flagsMap
+    ) %>%
+    # Replace negative CPAR with 0 and add flag for CPAR>100%
+    dplyr::mutate(
+      RESULT = ifelse(CodeName == "CPAR" & RESULT<0, 0, RESULT),
+      QAcode = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcode, "PAR", sep = "; "), QAcode),
+      QAcomment = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcomment, "Underwater PAR exceeds surface PAR", sep = "; "), QAcomment)
     )
 
 
-# > round(colMeans(is.na(allWQ)), 2)
-#              UID            Study          SITE_ID         Latitude
-#             0.00             0.00             0.00             0.01
-#        Longitude     stationDepth      sampleDepth       sampleDate
-#             0.01             0.02             0.01             0.01
-#       sampleTime       DEPTH_CODE         CodeName          ANALYTE
-#             0.97             0.72             0.00             0.00
-#         Category         LongName   Explicit_Units           RESULT
-#             0.00             0.00             0.00             0.02
-#              MDL               RL      TargetUnits    ReportedUnits
-#             0.91             1.00             0.00             0.24
-# ConversionFactor           QAcode        QAcomment           METHOD
-#             0.73             0.69             0.64             0.72
-#              LAB
-#             0.98
+
+
+
+# > round(colMeans(is.na(allWQ)), 3)
+  # UID             Study           SITE_ID          Latitude             Longitude
+  # 0.000             0.000             0.000             0.011             0.011
+  # stationDepth      sampleDepth       sampleDate sampleDateTimeUTC      DEPTH_CODE
+  # 0.018             0.006             0.000             0.180             0.755
+  # CodeName          ANALYTE          Category          LongName         Explicit_Units
+  # 0.000             0.000             0.000             0.000             0.000
+  # RESULT            MDL                RL          TargetUnits          ReportedUnits
+  # 0.003             0.923             0.997             0.000             0.000
+  # ConversionFactor  QAcode         QAcomment            METHOD              LAB
+  # 0.669             0.945             0.926             0.751             0.985
+
+
+# Most have times as well as dates
 
 
 
 
-
-  # [x] KV: After confirming below issues are okay or resolved, add distinct() to the above Step 6 where noted to reduce the size of the joined data
-
-  # [x] KV: *** Why are there duplicated rows? This should not be the case. Check before do anything else ***
-  # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDate, sampleDepth, CodeName)
-  # - this now has length 0
-  # NCCA_hydro_2010 - Repeated Secchi values already noted where appropriate. Also has -9 values, which may not be noted or dealt with? Are those CTB? If so, they aren't flagged
-  # NOAA_WQ - Secchi repeated in a few instances - makes sense to just do distinct() here
-  # NOAActd - Lots of NOAA CTD repeated twice - perhaps CTD files are in there twice. Makes sense to do distinct() here
-  # [ ] KV: SeaBird - Lots of SeaBird CTD repeated twice, but not consistently for each parameter, like for NOAA. Seems odd???
+#### LEFT OFF HERE ####
 
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
@@ -375,9 +362,9 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       Retain = toString(unique(Retain)),
       Action = toString(unique(Action)),
      .by = c(
-      UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDate, sampleTime, CodeName,
+      UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDate, sampleDateTimeUTC, CodeName,
       ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
-      MDL, #PQL,
+      MDL,
        RL, LAB
     ))  %>%
      # handle Retain column by priority
@@ -409,7 +396,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
     # [x] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
     dplyr::select(
       # time and space
-      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDate, sampleTime,
+      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDate, sampleDateTimeUTC,
       sampleDepth, DEPTH_CODE,
       # analyte name
       CodeName, LongName, Category, ANALYTE_Orig_Name=ANALYTE,
@@ -502,20 +489,8 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
 
 # *** KV list ***
-# [x] Does package load dplyr? If not, there are several helper functions that need to have dplyr loaded or need to have dplyr:: added (e.g., join_by)
-# - No. I added them where needed
-# [x] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
-# - CTD's missing study name... now it's added
-# [x] Need flag for station depth imputed from another site visit
+
 # Time imputation issues:
-# [x] Did flag for imputing sample time as noon get incorporated universally? Only for GLENDA (T Flag) - others need it?
-# - CC: Not imputing anymore that we separated the columns
-# [x] Need thorough check for missing times being imputed - not imputed for hydro 2015
-# - CC: Not imputing anymore that we separated the columns
-# [x] Another option is to just have separate columns for date and time and not impute time and remove flag?
-# [x] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
-# - CC: Time zones are computed as UTC now
-# [x] CSMI 2021 time zones not dealt with properly
 # [ ] Add known issues to documentation
   # Times mostly trusted but might need to be careful about daylight savings instances
   # unable to retrieve dates for small subset of NOAA CTD data
