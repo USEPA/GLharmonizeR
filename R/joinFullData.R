@@ -1,6 +1,3 @@
-# NOT FULLY REVIEWED
-# This file will also need to be rechecked after fixing issues in the other files
-
 #' Load and join all WQ measured on Lake Michigan from multiple sources. data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA
 #'
 #' @description
@@ -8,8 +5,8 @@
 #' The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
 #' - 1983 - 2023
 #' - Seabird CTD 2003 - 2023
-#' CSMI (hosted locally)
-#' - 2015, 2020 (2010 partially, but too much missing info for inclusion)
+#' CSMI (hosted on local drive)
+#' - 2015, 2020
 #' National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
 #' - 2010, 2015
 #' National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
@@ -17,19 +14,20 @@
 #' - CTD 2007 - 2022
 #'
 #' @details
-#' This is the main function of LMChla which assembles water quality for Lake Michigan
-#' across multiple decades.
+#' This is the main function of GLharmonizeR which assembles water quality for Lake Michigan
+#' across multiple decades and data sources.
 #'
-#' @param out filepath to save the dataset to. Note: this should exclude the file extension
+#' @param out filepath specifying where to save the assembled data. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
-#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as csv. Default is TRUE.
+#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @returns full, harmonized dataset
+#' @returns Harmonized water quality dataset for Lake Michigan.
 #' @examples
 #' assembleData("filepath", binaryOut = FALSE)
 #' assembleData("filepath")
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
+  # To dos:
   # [ ] make argument for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
   # [ ] water body name argument once other lakes added in
 
@@ -87,65 +85,91 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
     )
 
-  # If add options to ask for specific datasets, note than both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned
+  # Use GLNPO GLENDA and Seabird databases to share site info for missing info:
 
-  # Note that ALL GLNPOseabirdCTD are missing stationDepth
+  # Examine match between GLNPOseabirdCTD maxCTDdepth with GLENDA stationDepth
+  GLENDA_site_depths <- GLENDA %>%
+    tidyr::drop_na(stationDepth) %>%
+    dplyr::select(SITE_ID, stationDepth, sampleDate) %>%
+    dplyr::distinct() %>%
+    dplyr::summarize(
+      .by = c(SITE_ID),
+      # Note that some sites can have a wide range of values
+      # e.g., MI11 depth ranges from 70-132, with mean 126
+      # numStationDepth = length(unique(stationDepth)),
+      # maxDepth = max(stationDepth),
+      # minDepth = min(stationDepth),
+      GLENDAstationDepth = mean(stationDepth, na.rm=T)
+    )
 
-  ## NOTE: DO NOT ADD FLAG FOR IMPUTING STATION DEPTH FROM ANOTHER VISIT
-  ## ** ONLY ADD FLAG IF ESTIMATING STATION DEPTH BY MAX OF CTD DATA **
+  GLENDA_site_depthsYR <- GLENDA %>%
+    tidyr::drop_na(stationDepth) %>%
+    dplyr::select(SITE_ID, stationDepth, sampleDate, YEAR) %>%
+    dplyr::distinct() %>%
+    dplyr::summarize(
+      .by = c(SITE_ID, YEAR),
+      # Note that some sites can have a wide range of values
+      # e.g., MI11 depth ranges from 70-132, with mean 126
+      # numStationDepth = length(unique(stationDepth)),
+      # maxDepth = max(stationDepth),
+      # minDepth = min(stationDepth),
+      GLENDAstationDepthYR = mean(stationDepth, na.rm=T)
+    )
 
-  # Pasted from .cleanGLNPOSeabirdCTD()
-  # dplyr::mutate(
-  #   # This is mostly intended to fill in missing values for seabird
-  #   QAcomment = dplyr::case_when(
-  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "Station depth imputed from another site visit", ## REMOVED THIS FLAG
-  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "station Depth estimated as the maximum CTD Depth",
-  #     .default = NA),
-  #   QAcode = dplyr::case_when(
-  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "D",
-  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "D",
-  #     .default = NA),
-  #   stationDepth = dplyr::case_when(
-  #     is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ mean(stationDepth, na.rm=TRUE),
-  #     is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
-  #     .default = stationDepth),
-  #   .by = SITE_ID
-  # ) %>%
+  # Per analysis below: use GLENDA stationDepth preferentially over CTD because CTD measurements not fully to bottom. Use year-specific GLENDA stationDepth where possible, then mean GLENDA stationDepth
+  # Then use maxCTDdepth as stationDepth estimate when SITE_ID not in GLENDA - add 'D' flag for station depth estimated as max CTD depth
+  # Not adding a flag for using GLENDA stationDepth for CTD
+  GLNPOseabirdCTD <- GLNPOseabirdCTD %>%
+    dplyr::select(-stationDepth) %>% # Note that stationDepth from CTD is all NA
+    dplyr::left_join(GLENDA_site_depths) %>%
+    dplyr::left_join(GLENDA_site_depthsYR) %>%
+    dplyr::mutate(
+      stationDepth = dplyr::coalesce(GLENDAstationDepthYR, GLENDAstationDepth)
+    ) %>%
+    # look <- GLNPOseabirdCTD %>% dplyr::filter(is.na(stationDepth))
+    # unique(look$SITE_ID) # Only "MIC" left
+    # "MIC" not in GLENDA -- but there are these sites names in GLENDA: "MIC-1n"    "MIC-2n"    "MIC-3n"    "MIC-45n"   "MIC-5n" "MIC-6n"    "MIC-7n"
+    # BASE file name is 70647_MIC_17.CNV - unable to infer site name from this path
+    # Use maxCTDdepth for remaining site and add flag
+    dplyr::mutate(
+      QAcode = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), "D", NA),
+      QAcomment = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), "station Depth estimated as the maximum CTD Depth", NA),
+      stationDepth = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), maxCTDdepth, stationDepth)
+    ) %>%
+    dplyr::select(-maxCTDdepth, -maxCTDdepthYR, -GLENDAstationDepth, -GLENDAstationDepthYR)
 
+  # Plot relationship between maxCTDdepth (max over all years) and GLENDAstationDepth (mean over all years)
+  # plot(maxCTDdepth~GLENDAstationDepth, data=GLNPOseabirdCTD)
+  # abline(0,1)
+  # maxCTDdepth over all seabird profiles correlates strongly with mean GLENDA stationDepth, but maxCTDdepth is consistently lower than GLENDA stationDepth
 
-  # Use GLENDA to impute stationDepth for GLNPOseabirdCTD (coalesce(stationDepth, maxCTDdepth))
-  # Then use GLNPOseabirdCTD to fill in GLENDA stationDepth if needed (coalesce(stationDepth, maxCTDdepth)
-  # Make sure add appropriate flag depending on which one is used
+  # Plot relationship between maxCTDdepthYR and GLENDAstationDepthYR by YEAR
+  # plot(maxCTDdepthYR~GLENDAstationDepthYR, data=GLNPOseabirdCTD)
+  # abline(0,1)
+  # maxCTDdepth by year correlates strongly with mean GLENDA stationDepth by year, but maxCTDdepth is consistently lower than GLENDA stationDepth, even by year
 
+  # Note that none of the GLENDA sites missing stationDepth are in Seabird for grabbing depth info
+  # GLENDA_miss <- GLENDA %>% dplyr::filter(is.na(stationDepth)) %>%
+  #   dplyr::select(SITE_ID) %>% unique()
+  # sum(GLENDA_miss$SITE_ID %in% GLNPOseabirdCTD$SITE_ID)
 
-        # [x] KV: If we're going to impute stationDepth from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen.
-          # CC: Taken care of by separating out SeaBird data
-  # [ ] KV: ** Check above note from Christian - separating out SeaBird data would likely not allow for first imputing from stationDepth from other site visits first, then using maxDepth for CTD stationDepth. Probably would need to coalesce after joining?
+  # Similarly, none of the GLENDA sites missing lat/longs are in Seabird
+  # GLENDA_missLAT <- GLENDA %>% dplyr::filter(is.na(Latitude)) %>%
+  #   dplyr::select(SITE_ID) %>% unique()
+  # sum(GLENDA_missLAT$SITE_ID %in% GLNPOseabirdCTD$SITE_ID)
 
-          # Suggest first imputing stationDepth from other site visits
-          # Then use Study ID to only impute CTD stationDepth by maxDepth separately, adding a flag
-          # Then do another round of imputing stationDepth from other site visits, preserving the flag from other original maxDepth imputation
-
-  # [x] KV: Also need to add formal flag for imputing stationDepth in flagsMap
-          # - CC: added "D" and associated comment
-
-  # [x] KV: Also get warning that it's replacing with -Inf for the max argument.
-        # CC: solved by separating out CTD
-            # 3: There were 113 warnings in `dplyr::mutate()`.
-            # The first warning was:
-            #   ℹ In argument: `stationDepth = dplyr::case_when(...)`.
-            # ℹ In group 24: `STATION_ID = "MI9552n"`.
-            # Caused by warning in `max()`:
-            #   ! no non-missing arguments to max; returning -Inf
-
+  # *** If add options to ask for specific datasets, note than both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned ***
 
 
   print("Step 4/7: Read and clean CSMI data")
-  CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
-  # [x] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
+  CSMI <- .loadCSMI(csmi2015, csmi2021, namingFile = namingFile)
+
 
   print("Step 5/7: Read and clean NOAA WQ data")
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
+
+
+  ###### LEFT OFF HERE #########
 
 
   print("Step 6/7: Combine and return full data")

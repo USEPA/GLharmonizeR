@@ -362,7 +362,9 @@
       .default = QAcomment
     ),
     RESULT = replace(RESULT, CodeName=="Turb_NTU" & RESULT<0, 0) # Replace negative Turb_NTU with 0
-  )
+  ) %>%
+  dplyr::rename(SITE_ID = STATION_ID)
+
 
 
   return(df)

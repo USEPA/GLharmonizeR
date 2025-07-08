@@ -1,7 +1,7 @@
 #' Load and join CSMI water quality data from 2015 and 2021.
 #'
 #' @description
-#' `LoadCSMI` returns a dataframe of all of the joined water quality data relating to CSMI years
+#' `loadCSMI` returns a dataframe of all of the joined water quality data relating to CSMI years
 #' 2015 and 2021.
 #'
 #' @details
@@ -11,9 +11,8 @@
 #' @param csmi2015 a string specifying the URL for CSMI 2015 zipped database
 #' @param csmi2021 a string specifying the directory containing the CSMI 2021 data
 #' @param namingFile filepath to a file containing mappings for analyte names#'
-#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #' @return dataframe of the fully joined water quality data from CSMI years 2015 and 2021
-.loadCSMI <- function(csmi2015, csmi2021, namingFile, n_max = Inf) {
+.loadCSMI <- function(csmi2015, csmi2021, namingFile) { # , n_max = Inf
   # Water chemistry  copied from
   # L:\Priv\Great lakes Coastal\2021 CSMI Lake Michigan\Data\Water chem
   # Contact was Annie Fosso

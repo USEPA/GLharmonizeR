@@ -65,22 +65,8 @@
     dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT*ConversionFactor, RESULT)) %>%
     # Check: if Reported units != Target units, then !is.na(ConversionFactor)
     dplyr::rename(SITE_ID = STATION_ID) %>%
-
     dplyr::mutate(
-      ##### KV: This is not done correctly below and will need to be done instead in the joinFullData.R code so that GLNPO CTD can be filled in from GLENDA station depth
-      # Could calculate max depth here for each site and label as such. Then use in the full join function to prioritize which depth to use across both seabird and glenda databases
-      # QAcomment = dplyr::case_when(
-      #   is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "Station depth imputed from another site visit",
-      #   is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "Station depth imputed from maximum sample depth",
-      #   .default = NA),
-      # QAcode = dplyr::case_when(
-      #   is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ "D",
-      #   is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ "D",
-      #   .default = NA),
-      # stationDepth = dplyr::case_when(
-      #   is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ mean(stationDepth, na.rm=TRUE),
-      #   is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
-      #   .default = stationDepth),
+      # Calculate max depth here for each site and label as such. Then use in the full join function to prioritize which depth to use across both seabird and glenda databases
       maxCTDdepth = max(sampleDepth, na.rm = TRUE),
       .by = SITE_ID
     ) %>%
@@ -89,9 +75,20 @@
       sampleTimeUTC = lubridate::hour(sampleDateTime),
       # Note that Seabird is already in UTC
       UID = paste(Study, UID, sep = "_")
+    ) %>%
+
+    # Add metrics to join GLENDA stationDepth by year and compare in joinFullData.R
+    dplyr::mutate(YEAR=lubridate::year(sampleDate)) %>%
+    dplyr::mutate(
+      maxCTDdepthYR = max(sampleDepth, na.rm = TRUE),
+      .by = c(SITE_ID, YEAR)
     )
   return(glnpo_seabird)
 }
+
+# plot(maxCTDdepth~maxCTDdepthYR, data=glnpo_seabird)
+# abline(0,1)
+
 
 # Investigate NA RESULT values (commenting out line that removes NA values above)
 # Most are CPAR
