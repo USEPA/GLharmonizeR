@@ -21,7 +21,7 @@
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @returns Harmonized water quality dataset for Lake Michigan.
+#' @returns Harmonized water quality dataset for Lake Michigan. FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS
 #' @examples
 #' assembleData("filepath", binaryOut = FALSE)
 #' assembleData("filepath")
@@ -188,7 +188,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       # unit conversion
       "TargetUnits", "ReportedUnits", "ConversionFactor",
       # QA
-      "QAcode", "QAcomment", "METHOD", "LAB", dplyr::contains("QAconsiderations")
+     "METHOD", "LAB", dplyr::contains("QAconsiderations"),  "QAcode", "QAcomment"
     ) %>%
     dplyr::rename(sampleDateTimeUTC = sampleDateTime) %>%
     # Look at duplicated observations
@@ -253,6 +253,11 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
       RESULT = ifelse(CodeName == "CPAR" & RESULT<0, 0, RESULT),
       QAcode = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcode, "PAR", sep = "; "), QAcode),
       QAcomment = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcomment, "Underwater PAR exceeds surface PAR", sep = "; "), QAcomment)
+    ) %>%
+    # Make "NA" be NA, not character
+    dplyr::mutate(
+      QAcode = ifelse(QAcode=="NA", NA, QAcode),
+      QAcomment = ifelse(QAcomment=="NA", NA, QAcomment)
     )
 
 
@@ -269,7 +274,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   # RESULT            MDL                RL          TargetUnits          ReportedUnits
   # 0.003             0.923             0.997             0.000             0.000
   # ConversionFactor  QAcode         QAcomment            METHOD              LAB
-  # 0.669             0.945             0.926             0.751             0.985
+  # 0.669             0.958             0.940             0.751             0.985
 
 
 # Most have times as well as dates
@@ -277,97 +282,93 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
 
 
-#### LEFT OFF HERE ####
 
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
-  # [x] Split into flagged and unflagged values
-  # [x] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
-  # - made a fix and is only slightly less efficient
+
   notflagged <- allWQ %>%
     dplyr::filter((is.na(QAcode) & is.na(QAcomment)))
 
   # [ ] KV: Currently some QAcomment (and maybe QAcode) have NA appended to them and/or are not spaced or separated from others - see if can fix this in respective functions
 
-  # join flag explanations
+  # flag mapping file
   flags <- openxlsx::read.xlsx(flagsFile) %>%
+    dplyr::rename(
+      QAcode2 = QAcode,
+      QAcomment2 = QAcomment) %>%
     # Fill in missing for fuzzy join to work
     dplyr::mutate(
-      QAcode = ifelse(is.na(QAcode), Study, QAcode),
-      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
-    )
-  # [X] KV: Why put Study in for QAcode/QAcomment when missing instead of just repeating QAcode/QAcomment in both? Does it really need to be filled in at all?
+      QAcode2 = ifelse(is.na(QAcode2), "XXXX", QAcode2),
+      QAcomment2 = ifelse(is.na(QAcomment2), "XXXX", QAcomment2)
+    ) %>%
+    dplyr::distinct()
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
+
 
   flagged <- allWQ %>%
     dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)))) %>%
     dplyr::mutate(
-      QAcode = stringr::str_remove_all(QAcode, "NA"),
-      QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
+      QAcode = stringr::str_remove_all(QAcode, "^NA; "),
       QAcode = stringr::str_replace_all(QAcode, ",", ";"),
-      QAcode = stringr::str_remove_all(QAcode, "^,"),
-      QAcode = ifelse(QAcode == "", NA, QAcode),
-      QAcode = ifelse(is.na(QAcode), Study, QAcode),
-      QAcode = stringr::str_remove_all(QAcode, "^; "),
       QAcomment = stringr::str_remove_all(QAcomment, "^NA; "),
-      QAcomment = stringr::str_remove_all(QAcomment, "^NA"),
-      QAcomment = stringr::str_remove_all(QAcomment, "^; "),
-      QAcomment = ifelse(QAcomment == "", NA, QAcomment),
-      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
+    ) %>%
+    # Delete later?
+    dplyr::mutate(QAcode2=QAcode, QAcomment2 = QAcomment) %>%
+    dplyr::mutate(
+      # QAcode2 = stringr::str_remove_all(QAcode2, "^NA"),
+      # QAcode2 = stringr::str_remove_all(QAcode2, "NA"),
+      QAcode2 = stringr::str_remove_all(QAcode2, "[:space:]"),
+      QAcode2 = stringr::str_remove_all(QAcode2, "^,"),
+      QAcode2 = ifelse(QAcode2 == "", NA, QAcode2),
+      QAcode2 = ifelse(is.na(QAcode2), "XXXX", paste0(QAcode2, ";XXXX")),
+      QAcode2 = stringr::str_remove_all(QAcode2, "^; "),
+      # QAcomment2 = stringr::str_remove_all(QAcomment2, "^NA"),
+      QAcomment2 = stringr::str_remove_all(QAcomment2, "^; "),
+      QAcomment2 = ifelse(QAcomment2 == "", NA, QAcomment2),
+      QAcomment2 = ifelse(is.na(QAcomment2), "XXXX", paste0(QAcomment2, "; XXXX"))
+      # **** Need to add a placeholder to both QAcode2 and QAcomment2 so that flags that appear in only QAcode or QAcomment in data will surely be mapped
+      # However, need to add placeholder that does NOT have letters that appear in any flags on its own (like N) because it will be mapped to that flag (e.g., used to use Study to augment all code and comments, but NCCA was mapped to N) - using 'XXXX' - X is not a QAcode across studies, and 'XXXX' does not appear in comments *****
     ) %>%
     fuzzyjoin::fuzzy_join(flags,
-    by=c("Study", 'QAcode', "QAcomment"),
-    mode='left', #use left join
-    match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
-  ) %>%
-  # [ ] KV: I don't think the fuzzy_join is working in all cases
-  # [ ] KV: For NOAA_WQ secchi, QAcode==CTB and QAcomment=="time imputed as noon" does not get mapped to either flag. Needs to be dealt with differently in NOAAwq.R, but also reflects larger problem.
-  # [ ] KV: Actually, many do not appear to map correctly. These below should all have non-NA values in Retain if they mapped correctly, right? See:
-      # look_NAretain <- flagged %>% filter(is.na(Retain))
-      # lookNAretain_uniq <- look_NAretain %>% dplyr::select(Study.x, CodeName, ANALYTE, QAcode.x, QAcomment.x, Unified_Flag, Retain ) %>% distinct()
-      # I don't think there's one reason these are all not mapping correctly - they all likely need to be investigated separately.
-      # It also partly looks like it doesn't work correctly for cases where, for example, QAcode and QAcomment don't have the same values in both the data and flagsMap - meaning one column can't be NA in the data if it is not NA in flagsMap. e.g., NCCA_WChem_2010 with QAcode==J01 doesn't map correctly in the data if QAcomment is empty. Seems like both QAcode and QAcomment need to match or it doesn't work (i.e., you can't have one column be empty). Filling in with Study does not solve the problem (e.g., some flags are only found in either QAcode or QAcomment in the data).
-      # Some of these can probably be solved (like NCCA) by adding extra rows for cases where only QAcode is present in the data and not QAcomment
-      # Some are just missing in flagsMap
-      # Some need to be dealt with differently (like NOAA_wq secchi)
+      by=c("Study", 'QAcode2', "QAcomment2"),
+      mode='left', #use left join
+      match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
+    ) %>%
+    # Use QAcode2 and QAcomment2 that have all codes/comments
     dplyr::mutate(
-      # grab values in the mapping file in case we filled out by hand
       Study = dplyr::coalesce(Study.x, Study.y),
-      QAcode = dplyr::coalesce(QAcode.x, QAcode.y),
-      QAcomment = dplyr::coalesce(QAcomment.x, QAcomment.y),
+      QAcode2 = dplyr::coalesce(QAcode2.x, QAcode2.y),
+      QAcomment2 = dplyr::coalesce(QAcomment2.x, QAcomment2.y),
     ) %>%
     dplyr::select(
-      -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
+      -c(Study.x, Study.y, QAcode2.x, QAcode2.y, QAcomment2.x, QAcomment2.y)
     ) %>%
-    # [x] Check that CTB didn't join (if code is missing but comments is there or vice versa)
-    # - [ ] Retain column should always be filled in for flags
-      # - mostly solved there are a couple with nas that aren't mapping for some reason also one instance of a CTB with time mixed in
-    # - [x] Extra eye towards NOAA
-    # [x] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
-    # test <- flagged  %>%
-    #   filter(is.na(Retain)) %>%
-    #   count(Study, QAcode, QAcomment)
 
-    # Compress instances that were matched multiple times into sinlge observation
-    # for QA comments and codes
-    # Checked dimenisons and this preserved the number of observvations from flgagd
-    # data
+    # Compress instances that were matched multiple times into single observation
     dplyr::reframe(
-      QAcode = toString(unique(QAcode)),
-      QAcomment = toString(unique(QAcomment)),
+      # QAcode2 = toString(unique(QAcode2)),
+      # QAcomment2 = toString(unique(QAcomment2)),
       Definition = toString(unique(Definition)),
       Unified_Flag = toString(unique(Unified_Flag)),
       Unified_Comment = toString(unique(Unified_Comment)),
       Retain = toString(unique(Retain)),
       Action = toString(unique(Action)),
      .by = c(
-      UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDate, sampleDateTimeUTC, CodeName,
-      ANALYTE, Category, LongName, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
-      MDL,
-       RL, LAB
+      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDepth, sampleDate, sampleDateTimeUTC, DEPTH_CODE, CodeName,
+      ANALYTE, Category, LongName, Explicit_Units, RESULT, MDL, RL, TargetUnits, ReportedUnits, ConversionFactor, METHOD, LAB,  QAcode, QAcomment
     ))  %>%
-     # handle Retain column by priority
+
+
+
+
+    ##### LEFT OFF HERE #####
+
+  # [ ] KV: Need to check how below code works given that there are "NA," in the Unified Flag - ideally would clean these up before use them to modify the results (flip order of code below)???
+  # look <- flagged %>% dplyr::filter(grepl("N;|N$", Unified_Flag))
+
+
+  # handle Retain column by priority
   # We're joining by QAcode and QAcomment so this only removes based on the comment as well
     # [ ] KV: Check that all GLENDA "Method Detection Limit, less than" were replaced with NA
   dplyr::mutate(
