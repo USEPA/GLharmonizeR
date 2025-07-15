@@ -24,12 +24,12 @@
     "NCCAwq2015" = "https://www.epa.gov/sites/default/files/2021-04/ncca_2015_water_chemistry_great_lakes-data.csv",
     "NCCAwq2020" = "https://www.epa.gov/system/files/other-files/2024-05/ncca20_waterchem_data.csv",
 
-    # %% GLENDA
+    # %% GLNPO GLENDA database
     "Glenda" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDA.Rds",
     "GLENDAlimitsPath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAlimits.Rds",
     "GLENDAsitePath" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/GLENDAsiteInfo.Rds",
 
-    # GLNPO SeaBird data
+    # GLNPO SeaBird preprocessed data
     "seaBird" = "https://github.com/USEPA/GL_Data/raw/main/GLENDA/seabird.Rds",
 
     # %% CSMI
