@@ -1,11 +1,11 @@
-#' Load and join all WQ measured on Lake Michigan from multiple sources. data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA
+#' Load and join Great Lakes water quality data from GLNPO, CSMI, NCCA, and NOAA. Data currently limited to Lake Michigan.
 #'
 #' @description
-#' `assembleData` returns a dataframe with unified reporting conventions
-#' The Great Lakes Environmental Database, [GLNPO](https://cdx.epmeea.gov/)
+#' `assembleData` returns a dataframe with harmonized water quality parameter names, units, and QC flags
+#' Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
 #' - 1983 - 2023
 #' - Seabird CTD 2003 - 2023
-#' CSMI (hosted on local drive)
+#' CSMI
 #' - 2015, 2021
 #' National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
 #' - 2010, 2015
@@ -14,14 +14,13 @@
 #' - CTD 2007 - 2022
 #'
 #' @details
-#' This is the main function of GLharmonizeR which assembles water quality data for Lake Michigan
-#' across multiple decades and data sources.
+#' This is the main function of GLharmonizeR which assembles water quality data for the Great Lakes (currently only Lake Michigan) across multiple decades and data sources.
 #'
 #' @param out filepath specifying where to save the assembled data. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @returns Harmonized water quality dataset for Lake Michigan. FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS
+#' @returns Harmonized water quality dataset for Lake Michigan. *FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS*
 #' @examples
 #' assembleData("filepath", binaryOut = FALSE)
 #' assembleData("filepath")
@@ -389,129 +388,115 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
 
 
-  #### LEFT OFF HERE ####
-
-
-  # [ ] KV: Deal with sampleDate and sampleDateTimeUTC (change sampleDate to be date for EST if not NA)
-
-  # recombine full dataset
-  lakeMichigan <- dplyr::bind_rows(flagged, notflagged) %>%
-    # [x] KV: These selections look inconsistent with the original selection of columns in Step 6. Revisit the list below
-    # [x] KV: Regardless, Units should probably not be selected below because it's from the Analytes3 spreadsheet and prone to error. Should just use ReportedUnits and TargetUnits
+  # Recombine full dataset and convert sampleDate to be EST
+  allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
     dplyr::select(
-      # time and space
-      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDate, sampleDateTimeUTC,
-      sampleDepth, DEPTH_CODE,
-      # analyte name
+      # Time and space
+      UID,
+      Study,
+      SITE_ID,
+      Latitude,
+      Longitude,
+      stationDepth,
+      sampleDate,
+      sampleDateTimeUTC,
+      sampleDepth,
+      DEPTH_CODE,
+      # Analyte name
       CodeName,
       LongName,
       Category,
       ANALYTE_Orig_Name=ANALYTE,
-      # measurement and limits
-      RESULT, MDL, RL,
-      # unit conversion
-      ReportedUnits,
+      # Measurement and limits
+      RESULT,
+      MDL,
+      RL,
+      # Unit conversion
       Units = Explicit_Units,
+      ReportedUnits,
       ConversionFactor,
+      # QA
       Unified_Flag,
       Unified_Comment,
       METHOD,
       LAB,
-      # QA
       Orig_QAcode = QAcode,
       Orig_QAcomment = QAcomment,
-      Orig_QAdefinition=Definition,
-      Retain_InternalUse=Retain,
-      Action_InternalUse=Action) %>%
-    dplyr::arrange(sampleDate, sampleDateTime, SITE_ID, sampleDepth, LongName)
+      Orig_QAdefinition=Definition#,
+      # Retain_InternalUse=Retain,
+      # Action_InternalUse=Action
+      ) %>%
+    dplyr::mutate(
+      sampleDateTimeEST = lubridate::with_tz(sampleDateTimeUTC, "Etc/GMT+5"),
+      sampleDateEST = lubridate::date(sampleDateTimeEST),
+      sampleDate = dplyr::coalesce(sampleDateEST, sampleDate)
+    ) %>%
+    dplyr::select(-c(sampleDateTimeEST, sampleDateEST)) %>%
+    dplyr::arrange(sampleDate, sampleDateTimeUTC, SITE_ID, sampleDepth, LongName)
+
+
+  # round(colMeans(is.na(allWQ)), 2)
+  # UID             Study           SITE_ID          Latitude         Longitude
+  # 0.00              0.00              0.00              0.01              0.01
+  # stationDepth        sampleDate sampleDateTimeUTC       sampleDepth        DEPTH_CODE
+  #         0.02              0.00              0.18              0.01              0.76
+  # CodeName          LongName          Category ANALYTE_Orig_Name            RESULT
+  #     0.00              0.00              0.00              0.00              0.01
+  #   MDL                RL             Units     ReportedUnits  ConversionFactor
+  #  0.92              1.00              0.00              0.00              0.67
+  # Unified_Flag   Unified_Comment            METHOD               LAB       Orig_QAcode
+  #         0.94              0.94              0.75              0.99              0.96
+  # Orig_QAcomment Orig_QAdefinition
+  #           0.94              0.94
+
+
+  # allWQ %>%
+  #   dplyr::reframe(s = sum(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
+  #   print(n = 300)
+
+  # check missingness
+  # allWQ %>%
+  #   dplyr::reframe(across(everything(),
+  #           function(x) round(mean(is.na(x)), 2)),
+  #           .by = Study) %>%
+  #   View()
+
+  # allWQ %>%
+  #   dplyr::reframe(across(everything(),
+  #           function(x) sum(!is.na(x))),
+  #           .by = Study) %>%
+  #   View()
+
+  # allWQ %>%
+  #   dplyr::reframe(dplyr::across(c(Latitude, Longitude),
+  #             c(
+  #               "max" = function(x) max(x, na.rm = T),
+  #               "min" = function(x) min(x, na.rm = T)
+  #               )),
+  #           .by = Study) %>%
+  #   View()
 
 
 
-# > round(colMeans(is.na(allWQ)), 2)
-#                UID              Study            SITE_ID           Latitude
-#               0.00               0.00               0.00               0.01
-#          Longitude       stationDepth         sampleDate         sampleTime
-#               0.01               0.02               0.01               0.97
-#        sampleDepth         DEPTH_CODE           CodeName           LongName
-#               0.01               0.75               0.00               0.00
-#           Category  ANALYTE_Orig_Name              Units             RESULT
-#               0.00               0.00               0.37               0.03
-#                MDL                 RL        TargetUnits   ConversionFactor
-#               0.91               1.00               0.00               0.73
-#       Unified_Flag    Unified_Comment             METHOD                LAB
-#               0.95               0.63               0.75               0.98
-#        Orig_QAcode     Orig_QAcomment  Orig_QAdefinition Retain_InternalUse
-#               0.63               0.63               0.63               0.63
-# Action_InternalUse
-#               0.63
 
-
-
-
-# allWQ %>%
-#   filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
-#   reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
-#   print(n = 300)
-# allWQ %>%
-#   reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
-#   print(n = 300)
-
-# [ ] KV: Note that I edited this (and added out=NULL to function) - make sure it works
+  # Write data
   if (!is.null(out) & binaryOut == TRUE) {
     print(paste0("Writing data to ", out, ".rda"))
-    save(lakeMichigan, file = paste0(out, ".rda"))
+    save(allWQ, file = paste0(out, ".rda"))
   }
-
   if (!is.null(out) & binaryOut == FALSE) {
     print(paste0("Writing data to ", out, ".csv"))
-    readr::write_csv(lakeMichigan, file = out, progress = readr::show_progress())
+    readr::write_csv(allWQ, file = paste0(out, ".csv"), progress = readr::show_progress())
   }
 
-# check missingness
-# allWQ %>%
-#   reframe(across(everything(),
-#           function(x) round(mean(is.na(x)), 2)),
-#           .by = Study) %>%
-#   View()
-# allWQ %>%
-#   reframe(across(everything(),
-#           function(x) sum(!is.na(x))),
-#           .by = Study) %>%
-#   View()
-# allWQ %>%
-#   reframe(n = length(unique(UID)),
-#           .by = Study) %>%
-#   arrange(desc(n))
-# allWQ %>%
-#   reframe(across(c(Latitude, Longitude),
-#             c(
-#               "max" = function(x) max(x, na.rm = T),
-#               "min" = function(x) min(x, na.rm = T)
-#               )),
-#           .by = Study) %>%
-#   View()
+
 
   return(allWQ)
+
 }
 
-# inspected every max, min and middle for each column for each Study using View(allWQ)
-# - [x]  CSMI 2021 CTD lat longs need to be standardized to -86 - -87 and  + 43
+
+# assembleData(out= "C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/LMChla_data", binaryOut = TRUE)
 
 
-# *** KV list ***
 
-# Time imputation issues:
-# [ ] Add known issues to documentation
-  # Times mostly trusted but might need to be careful about daylight savings instances
-  # unable to retrieve dates for small subset of NOAA CTD data
-  # NCCA secchi 2015 has very poor spatial resolution (??)
-  # Missing station lat/longs (GLENDA, CSMI 2021)
-    # Glenda 3.9%
-    # CSMI 2021 wq 5.7%
-
-# CTD: sampleTimeUTC is hour of time, not closest hour of time to avoid conflicts with date (i.e., times rounded up to midnight and thus the following day). So times are always rounded down
-# If didn't have time, assumed reported date was same as date in UTC
-  # In EDT, this will only be a problem for samples collected between 8pm-midnight EDT, which technically falls on the next day in UTC (4 hour ahead)
-# sampleDate is the date for UTC time if time is available, otherwise it is the provided date with the dataset. This potentially has the same conflict between dates in EDT and UTC as noted above if the EDT time was actually between 8pm-midnight, but this is unknown and is a small window in the 24-hour day
-
-# NOAA CTD has a lot of data dropped at 1-2 m. Some look like they exist but are dropped, some seem like they don't exist anyway (already binned values and they were removed). For depths that exist but are dropped, seems to be caused by oce::ctdTrim(., method="downcast") in .oce2df() in ctd03_functions.R

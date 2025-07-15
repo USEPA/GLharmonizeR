@@ -265,17 +265,9 @@
       LATITUDE = as.numeric(LATITUDE),
       Latitude = as.numeric(Latitude),
       LONGITUDE = as.numeric(LONGITUDE),
-      Longitude = as.numeric(Longitude),
-      LATITUDE = dplyr::coalesce(LATITUDE, Latitude),
-      LONGITUDE = dplyr::coalesce(LONGITUDE, Longitude)
+      Longitude = as.numeric(Longitude)
     ) %>%
-    dplyr::select(-c(Latitude, Longitude)) %>%
-    # sum(is.na(df2$LATITUDE)) # Including above reduced missingness from 52344 to 4465
-    # look <- df2 %>% dplyr::filter(is.na(LATITUDE))
-    # # Most missing site lat/lons are 1983-1995, but several are missing in 2015
-    # unique(look$STATION_ID) # 153 missing
-
-    # Impute site coordinates as the mean of that Site's recorded coordinates
+    # First impute site coordinates as the mean of that Site's coordinates in GLENDA
     {
       if (imputeCoordinates) {
         dplyr::mutate(.,
@@ -284,12 +276,23 @@
           STN_DEPTH_M = ifelse(is.na(STN_DEPTH_M), mean(STN_DEPTH_M, na.rm = T), STN_DEPTH_M),
           .by = STATION_ID
         )
-        # Reduces missingness from 4465 to 3972, and # sites from 153 to 145 missing
         # Verified this imputes the same mean value for each STATION_ID (i.e., the mean doesn't change as missing values are replaced in the column)
       } else {
         .
       }
     } %>%
+    # Then fill in with lat/longs from PDF, preferentially choosing lat/longs in data, even if imputed with mean, rather than PDF lat/longs (which can have 0 decimal places)
+    dplyr::mutate(
+      LATITUDE = dplyr::coalesce(LATITUDE, Latitude),
+      LONGITUDE = dplyr::coalesce(LONGITUDE, Longitude)
+    ) %>%
+    dplyr::select(-c(Latitude, Longitude)) %>%
+
+    # sum(is.na(df2$LATITUDE)) # Including above reduced missingness from 52344 to 3972
+    # look <- df2 %>% dplyr::filter(is.na(LATITUDE))
+    # # Most missing site lat/lons are 1983-1995, but several are missing in 2015
+    # unique(look$STATION_ID) # 145 missing
+
     dplyr::mutate(
       Study = "GLENDA",
       # Grab all of the flags reported in the VALUE column
