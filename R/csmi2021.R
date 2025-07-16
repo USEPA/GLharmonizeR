@@ -179,46 +179,47 @@
       # KV: Note that there were several errors for inclusion of the USGS CTD data in the renamingTable due to apparent copy/paste errors and differences between EPA and USGS data sheets. USGS data should've been included separately with different study IDs to account for differences in names across spreadsheets (e.g., for conductivity, temp), but adding '_USGS' to end helps at least.
 
 
+  # **** REMOVING NICOLE BERRY'S PAR DATA FOR FIRST RELEASE UNTIL THROUGH USGS CLEARANCE ****
 
   # bin starting at 0.5m every 1m so 0.5-1.5 ...
   # contains some usgs and some epa sites
-  nikkiPAR <- file.path(csmi2021, "USGS_sites_for_percentPAR-forKelseyV.xlsx") %>%
-    openxlsx::read.xlsx(
-      sheet = "UpdatedData",
-      check.names = TRUE
-    ) %>% # no missingness
-    dplyr::mutate(
-      # instrument_time is EST in hour.hourfraction
-      sampleDateEST = lubridate::date(lubridate::ymd_hms(Date)),
-      sampleHourEST = floor(instrument_time),
-      sampleMinuteEST = floor(60*(instrument_time-floor(instrument_time))),
-      sampleDateTimeEST = lubridate::ymd_hm(paste0(sampleDateEST, " ", sampleHourEST, ":", sampleMinuteEST), tz = "Etc/GMT+5"),
-      sampleDateTime =  lubridate::with_tz(sampleDateTimeEST, tzone = "UTC"),
-      sampleDate = lubridate::date(sampleDateTime),
-      cpar = dc.pc.PAR, # leave as percent
-      # rebinned with evertyhing +/- 0.5 going to nearest whole number
-      sampleDepth = round(as.numeric(Depth_m)),
-      SITE_ID = Transect
-    ) %>%
-    dplyr::filter(sampleDepth != 0) %>%
-    dplyr::reframe(cpar = mean(cpar, na.rm = T),
-                   sampleDateTime = min(sampleDateTime, na.rm = T), # Do start of cast for each bin
-                   .by = c(SITE_ID, sampleDate, sampleDepth)) %>%
-    # still no missingness
-    dplyr::mutate(sampleTimeUTC = lubridate::hour(sampleDateTime),
-                  SITE_ID = tolower(SITE_ID),
-                  SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
-    dplyr::mutate(
-      Study = "CSMI_2021_CTD",
-      # Needs UID - Use NB for Nikki Berry
-      UID = paste0("NBpar-", SITE_ID, "-", sampleDepth),
-      UNITS = "percent",
-      ANALYTE = "cpar_USGS",
-      RESULT = cpar,
-    ) %>%
-    dplyr::select(-c(cpar)) %>%
-    dplyr::filter(SITE_ID %in% usgsCTDsites$SITE_ID) # Using CPAR from EPA data for EPA sites
-    # mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
+  # nikkiPAR <- file.path(csmi2021, "USGS_sites_for_percentPAR-forKelseyV.xlsx") %>%
+  #   openxlsx::read.xlsx(
+  #     sheet = "UpdatedData",
+  #     check.names = TRUE
+  #   ) %>% # no missingness
+  #   dplyr::mutate(
+  #     # instrument_time is EST in hour.hourfraction
+  #     sampleDateEST = lubridate::date(lubridate::ymd_hms(Date)),
+  #     sampleHourEST = floor(instrument_time),
+  #     sampleMinuteEST = floor(60*(instrument_time-floor(instrument_time))),
+  #     sampleDateTimeEST = lubridate::ymd_hm(paste0(sampleDateEST, " ", sampleHourEST, ":", sampleMinuteEST), tz = "Etc/GMT+5"),
+  #     sampleDateTime =  lubridate::with_tz(sampleDateTimeEST, tzone = "UTC"),
+  #     sampleDate = lubridate::date(sampleDateTime),
+  #     cpar = dc.pc.PAR, # leave as percent
+  #     # rebinned with evertyhing +/- 0.5 going to nearest whole number
+  #     sampleDepth = round(as.numeric(Depth_m)),
+  #     SITE_ID = Transect
+  #   ) %>%
+  #   dplyr::filter(sampleDepth != 0) %>%
+  #   dplyr::reframe(cpar = mean(cpar, na.rm = T),
+  #                  sampleDateTime = min(sampleDateTime, na.rm = T), # Do start of cast for each bin
+  #                  .by = c(SITE_ID, sampleDate, sampleDepth)) %>%
+  #   # still no missingness
+  #   dplyr::mutate(sampleTimeUTC = lubridate::hour(sampleDateTime),
+  #                 SITE_ID = tolower(SITE_ID),
+  #                 SITE_ID = stringr::str_remove_all(SITE_ID, "_")) %>%
+  #   dplyr::mutate(
+  #     Study = "CSMI_2021_CTD",
+  #     # Needs UID - Use NB for Nikki Berry
+  #     UID = paste0("NBpar-", SITE_ID, "-", sampleDepth),
+  #     UNITS = "percent",
+  #     ANALYTE = "cpar_USGS",
+  #     RESULT = cpar,
+  #   ) %>%
+  #   dplyr::select(-c(cpar)) %>%
+  #   dplyr::filter(SITE_ID %in% usgsCTDsites$SITE_ID) # Using CPAR from EPA data for EPA sites
+  #   # mutate(agency = ifelse(SITE_ID %in% usgsCTDsites$SITE_ID, "USGS", "EPA"))
 
 
 
@@ -235,7 +236,8 @@
 
 
   # Combine usgs CTD and PAR
-  usgs <- dplyr::bind_rows(usgsCTD, nikkiPAR) %>%
+  # usgs <- dplyr::bind_rows(usgsCTD, nikkiPAR) %>% # ** Uncomment when include Nikki PAR data **
+  usgs <- usgsCTD %>%
     # Uncomment this code if want to assume USGS CTD measured same time as PAR
     # dplyr::mutate(
     #   sampleTimeUTC = unique(na.omit(sampleTimeUTC))[1],
