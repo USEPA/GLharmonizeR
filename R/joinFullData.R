@@ -496,7 +496,5 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 }
 
 
-# assembleData(out= "C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/LMChla_data", binaryOut = TRUE)
-
-
+# df <-  assembleData(out= "C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/LM_Chla/data/allWQ", binaryOut = TRUE)
 

@@ -1,16 +1,7 @@
 # LMChla 
 
-<!---<img src="man/figures/logo.png" align="right" height="139" alt="" /> -->
 
-<!---
-![R](https://img.shields.io/badge/r-%23276DC3.svg?style=for-the-badge&logo=r&logoColor=white)
-
-<!-- badges: start -->
-<!--[![R-CMD-check](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kvitense/LM_Chla/actions/workflows/R-CMD-check.yaml)-->
-<!-- badges: end -->
-
-
-This R package contains functions to integrate Lake Michigan water quality data from different federal (EPA and NOAA) sources. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes. 
+This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated data are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes. 
 
 # Installation
 This package can be installed directly from the Github source code as follows.
@@ -26,7 +17,7 @@ Note: This requires the package "devtools" which can be installed as `install.pa
 This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
 
 1) Loading preassembled data
-  - Access after R package install using `data("lakeMichigan")
+  - Access after R package install using `data("allWQ")
   - Note: this comes from a static realization of the source data and therefore may not be up to date.
 
 2) Using functions provided by the package
@@ -99,10 +90,8 @@ Data were taken from the following sources
   - 2010, 2015
 - Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
   - 2015, 2020 
-  - Originally available on EPA and USGS internal drives
 - National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
   - 2007 - 2022
-  - Originally available on NOAA internal drives (contact: Steve Pothoven)
 
 
 # Dataset design

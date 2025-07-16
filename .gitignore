@@ -11,7 +11,7 @@
 
 !docs/figsTables/*
 
-!data/lakeMichigan.Rda
+!data/allWQ.rda
 
 !docs/*
 !docs/*/*

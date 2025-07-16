@@ -29,11 +29,11 @@ Tags in code are supported to make it easier to search when searching for things
 - DOCTHIS - highlight sections of code that are important to write up in the documentation for the package
 - XXX - Something else of note for developers
 
-# Testing - in progress
+# Testing - under construction
 In order to cut down time tests take to run, tests for a given data source should all be run together. To accomplish this, the data should be stored as a fixture and then tested. Tests are run through ['testthat' R package](https://testthat.r-lib.org/). Code coverage is provided by [covr](https://covr.r-lib.org/).
 
 ## Contributions
-We are glad you are thinking about contributing to LMChla. If you have questions, contact te maintainer in the [description file](DESCRIPTION.md)) with your question — or submit the issue or pull request anyway. The worst that can happen is you will be politely asked to change something. We love all friendly contributions.
+We are glad you are thinking about contributing to LMChla. If you have questions, contact the maintainer in the [description file](DESCRIPTION.md)) with your question — or submit the issue or pull request anyway. The worst that can happen is you will be politely asked to change something. We love all friendly contributions.
 
 We encourage you to read this project's CONTRIBUTING policy (you are here), its [LICENSE](LICENSE.md), and its [README](README.md).
 
