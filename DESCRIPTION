@@ -1,19 +1,16 @@
 Package: LMChla
-Title: Lake Michigan Chlorophyll-a and water quality assembler
+Title: Lake Michigan water quality data integrator
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Christian", "Coffman", , email = "coffman.christian@epa.gov", role = c("aut"),
+    person("Kelsey", "Vitense", email = "vitense.kelsey@epa.gov", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-2455-5513"))
+    person("Christian", "Coffman", role = c("aut"),
            comment = c(ORCID = "0000-0002-5524-864X")),
-    person("Kelsey", "Vitense", , "vitense.kelsey@epa.gov", role = c("aut", "cre"))
     )
-Description: This package loads in-situ water quality data from NCCA, CSMI, and GLENDA covering the years 2010, 2015, and 2020/2021,
-    plus some additional data in a number of other years comprised of both CTD and lab sample data. It standardizes the data for joining
-    and runs quality control checks on each of the data sources separately as well as in its integrated state. It is meant to lower the 
-    barrier of entry for researchers interested in water quality in the great lakes over this time period.
-License: CC BY 4.0
+Description: This R package contains functions to integrate Lake Michigan water quality data from different federal (EPA and NOAA) sources. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes.
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Imports:
     dplyr,
     lubridate,
@@ -36,4 +33,4 @@ Suggests:
 Depends:
     R (>= 3.5.0)
 Config/testthat/edition: 3
-VignetteBuilder: quarto 
+VignetteBuilder: knitr

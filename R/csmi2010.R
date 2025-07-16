@@ -1,4 +1,5 @@
 # Note that we are not including CSMI 2010 data currently because key details are unclear and not documented - commented out in csmiJoinAll.R
+# Code below will need review if it this dataset is eventually included
 
     # XXX this is for csmi 2010, since it's not included, leaving it commented out
     # dplyr::mutate(
@@ -17,6 +18,10 @@
     #   .default = FRACTION
     # )) %>%
 
+
+# CSMI 2010 fraction labels
+# From "L:\Priv\Great lakes Coastal\2010 MED Lake Michigan\2010\LMich10forms.xls"
+# Sheet "flow_charts"
 
 
 
@@ -146,5 +151,11 @@
   #     "CTD Casts 2010 Excel.xlsx"
   #   ))
 
+  # missingness/joining checks in output:
+  # mean(is.na(df$CodeName)): 0
+  # mean(df$CodeName == "Remove"): 0
+  # mean(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(mean(is.na(ConversionFactor))): 0 cases
+  # mean(is.na(df$sampleDateTime))  # 0
   return(df)
 }

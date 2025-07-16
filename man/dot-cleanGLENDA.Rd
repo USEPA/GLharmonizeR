@@ -7,8 +7,7 @@
 .cleanGLENDA(
   df,
   namingFile,
-  GLENDAflagsPath = NULL,
-  imputeCoordinates = FALSE,
+  imputeCoordinates = TRUE,
   GLENDAsitePath = NULL,
   GLENDAlimitsPath = NULL
 )
@@ -18,12 +17,11 @@
 
 \item{namingFile}{(optional) filepath to a file containing remappings for analyte names}
 
-\item{imputeCoordinates}{deprecated, (optional) Boolean specifying whether to impute missing station coordinates,
-This shouldn't need to be used, since after joining sites missingness is removed}
+\item{imputeCoordinates}{(optional) Boolean specifying whether to impute missing station coordinates,}
 
-\item{flagsPath}{(optional) filepath to the Result remarks descriptions. Default is NULL.}
+\item{GLENDAlimitsPath}{(optional) filepath to a file limits for GLENDA data}
 
-\item{siteCoords}{(optional) filepath to list of site coordinates to impute missing lats/lons}
+\item{siteCoords}{(optional) filepath to list of site coordinates to fill in missing lats/lons}
 }
 \value{
 a dataframe

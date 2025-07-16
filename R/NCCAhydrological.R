@@ -1,5 +1,5 @@
 
-#' Load and join NCCA 2010 hydrographic data from csv files
+#' Load and join NCCA 2010 hydrographic data from online csv files
 #'
 #' @description
 #' `.loadNCCAhydro2010` returns a dataframe of all of the hydrographic data relating to NCCA 2010
@@ -7,18 +7,15 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the data
+#' @param NCCAsites2010 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #'
 #' @return dataframe
 .loadNCCAhydro2010 <- function(NCCAhydrofiles2010, NCCAsites2010, namingFile, n_max = n_max) {
-  sites <- .loadNCCASite2010(NCCAsites2010) #%>%
-    # dplyr::mutate(
-    #   SITE_ID = stringr::str_remove(SITE_ID, "^NCCA[:alpha:]{0,2}10-"),
-    #   SITE_ID = stringr::str_remove(SITE_ID, "^GLBA10-"),
-    #   #SITE_ID = stringr::str_replace(SITE_ID, "-GLBA10-", "-"),
-    #   )
-  # Do not alter the SITE_ID to avoid confusion with original source
 
+  sites <- .loadNCCASite2010(NCCAsites2010)
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
@@ -26,16 +23,17 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
-    # remove nas from table to remove ambiguities on joinging
+    # remove NAs from table to avoid ambiguities on joining
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)#,
-      # Methods = ifelse(is.na(Methods), Study, Methods) # There are no methods reported for GL in 2010
       # Any methods reported in NCCA_Map are a result of not originally filtering the dataset to GL - shouldn't be needed
-    )
+    ) %>%
+    dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
+
 
 
   df <- NCCAhydrofiles2010 %>%
@@ -59,89 +57,71 @@
       UNITS = ifelse(ANALYTE == "Turbidity", "unknown", UNITS),
       sampleDepth = ifelse(sampleDepth == -9, NA, sampleDepth)
     ) %>%
-    # Doesn't look like below code to fill in missing units is needed after filtering to only GL
-    # sum(is.na(df$UNITS))==0
-    # dplyr::mutate(
-    #   UNITS  = rev(names(table(UNITS)))[[1]],
-    #   .by = ANALYTE
-    # ) %>%
     # Note: CAST_COMMENT and CAST_FLAG are all NA
-    # Note: Averaging over RESULT is necessary below because sometimes multiple values present at same depth. Looking at data, this looks like due to possible data entry error due to upcasts being mislabeled, but this is a reasonable solution.
-    dplyr::reframe(.by = UID:ANALYTE, RESULT = mean(RESULT, na.rm = T), dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%
-    # , values_fill = list("RESULT" = 9999999, NA) - cannot fill in with a number or causes problems below
+    # Note: Averaging over RESULT is necessary below because sometimes multiple values are present at same depth. Looking at data, this looks like due to possible data entry error due to upcasts being mislabeled, but this is a reasonable solution.
+    dplyr::reframe(.by = UID:ANALYTE,
+                   RESULT = mean(RESULT, na.rm = T),
+                   dplyr::across(UNITS:QAcomment, function(x) toString(unique(x)))) %>%
+    # Also fill in stationDepth for rows where missing - and sometimes slight discrepancy between station depth for Kd/secchi and surface - Kd/secchi seems to match site file - surface seems related to CTD data - use max for now and coalesce with site info file later
+    dplyr::mutate(.by = c(SITE_ID, DATE_COL, UID),
+                  stationDepth = max(stationDepth, na.rm = T)) %>%
+    dplyr::mutate(sampleDate = lubridate::mdy(DATE_COL)) # no times
 
 
 
-    # KV: Code is now okay up until this point
-
-
-
-
-
-
-
-    # [ ] KV: *** I strongly suggest not doing these data manipulations by pivoting on the whole data frame. It is introducing too many errors. I would suggest instead splitting out the data that you need to do manipulations on (ambient and underwater PAR) and dealing with them separately, them joining them back in. Same comment on the NCCA water chemistry data **********
-
-    # [ ] KV: Also the QAcode and QAcomments get lost in the below process
-
-    tidyr::pivot_wider(id_cols = UID:CAST, names_from = ANALYTE, values_from = UNITS:RESULT) %>%
-    # fill in mean secchi in same rows where other results appear
-    dplyr::mutate(`RESULT_Mean secchi` =  mean(`RESULT_Mean secchi`, na.rm = T), .by = c(DATE_COL, SITE_ID)) %>%
-    # [ ] Secchi units not filled in and are missing in the final returned data
-    # remove where sechhi used to appear
-    tidyr::drop_na(sampleDepth) %>%
-    # [x] filter out where either ambientPAR or underPAR check if this does what we think
-
-    ### [ ] KV: **** This does not work to filter the data in this way - you are removing whole rows where PAR is missing but other data are available ****
-    dplyr::filter(!is.na(`RESULT_Underwater PAR`) & !is.na(`RESULT_Ambient PAR`)) %>%
-
-    # KV: It may work to just do this calculation without filtering above if it just produces NAs when one is available
-    dplyr::mutate(`RESULT_Corrected PAR` = `RESULT_Underwater PAR`/ `RESULT_Ambient PAR`) %>%
-
-    dplyr::select(-c(`RESULT_Underwater PAR`, `RESULT_Ambient PAR`, `UNITS_Ambient PAR`, `UNITS_Underwater PAR`)) %>%
-    tidyr::pivot_longer(cols= `UNITS_Mean secchi`:`RESULT_Corrected PAR`, names_pattern = "(.*)_(.*)$", names_to = c(".value", "ANALYTE")) %>%
-    # there aren't any comments so we assume that if value is nan (something we put in) it was not originally reported --
-    # KV: the comments are actually lost in this process - there are QAcode and QAcomment that need to be retained
-    dplyr::filter(!is.na(RESULT)) %>% # Replaced with a statement to remove NA, not 9999999
-    dplyr::mutate(sampleDepth = ifelse(ANALYTE == "Mean secchi", NA, sampleDepth)) %>%
-    # [ ] KV: Have repeated secchi observations for every depth - won't be a problem if split data out to manipulate cpar separately
-
-
-
-
-
-    #### Code okay after this point ####
-
-    dplyr::mutate(DATE_COL = lubridate::mdy(DATE_COL)) %>%
-    dplyr::mutate(
-    #  sampleDepth = ifelse(sampleDepth == -9.0, NA, sampleDepth),
-      Study = "NCCA_hydro_2010",
-      UNITS = ifelse(ANALYTE == "Corrected PAR", "percent", UNITS),
-      UNITS = ifelse(ANALYTE == "Conductivity", "uscm", UNITS) # adding because there's a weird special character
-      # # make site ids look like site id file
-      # SITE_ID = stringr::str_remove_all(SITE_ID, "NCCA10-"),
-      # SITE_ID = stringr::str_remove_all(SITE_ID, "NCCAGL10-"),
-      # SITE_ID = stringr::str_remove_all(SITE_ID, "GLBA10-"),
+  # Calculate CPAR by splitting out separately, then rejoin below
+  parDf <- df %>%
+    dplyr::filter(ANALYTE %in% c("Ambient PAR", "Underwater PAR")) %>%
+    # derive cpar
+    dplyr::summarize(
+      .by = -c(RESULT, ANALYTE, UNITS, QAcode, QAcomment),
+      APAR = mean(ifelse(ANALYTE == "Ambient PAR", RESULT, NA), na.rm = T),
+      UPAR = mean(ifelse(ANALYTE == "Underwater PAR", RESULT, NA), na.rm = T),
+      RESULT = 100 * (UPAR / APAR),
+      ANALYTE = "Corrected PAR",
+      # stationDepth = mean(stationDepth, na.rm = T),
+      UNITS = "percent",
+      QAcode = toString(unique(QAcode)),
+      QAcomment = toString(unique(QAcomment)),
     ) %>%
+    dplyr::select(-c(APAR, UPAR)) %>%
+    dplyr::filter(!is.na(RESULT))
+  # 3 NA values because UW PAR is missing
 
+
+
+  df <- df %>% dplyr::filter(! ANALYTE %in% c("Ambient PAR", "Underwater PAR")) %>%
+    dplyr::bind_rows(parDf) %>%
+    # Replace -9 secchi values with NA
+    dplyr::mutate(RESULT = ifelse(RESULT == -9 & ANALYTE == "Mean secchi", NA, RESULT)) %>%
+    # Below line doesn't remove anything, but ensures there are no missing values without a QAcode present
+    dplyr::filter(!(is.na(RESULT) & is.na(QAcode))) %>%
+    dplyr::mutate(
+      Study = "NCCA_hydro_2010",
+      UNITS = ifelse(ANALYTE == "Conductivity", "uscm", UNITS) # adding because there's a weird special character
+    ) %>%
     # add station info
     dplyr::left_join(sites, by = "SITE_ID") %>%
-    dplyr::mutate(stationDepth = dplyr::coalesce(stationDepth.x, stationDepth.y)) %>%
+    # Resolve discrepancies in stationDepth between site file and data file
+    dplyr::mutate(stationDepth = ifelse(SITE_ID %in% c("NCCAGL10-1095", "NCCAGL10-GLBA10-165"), stationDepth.y, stationDepth.x)) %>%
+    # look <- df2 %>% dplyr::select(SITE_ID, WTBDY_NM, stationDepth.x, stationDepth.y, stationDepth) %>% unique() %>% dplyr::filter(abs(stationDepth.x - stationDepth.y) > 1)
+    # "NCCAGL10-1124"  stationDepth.x correct   (larger)
+    # "NCCAGL10-GLBA10-165"   stationDepth.y correct (smaller)
+    # "NCCAGL10-GLBA10-026" stationDepth.x correct (larger)
+    # "NCCAGL10-1184"    stationDepth.x correct (smaller)
+    # "NCCAGL10-1213"       stationDepth.x correct (larger)
+    # "NCCAGL10-1095"    stationDepth.y correct (smaller)
     dplyr::select(-c(stationDepth.x, stationDepth.y)) %>%
     dplyr::rename(ReportedUnits = UNITS) %>%
-    # There is no ANL_CODE
-    # dplyr::mutate(
-    #   ANALYTE = stringr::str_trim(ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE)),
-    # ) %>%
-    # convert units
-    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    dplyr::left_join(key) %>%
+    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>% # sum(is.na(df2$CodeName))
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))  %>%
+    dplyr::left_join(key) %>% # sum(is.na(df2$TargetUnits))
     dplyr::mutate(
       ReportedUnits = as.character(ReportedUnits),
       ReportedUnits = stringr::str_remove(ReportedUnits, "/"),
       ReportedUnits = tolower(ReportedUnits)) %>% #
     dplyr::left_join(conversions) %>%
+    # df2 %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
   return(df)
@@ -149,12 +129,9 @@
 
 
 
-## KV left off here
 
 
-
-
-#' Load and join NCCA 2015 hydrographic data from csv files
+#' Load and join NCCA 2015 hydrographic data from online csv files
 #'
 #' @description
 #' `.loadNCCAhydro2015` returns a dataframe of all of the hydrographic data relating to NCCA 2010
@@ -162,50 +139,58 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param NCCAhydrofile2015 a string specifying the filepath of the data
+#' @param NCCAhydrofile2015 a string specifying the URL for the data
+#' @param NCCAsites2015 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAhydro2015 <- function(NCCAhydrofile2015, NCCAsites2015, namingFile, n_max = Inf) {
+
   sites <- .loadNCCASite2015(NCCAsites2015)
+
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
     dplyr::mutate(Units = tolower(stringr::str_remove(Units, "/"))) %>%
     dplyr::rename(TargetUnits = Units)
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
     # remove nas from table to remove ambiguities on joinging
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)
-      # Methods = ifelse(is.na(Methods), Study, Methods) # prefer to not fill in Methods if not available (keep as NA)
-    )
+    ) %>%
+    dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
+
+
 
   df <- readr::read_csv(NCCAhydrofile2015, n_max = n_max, show_col_types = FALSE) %>%
-    # the only comments mention no measurment data or typo
-    # [x] Need to remove all NARS_COMMENTs  -- KV: I don't see where this is done
-    # KV: Actually, only the 'Cast and depth provided but no measurement data; measurement depth > station depth (6.6m)' will be taken care of by just removing all NA values. And 'Typo - L uw? No field form available.' only catches one case of where UW > AMB light. There are other similar cases as well, so don't remove these.
-    # KV changed NCCA_hydro_2015 action in flagsMap to 'Keep' based on above notes
     dplyr::filter(CAST == "DOWNCAST") %>%
     dplyr::mutate(
-      `Corrected PAR` = LIGHT_UW / LIGHT_AMB,
-      sampleDateTime = as.Date(DATE_COL, origin = "1900-1-1"),
-      # [ ] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets and flags added. What happens when it is merged with the rest of the data without a time?
+      `Corrected PAR` = 100 * (LIGHT_UW / LIGHT_AMB),
+      sampleDate = as.Date(DATE_COL, origin = "1899-12-30"),
       Study = "NCCA_hydro_2015"
     ) %>%
+  # In Excel the date is represented as the integer part of the number, and counts the number of days since 1899-12-31. For example 1 is 1900-01-01.
+  # However you need to be aware there is a "bug" in Excel, it wrongly considers 1900 to be a leap year, i.e. it counts the date 1900-02-29 as a valid date. This bug was intentionally added to Excel so it would reproduce the wrong behaviour of Lotus, that was the most popular Windows spreadsheet software at the time Excel was created. So assuming you do not care about dates before 1900-03-01, then you could instead assume the number is a count of the number of days since 1899-12-30.
+
     # Some Corrected PAR is Inf because LIGHT_AMB==0, which must be incorrect
     # Replace Corrected PAR infinity values with NA
     dplyr::mutate(`Corrected PAR` = dplyr::na_if(`Corrected PAR`, Inf)) %>%
-    # dplyr::filter(!is.na(LIGHT_UW) | !is.na(LIGHT_AMB)) %>% # KV: You can't filter in this way or you are removing other data where light is missing but other parameters are measured
     dplyr::select(
       -c(LIGHT_AMB, LIGHT_UW)
     ) %>%
-    dplyr::rename(sampleDepth = DEPTH, stationDepth = STATION_DEPTH, QAcomment= NARS_COMMENT) %>%
-    # [ ] KV: Added QAcomment=NARS_COMMENT here to hopefully preserve the comments, which didn't seem to be happening. Note comments at beginning of function that we will not be using these comments to remove any data though. Check that it doesn't break anything
+    dplyr::rename(sampleDepth = DEPTH,
+                  stationDepth = STATION_DEPTH,
+                  QAcomment= NARS_COMMENT) %>%
     tidyr::pivot_longer(c(TRANS, CONDUCTIVITY:TEMPERATURE, `Corrected PAR`), names_to = "ANALYTE", values_to = "RESULT") %>%
     # Remove NAs after pivoting - gets rid of bad CPAR and other missing data
     dplyr::filter(!is.na(RESULT)) %>%
+    # Only relevant remaining comment is 'Typo - L uw? No field form available.' But this only catches one case of where UW > AMB light. There are other similar cases as well, so these won't be removed in flagsMap. Will add flag in final joined data for all cpar>100%
+    # Other remaining comment (Cast and depth provided but no measurement data; measurement depth > station depth (6.6m)) will be removed in flagsMap, or will be removed because it's for light transmission, which is an analyte we are not keeping currently
     dplyr::select(-DATE_COL) %>%
     dplyr::mutate(
       UNITS = dplyr::case_when(
@@ -217,17 +202,19 @@
       ANALYTE == "TRANS" ~ "percent",
       ANALYTE == "PH" ~ "unitless",
     )) %>%
-    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    dplyr::left_join(key) %>%
+    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>% # sum(is.na(df$CodeName))
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))  %>%
+    dplyr::left_join(key) %>% # sum(is.na(df$TargetUnits))
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(conversions) %>%
+    # df %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
     dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
     # add station info
-   dplyr::left_join(sites) # KV added this in, but not working properly
-  # [ ] KV: This is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
-
-  # [ ] KV: Note that time is not imputed here for sampleDateTime. Need a thorough check across datasets. What happens when it is merged with the rest of the data without a time?
+    dplyr::left_join(sites, by = c("UID", "SITE_ID")) %>%
+    # Note that there are cases where the stationDepth in the secchi and hydro files do not match the sites file. Sites file stationDepth appears to be more accurate and lines up with original secchi CTB flags, so use this one
+    # look <- df %>% dplyr::filter(stationDepth.x !=stationDepth.y) %>% dplyr::select(UID, SITE_ID, stationDepth.x, stationDepth.y) %>% dplyr::arrange(SITE_ID) %>% unique()
+    dplyr::select(-stationDepth.x) %>%
+    dplyr::rename(stationDepth=stationDepth.y)
 
   return(df)
 }
@@ -235,17 +222,22 @@
 
 
 
-#' Load and join secchi data for NCCA 2015 from csv files
+#' Load and join Secchi data for NCCA 2015 from online csv files
 #'
 #' @description
-#' `.loadNCCAsecchi2015` returns a dataframe of all of the joined secchi data relating to NCCA 2015
+#' `.loadNCCAsecchi2015` returns a dataframe of all of the joined Secchi data relating to NCCA 2015
 #'
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
-#' @return dataframe of the fully joined secchi data from NCCA 2015
+#' @param NCCAsecchifile2015 a string specifying the filepath of the data
+#' @param NCCAsites2015 a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
+#' @return dataframe of the fully joined Secchi data from NCCA 2015
 .loadNCCAsecchi2015 <- function(NCCAsecchifile2015, NCCAsites2015, namingFile, n_max = Inf) {
+
   sites <- .loadNCCASite2015(NCCAsites2015)
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
@@ -254,52 +246,62 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NCCA_Map", na.strings = c("", "NA")) %>%
-    # remove nas from table to remove ambiguities on joining
+    # remove NAs from table to remove ambiguities on joining
     dplyr::mutate(
       ANALYTE = ifelse(is.na(ANALYTE), ANL_CODE, ANALYTE),
       ANL_CODE = ifelse(is.na(ANL_CODE), ANALYTE, ANL_CODE)
-    )
+    ) %>%
+    dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
+
 
 
   df <- readr::read_csv(NCCAsecchifile2015, n_max = n_max, show_col_types = FALSE) %>%
     dplyr::filter(
-      # We will explicitly test if the measurements are greater than station depth
       !grepl("missing for this site", SECCHI_COMMENT, ignore.case = T),
       !grepl("unavailable for this site", SECCHI_COMMENT, ignore.case = T)
     ) %>%
-    # Confirmed that the reference date with Hugh and by reformatting in Excel
     dplyr::mutate(
-      SECCHI_TIME = round(as.numeric(SECCHI_TIME) * 24),
-      DATE_COL = as.Date(DATE_COL, origin = "1900-1-1"),
-      sampleDate = paste(DATE_COL, SECCHI_TIME, sep = "_"),
-      sampleDateTime = lubridate::ymd_h(sampleDate),
+      # sampleTimeUTC = round(as.numeric(SECCHI_TIME) * 24), # Time zone unknown so remove
+      # GLNS15-1340 visit 1 Taken 6-13-2015 due to lost secchi
+      DATE_COL = ifelse(SITE_ID=="GLNS15-1340" & VISIT_NO==1, DATE_COL+1, DATE_COL),
+      sampleDate = as.Date(DATE_COL, origin = "1899-12-30"),
     ) %>%
+    # In Excel the date is represented as the integer part of the number, and counts the number of days since 1899-12-31. For example 1 is 1900-01-01.
+    # However you need to be aware there is a "bug" in Excel, it wrongly considers 1900 to be a leap year, i.e. it counts the date 1900-02-29 as a valid date. This bug was intentionally added to Excel so it would reproduce the wrong behaviour of Lotus, that was the most popular Windows spreadsheet software at the time Excel was created. So assuming you do not care about dates before 1900-03-01, then you could instead assume the number is a count of the number of days since 1899-12-30.
+    dplyr::rename(stationDepth=STATION_DEPTH) %>%
     # This may look like we are keeping MEAN_SECCHI_DEPTH to average with the others,
     # However, we filter it out in the mean call
     tidyr::pivot_longer(c(MEAN_SECCHI_DEPTH, DISAPPEARS, REAPPEARS), names_to = "SecchiType", values_to = "RESULT") %>%
-    dplyr::reframe(
-      SITE_ID = toString(unique(SITE_ID)),
+    dplyr::filter(SecchiType != "MEAN_SECCHI_DEPTH") %>%
+    dplyr::summarize(
+      .by = c(UID, sampleDate, SITE_ID, stationDepth, VISIT_NO),
       ANALYTE = "Secchi",
-      DATE_COL = unique(DATE_COL),
-      sampleDateTime = mean(sampleDateTime, na.rm = T), # KV added this, was missing sampleDateTime otherwise
-      stationDepth = mean(STATION_DEPTH, na.rm = T),
-
-      # MEAN_SECCHI_DEPTH is the estimated column (from Kd)
-      # So we find the actual mean of the different casts manually
-      RESULT = mean(ifelse(SecchiType != "MEAN_SECCHI_DEPTH", RESULT, NA), na.rm = T),
-      # Compress all comments and note clear to bottom to be combined
-      # [x] change CLEAR_TO_BOTTOM to actually checking if Disappear/Reappear >= to Depth
-      # Check to see if this works
-      CLEAR_TO_BOTTOM = RESULT >= stationDepth,
-      QAcomment = toString(unique(SECCHI_COMMENT)),
-      .by = c(UID)
+      # Not using MEAN_SECCHI_DEPTH - the estimated column (from Kd)
+      # Calculate the actual mean of the disappear/reappear casts
+      RESULT = mean(RESULT, na.rm = T),
+      # Compress all comments
+      QAcomment = toString(unique(SECCHI_COMMENT))
     ) %>%
+    tidyr::drop_na(RESULT) %>%
+    # KV: NAs in RESULT seem to be cases where DISAPPEAR and REAPPEAR aren't available. Often these are marked as clear to bottom, but sometimes estimated value is inconsistent with this marking.
+    # Decided to remove as bad data
     dplyr::mutate(
-      # Looked through and saw none of the QAcomments were relevent
-      # So only relevant comments are related to whether clear to bottom
+      Study = "NCCA_secchi_2015",
+      UNITS = "m"
+    ) %>%
+    dplyr::left_join(sites, by = c("UID", "SITE_ID")) %>%
+    # Note that there are cases where the stationDepth in the secchi and hydro files do not match the sites file. Sites file stationDepth appears to be more accurate and lines up with original secchi CTB flags, so use this one
+    # look <- df %>% dplyr::filter(stationDepth.x !=stationDepth.y) %>% dplyr::select(UID, SITE_ID, stationDepth.x, stationDepth.y, RESULT, QAcode) %>% dplyr::arrange(SITE_ID)
+    dplyr::select(-stationDepth.x) %>%
+    dplyr::rename(stationDepth=stationDepth.y) %>%
+    dplyr::mutate(
+      # Check if the measurements are greater than station depth (rather than use CLEAR_TO_BOTTOM column)
+      CLEAR_TO_BOTTOM = RESULT >= stationDepth,
+      # Looked through and saw none of the QAcomments were relevant
+      # So replace with only whether clear to bottom
       QAcomment = NA,
       QAcode = dplyr::case_when(
         CLEAR_TO_BOTTOM == TRUE ~ "CTB"
@@ -308,36 +310,20 @@
         CLEAR_TO_BOTTOM == TRUE ~ "Secchi clear to bottom"
       )
     ) %>%
-    dplyr::mutate(
-      Study = "NCCA_secchi_2015",
-      UNITS = "m",
-      ANALYTE = "Secchi"#,
-      # CodeName = "Secchi",
-      # LongName = "Secchi"
-      ### *** KV: can't do these shortcuts or everything in the Key tab won't be joined in here properly, and if we change CodeName, that will be hard-coded here instead of changing with the Analytes3 spreadsheet
-    ) %>%
-    dplyr::left_join(sites) %>%
-    # [ ] KV: Site info is not joining for all sites. If you join by only SITE_ID, then there are multiple sites and stationDepth combos in the sites file, which causes problems due to multiple matches. If you join including stationDepth, then some secchi sites don't get matched because their stationDepth is not included in the sites file. Note: For some reason, site info joins properly for 2015 water chemistry but not for 2015 hydro or secchi. Perhaps this is why the site info was not joined for hydro 2015?? This needs to be investigating.
-
-    # KV added below code to properly join tables
-    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>%
-    dplyr::filter(CodeName != "Remove") %>%
-    dplyr::left_join(key) %>%
+    dplyr::left_join(renamingTable, by = c("ANALYTE", "Study")) %>% # sum(is.na(df$CodeName))
+    dplyr::filter(!grepl("remove", CodeName, ignore.case=T))  %>%
+    dplyr::left_join(key) %>% # sum(is.na(df$TargetUnits))
     dplyr::rename(ReportedUnits = UNITS) %>%
     dplyr::left_join(conversions) %>%
-    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor)) %>%
-    dplyr::filter(!is.na(RESULT))
-
-    # KV: NaN's in RESULT seem to be cases where DISAPPEAR and REAPPEAR aren't available. Often these are marked as clear to bottom, but sometimes estimated value is inconsistent with this marking.
-    # Decide to remove as bad data
-
+    # df %>% dplyr::filter(ReportedUnits != TargetUnits) %>% dplyr::reframe(sum(is.na(ConversionFactor)))
+    dplyr::mutate(RESULT = ifelse(is.na(ConversionFactor), RESULT, RESULT * ConversionFactor))
 
   return(df)
 }
 
 
 
-#' Load and join hydrographic and secchi data for NCCA 2010 and 2015
+#' Load and join hydrographic and Secchi data for NCCA 2010 and 2015
 #'
 #' @description
 #' `.loadNCCAhydro` returns a dataframe of all of the hydrographic data relating to NCCA 2010 and 2015
@@ -345,7 +331,14 @@
 #' @details
 #' This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
-#' @param filepath a string specifying the filepath of the data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the 2010 hydrographic data
+#' @param NCCAsites2010 a string specifying the URL for the 2010 site data
+#' @param NCCAhydrofile2015 a string specifying the URL for the 2015 hydrographic data
+#' @param NCCAsites2015 a string specifying the URL for the 2015 site data
+#' @param NCCAsecchifile2015 a string specifying the URL for the 2015 Secchi data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
+#'
 #' @return dataframe
 .loadNCCAhydro <- function(
     NCCAhydrofiles2010, NCCAsites2010,
@@ -361,18 +354,20 @@
 
 
 
-
 ##### NOTE KV HAS NOT REVIEWED THE 2020 HYDRO FUNCTION BELOW ####
 
-#' Load and join NCCA 2020 hydrographic data from csv files
+#' Load and join NCCA 2020 hydrographic data from online csv files
 #'
 #' @description
 #' `.loadNCCAhydro2020` returns a dataframe of all of the hydrographic data relating to NCCA 2010
 #'
 #' @details
-#' This is a hidden function, this should be used for development purposes only, users will only call
+#' THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 #' this function implicitly when assembling their full water quality dataset
 #' @param NCCAhydrofile2020 a string specifying the filepath of the data
+#' @param NCCAsites2020 a string specifying the URL for the 2020 site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param n_max Number of rows to read in from the data file (this is just for testing purposes)
 #' @return dataframe
 .loadNCCAhydro2020 <- function(NCCAhydrofile2020, NCCAsites2020, namingFile, n_max = Inf) {
   sites <- .loadNCCASite2020(NCCAsites2020)
@@ -405,5 +400,9 @@
       )) %>%
     dplyr::filter(CodeName != "Remove")
 
+  # missingness/joining checks:
+  # sum(is.na(df$CodeName)): 0
+  # sum(is.na(df$TargetUnits)): 0
+  # df %>% filter(ReportedUnits != TargetUnits) %>% reframe(sum(is.na(ConversionFactor))): 0 cases
   return(df)
 }

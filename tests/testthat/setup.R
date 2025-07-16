@@ -1,1 +1,0 @@
-options(testthat.output_file = "tests/testthat-out.xml")

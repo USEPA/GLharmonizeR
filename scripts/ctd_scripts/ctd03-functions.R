@@ -1,0 +1,114 @@
+# This function is used to preprocess CTD data (specifically data stored on GLNPO SeaBird app and shared from NOAA)
+# The preprocessing script is ctd02-preprocessing.R
+# Data are saved as .rds files on GL_Data repo for further use in the package
+
+# ** Using oce 1.8-4 **
+# Note PAR is now capitalized in this version
+
+
+.oce2df <- function(data, bin = TRUE, downcast = TRUE) {
+
+  # load data as oce object
+  # get Date, Lat, Lon, stationDepth # Station Name
+  meta <- data.frame(
+    "latitude" = data@metadata$latitude,
+    "longitude" = data@metadata$longitude,
+    "sampleDateTime" = data@metadata$date,
+    "sampleDateTime2" = data@metadata$startTime,
+    "waterDepth" = data@metadata$waterDepth,
+    "station" = data@metadata$filename
+  ) %>%
+  # start time more likely to have time of day too
+  mutate(sampleDateTime = coalesce(sampleDateTime2, sampleDateTime)) %>%
+  select(-sampleDateTime2)
+  units <- data@metadata$units
+
+
+  df <- data %>%
+    {
+      if (downcast) {
+        oce::ctdTrim(., method = "downcast")
+      } else {
+        .
+      }
+    } %>%
+    # QC: apply despike over all columns then grab dataframe
+    oce::despike(reference = "median") %>%
+    # handleFlags we need to find their flag reporting scheme
+    # oce::initializeFlagScheme(., name = "argo") %>%
+    # oce::handleFlags(.) %>%
+    .@data %>%
+    as.data.frame()
+
+  if (("PAR" %in% names(df)) & ("spar" %in% names(df))) {
+    df <- df %>%
+      dplyr::mutate(
+        # Derivatives
+        cpar = PAR / spar
+      )
+  }
+
+  df <- df %>%
+    dplyr::filter(depth > 0.1) %>%
+    # Select which sensor for each type of data
+    dplyr::select(dplyr::any_of(c("depth", "temperature", "cpar", "oxygen", "specificConductance", "pH", "conductivity", "PAR")))
+    # Note that this selects data from the first sensor - additional sensors have the same name followed by an integer
+  # *** Note that you need to be careful about the names here and check how they appear in ctd02-exploreNamesAndMeta.R because PAR, for example, was changed to all caps in oce 1.8-4
+
+
+  # possible names - excludes temperature here because data.frame is started with temperature included below
+  # *** Note that you need to be careful about the names here and check how they appear in ctd02-exploreNamesAndMeta.R because PAR, for example, was changed to all caps in oce 1.8-4
+  possibleNames <- c("cpar", "oxygen", "specificConductance", "pH") # Remove par, only want cpar
+
+  # [X] KV: What happens below if temperature is not included? Is this ever the case?
+  # Temp is always included for Seabird and NOAA, but this is something to keep an eye on for new datasets
+
+  if (bin) {
+    # Bin data
+    # start at 0.5m so that measures will be at integers matching other
+    temp <- oce::binAverage(y = df$temperature, x = df$depth, xmin = 0.5, xinc = 1)
+    temp <- data.frame("depth" = temp$x, "temperature" = temp$y)
+
+    for (analyte in possibleNames) {{ if (analyte %in% names(df)) {
+      temp <- temp %>%
+        dplyr::mutate(
+          "{analyte}" := oce::binAverage(y = df[[analyte]], x = df[["depth"]], xmin = 0.5, xinc = 1)$y
+        )
+    } }}
+  }
+
+  df <- temp %>%
+    # add meta data
+    dplyr::mutate(
+      Latitude = meta$latitude,
+      Longitude = meta$longitude,
+      Station = meta$station,
+      sampleDateTime = meta$sampleDateTime,
+      stationDepth = meta$waterDepth,
+      # Make station names similar to how they appear in GLENDA
+      # Station = stringr::str_remove_all(Station, ","),
+      # Station = stringr::str_remove_all(Station, " "),
+      # Station = stringr::str_remove_all(Station, "-"),
+      # Station = stringr::str_remove_all(Station, "_"),
+      Station = toupper(Station)
+    ) %>%
+    dplyr::rename(sampleDepth = depth) %>%
+    tidyr::pivot_longer(-c(sampleDepth, Station, Latitude, Longitude, stationDepth, sampleDateTime), names_to = "ANALYTE", values_to = "RESULT") %>%
+    dplyr::rename(STATION_ID = Station)
+
+  unitTable <- data.frame("ANALYTE" = unique(df$ANALYTE))
+  unitTable$UNITS <- sapply(unitTable$ANALYTE, function(x) as.character(units[[x]]$unit))
+  unitTable <- unitTable %>%
+    dplyr::mutate(UNITS = ifelse(grepl("/", UNITS),
+      stringr::str_remove_all(UNITS, pattern = "/"),
+      stringr::str_extract(UNITS, pattern = "C$")
+    ))
+
+  df <- df %>%
+    dplyr::left_join(unitTable, by = "ANALYTE")
+
+  return(df)
+}
+
+# Convert conductance with the following (suggested by James Gerads)
+# [microS/cm]  = (C * 10,000) / (1 + A * [T – 25]) with (C = conductivity (S/m), T = temperature (C), A = thermal coefficient of conductivity

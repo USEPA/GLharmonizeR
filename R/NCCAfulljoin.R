@@ -1,51 +1,58 @@
-#' Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data
+#' Read in NCCA 2010 and 2015 water chemistry and hydrographic data
 #'
 #' @description
 #' `.loadNCCA` returns water quality data along with spatial data from the
-#'  site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
+#'  site information measured through NCCA study in 2010 and 2015
 #'
 #' @details
-#' The spatial information for sites is read in using the .readSites helper functions, this is then
-#' joined to the water quality and hydrographic data and ultimately output as a data table.
-#' @param NCCAsites2010 filepath to site files
-#' @param NCCAsites2015 filepath to site files
-#' @param NCCAwq2010 filepath to 2010's data
-#' @param NCCAwq2015 filepaht to 2015 data
-#' @param NCCAhydrofiles2010 filepath to hydrogrpahic 2010 data
-#' @param NCCAhydrofile2015 filepath to hydrogarphic 2015 data
-#' @param NCCAjsecchifile2015  filepaht to secchi 2015 data
-#' @param Lakes List of Lakes to output
-#' @param namingFile filepath to Analytes3.xlsx which conatains names and conversions
+#' Join the water quality and hydrographic data and filter to specified lakes.
+#' @param NCCAsites2010 a string specifying the URL for the 2010 site data
+#' @param NCCAsites2015 a string specifying the URL for the 2015 site data
+#' @param NCCAwq2010 a string specifying the URL for the 2010 water chemistry data
+#' @param NCCAwq2015 a string specifying the URL for the 2015 water chemistry data
+#' @param NCCAhydrofiles2010 a string specifying the URL for the 2010 hydrographic data
+#' @param NCCAhydrofile2015 a string specifying the URL for the 2015 hydrographic data
+#' @param NCCAsecchifile2015 a string specifying the URL for the 2015 Secchi data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#' @param Lakes List of Great Lakes to output
 #' @param n_max integer specifying how many lines to read of each file to save time for testing
 #' @return dataframe
 .loadNCCA <- function(NCCAsites2010, NCCAsites2015, NCCAwq2010, NCCAwq2015,
                           NCCAhydrofiles2010, NCCAhydrofile2015, NCCAsecchifile2015,
-                          namingFile, 
+                          namingFile,
                           Lakes = NULL, n_max = Inf) {
+
+  # Note that all GL are included and have been cleaned
+
   NCCAhydro <- .loadNCCAhydro(
     NCCAhydrofiles2010, NCCAsites2010,
     NCCAhydrofile2015, NCCAsites2015,
     NCCAsecchifile2015, namingFile,
     n_max = n_max) %>%
-    dplyr::mutate(UID = paste0("NCCA_hydro", "-", as.character(UID)))
+    dplyr::select(-STUDY, -PUBLICATION_DATE, -YEAR, -INDEX_NCCA15, -SAMPLE_TYPE, -CLEAR_TO_BOTTOM, -NCCA_REG, -CAST)
+
+
+  # Fill in NCCAwq2010 site info using NCCAhydrofiles2010 data because the stationDepths were checked for accuracy in the 2010 hydro data  (compared to CTD depths) and want station info to match
+
+  # Pull out 2010 hydro site info here and join it below to wq data below
+  hydro2010_sitedat <- NCCAhydro %>% dplyr::filter(Study == "NCCA_hydro_2010") %>%
+    dplyr::select(SITE_ID, UID, Latitude, Longitude, stationDepth, WTBDY_NM) %>%
+    dplyr::distinct()
+
 
   # Read NCCA Water chemistry files
-  # [x] Make the wqQA argument name consistent over all levels
+  wq2010 <- .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = n_max) %>%
+    dplyr::left_join(hydro2010_sitedat) # Join in
+
+  wq2015 <- .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = n_max)
+
   nccaWQ <- dplyr::bind_rows(
-    .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = n_max),
-    .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = n_max)
-  ) %>%
-    # QC filters
-    # filter(! QACODE %in% c("J01", "Q08", "ND", "Q", "H", "L"))
-    dplyr::mutate(UID = paste0(Study, "-", as.character(UID)))
-
-
+      wq2010,
+      wq2015
+  )
 
 
   final <- dplyr::bind_rows(NCCAhydro, nccaWQ) %>%
-    # [x] Fix filter for region and lake
-    # Great lakes get's priority over spcifying each lake
-    #dplyr::filter(NCCA_REG == "Great Lakes") %>%
     {
      if (!is.null(Lakes)) {
        dplyr::filter(., WTBDY_NM %in% Lakes)
@@ -53,25 +60,10 @@
        .
      }
     } %>%
-    dplyr::mutate(
-      QAcode = dplyr::case_when(
-        is.na(ReportedUnits) & !grepl("hydro|secchi", Study, ignore.case = T) ~ paste0(QAcode, "; U"),
-        .default = QAcode
-      ),
-      QAcomment = dplyr::case_when(
-        is.na(ReportedUnits) & !grepl("hydro|secchi", Study, ignore.case = T) ~ paste0(QAcomment, "; No reported units, so assumed most common units for this given analyte-year"),
-        .default = QAcomment
-        # [ ] KV: Not sure why this code isn't applied to hydro or secchi study types?
-      )
+  dplyr::mutate(
+    UID = paste0("NCCA-", UID),
+    Finalized = as.character(Finalized) # Not sure if this is really necessary anymore?
     )
 
-  # Turn into test
-  # final %>%
-  #   filter(TargetUnits != ReportedUnits) %>%
-  #   filter(is.na(ConversionFactor)) %>%
-  #   count(ReportedUnits, Units, ConversionFactor)
-  # test %>%
-  #   filter(is.na(CodeName)) %>%
-  #   count(Study, ANALYTE, ANL_CODE, METHOD)
   return(final)
 }

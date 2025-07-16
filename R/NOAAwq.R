@@ -1,4 +1,17 @@
-
+#' Read in NOAA water chemistry data
+#'
+#' @description
+#' `.loadNOAAwq` returns water chemistry data provided by NOAA GLERL
+#'
+#' @details
+#' This is a hidden function, this should be used for development purposes only, users will only call
+#' this function implicitly when assembling their full water quality dataset
+#' @param noaaWQ a string specifying the URL for the corrected data based on 'edits_nutrients.xlsx' sent 2024-12-13. These were manually corrected.
+#' @param noaaWQ2 a string specifying the URL for additional nutrient data provided by GLERL.
+#' @param noaaWQSites a string specifying the URL for the site data
+#' @param namingFile a string specifying the URL for the analyte naming file
+#'
+#' @return dataframe
 .loadNOAAwq <- function(noaaWQ, noaaWQ2, namingFile, noaaWQSites) {
 
   key <- openxlsx::read.xlsx(namingFile, sheet = "Key") %>%
@@ -7,36 +20,30 @@
 
   conversions <- openxlsx::read.xlsx(namingFile, sheet = "UnitConversions") %>%
     dplyr::mutate(ConversionFactor = as.numeric(ConversionFactor)) %>%
-    unique() # Duplicate rows
+    dplyr::distinct() # Duplicate rows
 
   renamingTable <- openxlsx::read.xlsx(namingFile, sheet = "NOAA_Map") %>%
-    dplyr::select(Study, ANALYTE, CodeName, Units) # KV: Added Study
+    dplyr::select(Study, ANALYTE, CodeName)
+    # dplyr::select(-Units) # Should remove Units from these renamingTables so they don't cause confusion with the units parsed/read from the data. Units in renaming tables are prone to human error.
 
-  # KV: Edited to save NOAA site info as object to be able to look at it, so it's not read in twice, and so it's not hidden in code
+  # NOAA site info
   noaa_site_info <- openxlsx::read.xlsx(noaaWQSites, sheet = "siteNameMapping")
-    # dplyr::filter(Keep == "T")  %>%
-  # [X] KV: Actually need to keep the Keep column joined in and then use that column to remove sites not in Lake Michigan
-  # KV: Fixed errors in this file per Steve's comments
+  # Need to keep the 'Keep' column joined in and then use that column to remove sites not in Lake Michigan
 
 
   # Supplemental NOAA data - contains SRP and SiO2
   newNOAA <- openxlsx::read.xlsx(noaaWQ2) %>%
-    dplyr::mutate(time = "12:00") %>% # No times are included
+    # Note these supplemental data don't have times
+    tidyr::unite(sampleDate, Year, Month, Day, sep = "-", remove=FALSE) %>%
     dplyr::mutate(
-      QAcomment = "time imputed as noon",
-    ) %>%
-    tidyr::unite(sampleDateTime, Year, Month, Day, time, sep = "-", remove=FALSE) %>%
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_hm(sampleDateTime),
+      sampleDate = lubridate::ymd(sampleDate),
       SITE_ID = tolower(Station)
     ) %>%
     dplyr::select(-c(DOY, Station)) %>%
     dplyr::rename(sampleDepth = Depth) %>%
     tidyr::pivot_longer(cols = SRP.ugl:SiO2.mgl, names_to = "ANALYTE", values_to = "RESULT") %>%
-    tidyr::drop_na(RESULT) %>% # KV added to reduce data size in further manipulations
+    tidyr::drop_na(RESULT) %>% # reduce data size in further manipulations
     tidyr::separate(ANALYTE, into = c("ANALYTE", "ReportedUnits"), sep = "\\.") %>%
-    # [X] KV: Changed to ReportedUnits above to match code below
-    # [X] KV: Need to further edit SITE_ID as in below in order for noaa_site_info to join correctly
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"),
       SITE_ID = stringr::str_remove(SITE_ID, "leg"),
@@ -48,58 +55,68 @@
     dplyr::select(-c(SITE_ID, Keep, Justification)) %>%
     dplyr::rename(SITE_ID = SITE_ID.y)
 
-  # KV: Lots of details were missing in above code that are present in below code that did, in fact, need to be included.
 
 
   noaaWQdata <- openxlsx::read.xlsx(noaaWQ, sheet = "WQ 2007-2022") %>%
     dplyr::rename(SITE_ID = Station, sampleDepth = Depth.m) %>%
+    # Fix bad time
+    dplyr::mutate(
+      notes = ifelse(notes=="10.050000000000001", "0.41875", notes),
+    ) %>%
     dplyr::mutate(
       SITE_ID = stringr::str_remove_all(tolower(SITE_ID), "[[:blank:]]"),
       SITE_ID = stringr::str_remove(SITE_ID, "leg"),
       SITE_ID = stringr::str_remove(SITE_ID, "#"),
-      # only useful notes are when reporting sampling time
-      time = round(24 * as.numeric(notes)),
-      # [X] KV: Round time above so that there aren't decimals. Or else, need to convert decimal to minutes
-      # [ ] KV: Also need to specify eastern time zone? Here and elsewhere throughout data where appropriate. Otherwise, looks like UTC time zone is applied, which is not correct
-      QAcomment = ifelse(is.na(time), "time imputed as noon", NA),
-      time = ifelse(is.na(time), "12", time)
+      # use notes where reporting sampling time is reported
+      time = floor(24 * as.numeric(notes))
+    ) %>%
+    # *** What are the time zones in the notes column? ***
+    # If these times are CTD times, then they are UTC - per below, they don't necessarily match up. The times seem like they could be local time, but 8 hr ahead doesn't match up
+    # ***Just remove the times because unclear***
+    # file <- "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2019 CTD files/Laurentian/Pothoven_2019/5_21_19/cnv/Omega.cnv"
+    # 13:25. but time in notes is 21:24 (8 hr ahead of UTC)
+    # file <- "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2019 CTD files/Laurentian/Pothoven_2019/6_11_19/cnv/M15.cnv"
+    # 21:17; time in notes is 17:17 (4 hr behind UTC) - this is EDT
+    # file <- "C:/Users/KVITENSE/Environmental Protection Agency (EPA)/Lake Michigan ML - General/Raw_data/NOAA/CTD 2007-2022/2019 CTD files/Laurentian/Pothoven_2019/7_8_19/cnv/M15.cnv"
+    # 15:52 ; time in notes is 10:25 (5 hr behind UTC) - EST?
+    # look <- .oce2df(suppressWarnings(oce::read.oce(file, requireSalinity=FALSE)),  bin = TRUE, downcast = TRUE)
+
+    # tidyr::unite(sampleDateTime, Year, Month, Day, time, sep = "-", remove=FALSE) %>%
+    # dplyr::mutate(
+    #   sampleDateTime = lubridate::ymd(sampleDateTime),
+    #   sampleDate = lubridate::date(sampleDateTime),
+    #   sampleTimeUTC = lubridate::hour(sampleDateTime) # Not correct time zone?
+    # ) %>%
+    tidyr::unite(sampleDate, Year, Month, Day, sep = "-", remove=FALSE) %>%
+    dplyr::mutate(
+      sampleDate = lubridate::ymd(sampleDate),
     ) %>%
     dplyr::mutate(SITE_ID = ifelse(SITE_ID == "c1nobag", "c1", SITE_ID)) %>%
     dplyr::left_join(noaa_site_info, by = c("SITE_ID" = "Other.names")) %>%
     # SITE_ID.y is SITE_ID in noaa_site_info that all site names are mapped to, so keep this one
-    dplyr::filter(Keep=="T") %>% # KV: Need to actually use Keep column to filter out sites we don't want - this was problem for newNOAA above
+    dplyr::filter(Keep=="T") %>% # Need to  use Keep column to filter out sites we don't want
     dplyr::select(-c(SITE_ID, Keep, Justification)) %>%
     dplyr::rename(SITE_ID = SITE_ID.y) %>%
-    tidyr::unite(sampleDateTime, Year, Month, Day, time, sep = "-", remove=FALSE) %>%
-    # KV: Keeping extra date and time columns to check working correctly
-    dplyr::mutate(
-      sampleDateTime = lubridate::ymd_h(sampleDateTime),
-    ) %>%
-    # KV: secchi.m and PP.ugl are character - why?
-    # KV: PP is character because has one "?", which is fine to have go to NA using as.numeric()
-    # KV: secchi.m: the character values are CTB, plus one typo "7..5"
-    # [X] KV: Fix 7..5 typo in secchi
-    # [X] KV: Properly deal with secchi CTB - needs to be replaced with NA where has '(bottom)' in value,  flagged/noted in QAcode, and then a proper row for the study added to flagsMap.
+
+    # PP is character because has one "?", which is fine to have go to NA using as.numeric()
+    # secchi.m: the character values are CTB, plus one typo "7..5"
+    # Make a QAcode and QAcomment column for adding CTB secchi flag in wide format, and then once pivoted to long, remove it for non-Secchi analytes
     dplyr::mutate(
       QAcode = NA,
+      QAcomment = NA,
       Secchi.m = ifelse(Secchi.m=="7..5", "7.5", Secchi.m), # Fix typo for one secchi obs.
       QAcode = ifelse(grepl("bottom", Secchi.m), "CTB", QAcode),
+      QAcomment = ifelse(grepl("bottom", Secchi.m), "Secchi clear to bottom", QAcomment),
       Secchi.m = as.numeric(Secchi.m), # induce NAs where includes "bottom"
       PP.ugl = as.numeric(PP.ugl), # induce NA for "?"
     ) %>%
-    # KV commented this out - shouldn't be needed
-    # dplyr::mutate(
-    #   # fill in secchi for every sampling event and depth
-    #   Secchi.m = mean(Secchi.m, na.rm = T),
-    #   .by = c(sampleDateTime, SITE_ID),
-    # ) %>%
-    # [X] KV: Suggest making a QAcode column for adding CTB secchi flag in wide format, and then once pivoted to long, remove it for non-Secchi analytes
     tidyr::pivot_longer(cols = SurfaceTemp.C:N.mgl, names_to = "ANALYTE", values_to = "RESULT") %>%
-    # Remove CTB in QAcomment if analyte is not Secchi
+    # Remove flags in QAcode and QAcomment if analyte is not Secchi
     dplyr::mutate(
-      QAcode = ifelse(!ANALYTE=="Secchi.m", NA, QAcode)
+      QAcode = ifelse(!ANALYTE=="Secchi.m", NA, QAcode),
+      QAcomment = ifelse(!ANALYTE=="Secchi.m", NA, QAcomment)
     ) %>%
-    # Remove NAs unless has CTB in QACode
+    # Remove NAs unless is not NA in QACode
     dplyr::filter(!is.na(RESULT) | !is.na(QAcode)) %>%
     dplyr::mutate(
       sampleDepth = ifelse(ANALYTE == "Secchi.m", NA, sampleDepth), # Remove sampleDepth for secchi
@@ -118,14 +135,11 @@
     ) %>%
     dplyr::mutate(
       UID = paste(Study, SITE_ID, Year, Month, Day, sampleDepth, sep = "-")
-      # [X] KV: UID needs to be dealt with after joining newNOAA
-      # [X] KV: UID should probably be site ID, date, and sampleDepth
       # KV: Note that secchi and surface temp won't have matching UID because of sampleDepth
     ) %>%
     dplyr::left_join(renamingTable) %>%
     dplyr::filter(!grepl("remove", CodeName, ignore.case=T)) %>%
     dplyr::left_join(key, by = "CodeName") %>%
-    # [X] KV: Did not join conversions table or do the conversions - and Part_C and Part_N both need to be converted, so the data are wrong
     dplyr::left_join(conversions, by = c("ReportedUnits", "TargetUnits")) %>%
     dplyr::mutate(RESULT = ifelse(!is.na(ConversionFactor), RESULT * ConversionFactor, RESULT)) %>%
     # **** BE CAREFUL HERE IN CASE TARGET UNITS CHANGE FOR TP AND PP!!!! ****
@@ -145,12 +159,3 @@
   return(noaaWQdata)
 }
 
-# [X] KV: Need time flag added in flagsMap - put in QAcomment, blank for QAcode
-# [X] KV: Need secchi CTB QAcode flag added in flagsMap - blank for QAcomment
-# [X] KV: What about Steve's note about corrected values for Part_C on 9/6/2007 for Beta that were zero? - these are not included. Sent 12/13/2024 - edits_nutrients.xlsx
-# [X] KV manually edited the main nutrient doc with the edits Steve sent for C and N
-
-
-# file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2022 CTD files", "6659", "Pothoven", "278-22", "raw", "SBE19plus_01906659_2022_10_12_0011.hex")
-# file <- file.path(teamsFolder, "Raw_data", "NOAA", "CTD 2007-2022", "2007 ctd data", "2007", "079-07", "Laurent raw", "Omega0792007.CNV")
-# test <- oce::read.oce(file)

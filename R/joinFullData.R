@@ -1,12 +1,35 @@
-# This file will also need to be rechecked after fixing issues in the other files, plus addressing issues in comments below
-
+#' Load and join Great Lakes water quality data from GLNPO, CSMI, NCCA, and NOAA. Data currently limited to Lake Michigan.
 #'
-#' @param out (optional) filepath to save the dataset to
+#' @description
+#' `assembleData` returns a dataframe with harmonized water quality parameter names, units, and QC flags
+#' Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
+#' - 1983 - 2023
+#' - Seabird CTD 2003 - 2023
+#' CSMI
+#' - 2015, 2021
+#' National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
+#' - 2010, 2015
+#' National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
+#' - 2007 - 2022
+#' - CTD 2007 - 2022
+#'
+#' @details
+#' This is the main function of GLharmonizeR which assembles water quality data for the Great Lakes (currently only Lake Michigan) across multiple decades and data sources.
+#'
+#' @param out filepath specifying where to save the assembled data. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
-#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?
+#' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @return full, harmonized dataset
-assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
+#' @returns Harmonized water quality dataset for Lake Michigan. *FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS*
+#' @examples
+#' assembleData("filepath", binaryOut = FALSE)
+#' assembleData("filepath")
+assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
+
+  # To dos:
+  # [ ] make argument for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
+  # [ ] water body name argument once other lakes added in
+
   # Load up the filepaths
   filepaths <- .getFilePaths()
   NCCAhydrofiles2010 <- filepaths["NCCAhydrofiles2010"]
@@ -36,11 +59,10 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
   noaaWQ2 <- filepaths["noaaWQ2"]
   noaaCTD <- filepaths["noaaCTD"]
   noaaWQSites <- filepaths["noaaWQSites"]
-  # [ ] make arguement for source ("ALL", "GLENDA", "CSMI", "NCCA", "NOAA")
-  # [ ] Minyear maxyear arguments
-  # [ ] water body name argument
+
+
   n_max <- ifelse(.test, 1000, Inf)
-  # [x] report sample DateTime not just date
+
   print("Step 1/7: Read and clean NCCA")
   ncca <- .loadNCCA(
     NCCAsites2010, NCCAsites2015, NCCAwq2010,
@@ -49,64 +71,105 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     namingFile,
     Lakes = c("Lake Michigan"),
     n_max = n_max
-  ) %>%
-  dplyr::mutate(Finalized = as.character(Finalized))
-  # [ ] KV: Move this final mutate function to within .loadNCCA() function if still needed
+  )
 
-  print("Step 2/7: Read preprocessed GLNPO Seabird files")
-  seaBirdDf <- readr::read_rds(seaBird) %>%
-    # since pH aren't being converted, need to set the explicit units
-    dplyr::mutate(Explicit_Units= ifelse(CodeName == "pH", "unitless", Explicit_Units))
-  # [ ] KV: Looks like all of this code went to seaBirdProcessing.R, which is not a package function. I appreciate you moving the code to clean up this script, but we should not move code outside the core functions that would cause an update to Analytes3 to not get incorporated by running the package functions. See extensive comments in both seaBirdProcessing.R and NOAAProcessing.R regarding how to address this comment.
-  # [ ] KV: Also the mutate() line editing Explicit_Units should be in the new GLNPO Seabird CTD function you will create, not added here.
-
+  print("Step 2/7: Read and clean preprocessed GLNPO Seabird and NOAA CTD files")
+  GLNPOseabirdCTD <- .cleanGLNPOSeabirdCTD()
+  noaaCTD <- .cleanNOAACTD()
 
   print("Step 3/7: Read and clean GLENDA")
   GLENDA <- .readFormatGLENDA(Glenda, n_max = n_max) %>%
     .cleanGLENDA(.,
       namingFile = namingFile, imputeCoordinates = TRUE,
       GLENDAsitePath = GLENDAsitePath, GLENDAlimitsPath = GLENDAlimitsPath
-    ) %>%
-    dplyr::bind_rows(seaBirdDf) %>%
-    dplyr::mutate(
-      # This is mostly intended to fill in missing values for seabird
-      QAcomment = dplyr::case_when(
-        is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ paste0(QAcomment, "Station depth imputed from another site visit", sep = "; "),
-        is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ paste0(QAcomment, "Station depth imputed from maximum sample depth", sep = "; "),
-        .default = QAcomment),
-      stationDepth = dplyr::case_when(
-        is.na(stationDepth) & (sum(!is.na(stationDepth)) > 0) ~ mean(stationDepth, na.rm=TRUE),
-        is.na(stationDepth) & (sum(!is.na(sampleDepth)) > 0) ~ max(sampleDepth, na.rm = TRUE),
-        .default = stationDepth),
-      .by = STATION_ID
-
-      # [ ] KV: If we're going to impute stationDepth from max sampleDepth, this should probably only be done for the CTD data, with the assumption that the profile went all the way to the bottom. I don't think we should impute stationDepth using max of chemistry samples, but chemistry and CTD are combined here and so this may happen.
-          # Suggest first imputing stationDepth from other site visits
-          # Then use Study ID to only impute CTD stationDepth by maxDepth separately, adding a flag
-          # Then do another round of imputing stationDepth from other site visits, preserving the flag from other original maxDepth imputation
-      # [ ] KV: Also need to add formal flag for imputing stationDepth in flagsMap
-      # [ ] KV: Also get warning that it's replacing with -Inf for the max argument.
-            # 3: There were 113 warnings in `dplyr::mutate()`.
-            # The first warning was:
-            #   ℹ In argument: `stationDepth = dplyr::case_when(...)`.
-            # ℹ In group 24: `STATION_ID = "MI9552n"`.
-            # Caused by warning in `max()`:
-            #   ! no non-missing arguments to max; returning -Inf
     )
 
-  print("Step 4/7: Read and clean CSMI data")
-  CSMI <- .loadCSMI(csmi2010, csmi2015, csmi2021, namingFile = namingFile, n_max = n_max)
-  # [ ] KV: note that dplyr must be loaded or else doesn't find certain functions in CSMI files. This is likely KV's fault for not specifying package
+  # Use GLNPO GLENDA and Seabird databases to share site info for missing info:
 
-  print("Step 5/7: Read and clean NOAA data")
+  # Examine match between GLNPOseabirdCTD maxCTDdepth with GLENDA stationDepth
+  GLENDA_site_depths <- GLENDA %>%
+    tidyr::drop_na(stationDepth) %>%
+    dplyr::select(SITE_ID, stationDepth, sampleDate) %>%
+    dplyr::distinct() %>%
+    dplyr::summarize(
+      .by = c(SITE_ID),
+      # Note that some sites can have a wide range of values
+      # e.g., MI11 depth ranges from 70-132, with mean 126
+      # numStationDepth = length(unique(stationDepth)),
+      # maxDepth = max(stationDepth),
+      # minDepth = min(stationDepth),
+      GLENDAstationDepth = mean(stationDepth, na.rm=T)
+    )
+
+  GLENDA_site_depthsYR <- GLENDA %>%
+    tidyr::drop_na(stationDepth) %>%
+    dplyr::select(SITE_ID, stationDepth, sampleDate, YEAR) %>%
+    dplyr::distinct() %>%
+    dplyr::summarize(
+      .by = c(SITE_ID, YEAR),
+      # Note that some sites can have a wide range of values
+      # e.g., MI11 depth ranges from 70-132, with mean 126
+      # numStationDepth = length(unique(stationDepth)),
+      # maxDepth = max(stationDepth),
+      # minDepth = min(stationDepth),
+      GLENDAstationDepthYR = mean(stationDepth, na.rm=T)
+    )
+
+  # Per analysis below: use GLENDA stationDepth preferentially over CTD because CTD measurements not fully to bottom. Use year-specific GLENDA stationDepth where possible, then mean GLENDA stationDepth
+  # Then use maxCTDdepth as stationDepth estimate when SITE_ID not in GLENDA - add 'D' flag for station depth estimated as max CTD depth
+  # Not adding a flag for using GLENDA stationDepth for CTD
+  GLNPOseabirdCTD <- GLNPOseabirdCTD %>%
+    dplyr::select(-stationDepth) %>% # Note that stationDepth from CTD is all NA
+    dplyr::left_join(GLENDA_site_depths) %>%
+    dplyr::left_join(GLENDA_site_depthsYR) %>%
+    dplyr::mutate(
+      stationDepth = dplyr::coalesce(GLENDAstationDepthYR, GLENDAstationDepth)
+    ) %>%
+    # look <- GLNPOseabirdCTD %>% dplyr::filter(is.na(stationDepth))
+    # unique(look$SITE_ID) # Only "MIC" left
+    # "MIC" not in GLENDA -- but there are these sites names in GLENDA: "MIC-1n"    "MIC-2n"    "MIC-3n"    "MIC-45n"   "MIC-5n" "MIC-6n"    "MIC-7n"
+    # BASE file name is 70647_MIC_17.CNV - unable to infer site name from this path
+    # Use maxCTDdepth for remaining site and add flag
+    dplyr::mutate(
+      QAcode = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), "D", NA),
+      QAcomment = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), "station Depth estimated as the maximum CTD Depth", NA),
+      stationDepth = ifelse(is.na(stationDepth) & !is.na(maxCTDdepth), maxCTDdepth, stationDepth)
+    ) %>%
+    dplyr::select(-maxCTDdepth, -maxCTDdepthYR, -GLENDAstationDepth, -GLENDAstationDepthYR)
+
+  # Plot relationship between maxCTDdepth (max over all years) and GLENDAstationDepth (mean over all years)
+  # plot(maxCTDdepth~GLENDAstationDepth, data=GLNPOseabirdCTD)
+  # abline(0,1)
+  # maxCTDdepth over all seabird profiles correlates strongly with mean GLENDA stationDepth, but maxCTDdepth is consistently lower than GLENDA stationDepth
+
+  # Plot relationship between maxCTDdepthYR and GLENDAstationDepthYR by YEAR
+  # plot(maxCTDdepthYR~GLENDAstationDepthYR, data=GLNPOseabirdCTD)
+  # abline(0,1)
+  # maxCTDdepth by year correlates strongly with mean GLENDA stationDepth by year, but maxCTDdepth is consistently lower than GLENDA stationDepth, even by year
+
+  # Note that none of the GLENDA sites missing stationDepth are in Seabird for grabbing depth info
+  # GLENDA_miss <- GLENDA %>% dplyr::filter(is.na(stationDepth)) %>%
+  #   dplyr::select(SITE_ID) %>% unique()
+  # sum(GLENDA_miss$SITE_ID %in% GLNPOseabirdCTD$SITE_ID)
+
+  # Similarly, none of the GLENDA sites missing lat/longs are in Seabird
+  # GLENDA_missLAT <- GLENDA %>% dplyr::filter(is.na(Latitude)) %>%
+  #   dplyr::select(SITE_ID) %>% unique()
+  # sum(GLENDA_missLAT$SITE_ID %in% GLNPOseabirdCTD$SITE_ID)
+
+  # *** If add options to ask for specific datasets, note than both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned ***
+
+
+  print("Step 4/7: Read and clean CSMI data")
+  CSMI <- .loadCSMI(csmi2015, csmi2021, namingFile = namingFile)
+
+
+  print("Step 5/7: Read and clean NOAA WQ data")
   NOAA <- .loadNOAAwq(noaaWQ, noaaWQ2, namingFile, noaaWQSites)
-  noaaCTD <- readr::read_rds(noaaCTD)
-  # [ ] KV: This will need to be replaced with calling the new NOAA CTD function you will create
-  NOAA <- dplyr::bind_rows(NOAA, noaaCTD)
 
 
   print("Step 6/7: Combine and return full data")
-  allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA) %>%
+  allWQ <- dplyr::bind_rows(ncca, GLENDA, CSMI, NOAA, GLNPOseabirdCTD, noaaCTD) %>%
     dplyr::mutate(
       SITE_ID = dplyr::coalesce(SITE_ID, STATION_ID),
       RL = dplyr::coalesce(LRL, MRL, rl),
@@ -114,8 +177,9 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
     ) %>%
     dplyr::select(
       # time and space
-      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth", "sampleDepth",  "sampleDateTime",
-      # [ ] KV: After decision to split sampleDate and sampleTime, will need to change column names here accordingly
+      "UID", "Study", "SITE_ID", "Latitude", "Longitude", "stationDepth",
+      "sampleDepth",  "sampleDate", "sampleDateTime", "DEPTH_CODE",
+      # Dropping sampleTimeUTC and keeping sampleDateTime instead (in UTC)
       # analyte name
       "CodeName", "ANALYTE", "Category", "LongName", "Explicit_Units",
       # measurement and limits
@@ -123,30 +187,24 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
       # unit conversion
       "TargetUnits", "ReportedUnits", "ConversionFactor",
       # QA
-      "QAcode", "QAcomment", "METHOD", "LAB", contains("QAconsiderations")
+     "METHOD", "LAB", dplyr::contains("QAconsiderations"),  "QAcode", "QAcomment"
     ) %>%
-    # [ ] KV: Could add in DEPTH_CODE eventually if decide need it at some point, and could add in any depth codes from CSMI (2015 at least)
-    # catching some where units were inferred
-    # KV: I don't think there are any cases of inferred units anymore below. From flagsMap, looks like they previously were used for NCCA_hydro_2010, NCCA_hydro_2015, NCCA_secchi_2015, but these unit issues have likely been resolved elsewhere.
+    dplyr::rename(sampleDateTimeUTC = sampleDateTime) %>%
+    # Look at duplicated observations
+    # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDate, sampleDateTimeUTC, sampleDepth, CodeName)
+    # unique(dupes$Study)
+    # NOAA secchi repeated in a few instances
+    # NOAActd has lots of repeated data - perhaps CTD files are in there twice.
+    # SeaBird - Lots of SeaBird CTD repeated twice
 
-    # [ ] KV: De-duplicate here after resolving duplicate issues below Step 6 - i.e., add distinct() here
-
-    dplyr::mutate(
-      QAcode = ifelse(grepl("no reported units", QAcomment, ignore.case = T),
-        paste0(QAcode, sep = "; ", "U"), QAcode),
-      QAcomment = ifelse((QAcode == "U") & is.na(QAcomment),
-        "No reported units, assumed most common units in analyte-year", QAcomment
-      )
-    ) %>%
-
-    # [ ] KV: note that SeaBird and NOAActd are missing some unit information (e.g., TargetUnits) - likely will be fixed when code is updated and table joins are refreshed dynamically
+    # Remove duplicates
+    dplyr::distinct() %>%
 
     # Add in flags to catch limit issues
     dplyr::mutate(
-      # [X] KV: Split out MDL, RL, and Estimated cases to deal with NAs
 
       # Flag if below detection limit
-      # KV: Note that this catches a bunch of early GLENDA data that are below MDLs but not flagged, and catches CSMI_2015 and NCCA_WChem_2010
+      # Note that this catches a bunch of early GLENDA data that are below MDLs but not flagged, and catches CSMI_2015 and NCCA_WChem_2010
       QAcode = dplyr::case_when(
         is.na(MDL) ~ QAcode,
         RESULT >= MDL ~ QAcode,
@@ -187,180 +245,256 @@ assembleData <- function(out = NULL, .test = FALSE, binaryOut = FALSE) {
         (RESULT >= MDL) & (RESULT <= RL) ~ paste(QAcomment, "Estimated", sep = "; "),
         .default = QAcomment
       )
-      # [X] KV: Note that there are some NCCA_WChem_2015 ammonium values between MDL and RL that didn't get flag as estimated -- need to add flag
-      # [X] KV: Add Estimated and RL flags for all studies to flagsMap
+    ) %>%
+    # Replace negative CPAR with 0 and add flag for CPAR>100%
+    dplyr::mutate(
+      RESULT = ifelse(CodeName == "CPAR" & RESULT<0, 0, RESULT),
+      QAcode = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcode, "PAR", sep = "; "), QAcode),
+      QAcomment = ifelse(CodeName == "CPAR" & RESULT>100, paste(QAcomment, "Underwater PAR exceeds surface PAR", sep = "; "), QAcomment)
+    ) %>%
+    # Make "NA" be NA, not character
+    dplyr::mutate(
+      QAcode = ifelse(QAcode=="NA", NA, QAcode),
+      QAcomment = ifelse(QAcomment=="NA", NA, QAcomment)
     )
 
 
-  # [ ] KV: After confirming below issues are okay or resolved, add distinct() to the above Step 6 where noted to reduce the size of the joined data
 
-  # [ ] KV: *** Why are there duplicated rows? This should not be the case. Check before do anything else ***
-  # dupes <- allWQ %>% group_by_all() %>% mutate(duplicated = n() >1) %>% ungroup() %>% filter(duplicated==TRUE) %>% arrange(Study, SITE_ID, sampleDateTime, sampleDepth, CodeName)
-  # [ ] KV: NCCA_hydro_2010 - Repeated Secchi values already noted where appropriate. Also has -9 values, which may not be noted or dealt with? Are those CTB? If so, they aren't flagged
-  # NOAA_WQ - Secchi repeated in a few instances - makes sense to just do distinct() here
-  # NOAActd - Lots of NOAA CTD repeated twice - perhaps CTD files are in there twice. Makes sense to do distinct() here
-  # [ ] KV: SeaBird - Lots of SeaBird CTD repeated twice, but not consistently for each parameter, like for NOAA. Seems odd???
+
+
+# round(colMeans(is.na(allWQ)), 3)
+  # UID               Study           SITE_ID          Latitude         Longitude
+  # 0.000             0.000             0.000             0.011             0.011
+  # stationDepth       sampleDepth        sampleDate sampleDateTimeUTC        DEPTH_CODE
+  # 0.018                    0.006             0.000             0.180             0.755
+  # CodeName           ANALYTE          Category          LongName    Explicit_Units
+  # 0.000              0.000             0.000             0.000             0.000
+  # RESULT               MDL                RL       TargetUnits     ReportedUnits
+  # 0.003              0.923             0.997             0.000             0.000
+  # ConversionFactor     METHOD               LAB            QAcode         QAcomment
+  # 0.669                 0.751             0.985             0.958             0.940
+# Most have times as well as dates
+
 
 
 
 
 
   print("Step 7/7 joining QC flags and suggestions to dataset")
-  # [x] Split into flagged and unflagged values
-  # [ ] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
-  notflagged <- allWQ %>%
-    dplyr::filter((is.na(QAcode) & is.na(QAcomment)) ) %>% # KV removed: | (grepl("SeaBird|CSMI|NOAAwq", Study))
-    dplyr::distinct()
 
-  # [ ] KV: Currently some QAcomment (and maybe QAcode) have NA appended to them and/or are not spaced or separated from others - see if can fix this in respective functions
-
-  # [x] join flag explanations
-  flags <- openxlsx::read.xlsx(flagsFile) %>%
-    # Fill in missing for fuzzy join to work
-    dplyr::mutate(
-      QAcode = ifelse(is.na(QAcode), Study, QAcode),
-      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
-    )
-  # [X] KV: Why put Study in for QAcode/QAcomment when missing instead of just repeating QAcode/QAcomment in both? Does it really need to be filled in at all?
   # fuzzy join solution from
   # https://stackoverflow.com/questions/69574373/joining-two-dataframes-on-a-condition-grepl
 
-  # [ ] KV: Note that NOAA_WQ flags may be weird (KV addition) - time imputed as noon occurs only in QAcomment, secchi CTB appeas only in QAcode - can have both in conjunction that need to be recognized - should work with fuzzy join? Also probably getting rid of time imputation anyway, so possibly not an issue
+  # flag mapping file
+  flags <- openxlsx::read.xlsx(flagsFile) %>%
+    dplyr::rename(
+      QAcode2 = QAcode,
+      QAcomment2 = QAcomment) %>%
+    # Fill in missing for fuzzy join to work
+    dplyr::mutate(
+      QAcode2 = ifelse(is.na(QAcode2), "XXXX", QAcode2),
+      QAcomment2 = ifelse(is.na(QAcomment2), "XXXX", QAcomment2)
+    ) %>%
+    dplyr::distinct()
 
-    # [X] KV: This needs to be done differently below by NOT filtering out by study. For example, I am adding a secchi CTB flag for NOAAwq but would need to also remove NOAAwq below rather than just add a row in flagsMap
-    flagged <- allWQ %>%
-    dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)) )) %>% # KV removed: | (grepl("SeaBird|CSMI|NOAAwq", Study))
-      dplyr::distinct() %>%
-      dplyr::mutate(
-      QAcode = stringr::str_remove_all(QAcode, "^NA;"),
-      QAcode = stringr::str_remove_all(QAcode, "[:space:]"),
+  # data without flags
+  notflagged <- allWQ %>%
+    dplyr::filter((is.na(QAcode) & is.na(QAcomment)))
+
+  # data with flags
+  flagged <- allWQ %>%
+    dplyr::filter(!((is.na(QAcode) & is.na(QAcomment)))) %>%
+    dplyr::mutate(
+      QAcode = stringr::str_remove_all(QAcode, "^NA; "),
       QAcode = stringr::str_replace_all(QAcode, ",", ";"),
-      QAcode = ifelse(is.na(QAcode), Study, QAcode),
-      QAcomment = ifelse(is.na(QAcomment), Study, QAcomment)
+      QAcomment = stringr::str_remove_all(QAcomment, "^NA; "),
+    ) %>%
+    dplyr::mutate(QAcode2=QAcode, QAcomment2 = QAcomment) %>%
+    dplyr::mutate(
+      # QAcode2 = stringr::str_remove_all(QAcode2, "^NA"),
+      # QAcode2 = stringr::str_remove_all(QAcode2, "NA"),
+      QAcode2 = stringr::str_remove_all(QAcode2, "[:space:]"),
+      QAcode2 = stringr::str_remove_all(QAcode2, "^,"),
+      QAcode2 = ifelse(QAcode2 == "", NA, QAcode2),
+      QAcode2 = ifelse(is.na(QAcode2), "XXXX", paste0(QAcode2, ";XXXX")),
+      QAcode2 = stringr::str_remove_all(QAcode2, "^; "),
+      # QAcomment2 = stringr::str_remove_all(QAcomment2, "^NA"),
+      QAcomment2 = stringr::str_remove_all(QAcomment2, "^; "),
+      QAcomment2 = ifelse(QAcomment2 == "", NA, QAcomment2),
+      QAcomment2 = ifelse(is.na(QAcomment2), "XXXX", paste0(QAcomment2, "; XXXX"))
+      # **** Need to add a placeholder to both QAcode2 and QAcomment2 so that flags that appear in only QAcode or QAcomment in data will surely be mapped!
+      # However, need to add a placeholder that does NOT have letters that appear in any flags on its own (like N) because it will be mapped to that flag (e.g., previously used Study to augment all code and comments, but NCCA studies were mapped to N flag) - now using 'XXXX' - X is not a QAcode across studies, and 'XXXX' does not appear in comments *****
     ) %>%
     fuzzyjoin::fuzzy_join(flags,
-    by=c("Study", 'QAcode', "QAcomment"),
-    mode='left', #use left join
-    match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
-  ) %>%
-  # [ ] KV: I don't think the fuzzy_join is working in all cases
-  # [ ] KV: For NOAA_WQ secchi, QAcode==CTB and QAcomment=="time imputed as noon" does not get mapped to either flag. Needs to be dealt with differently in NOAAwq.R, but also reflects larger problem.
-  # [ ] KV: Actually, many do not appear to map correctly. These below should all have non-NA values in Retain if they mapped correctly, right? See:
-      # look_NAretain <- flagged %>% filter(is.na(Retain))
-      # lookNAretain_uniq <- look_NAretain %>% dplyr::select(Study.x, CodeName, ANALYTE, QAcode.x, QAcomment.x, Unified_Flag, Retain ) %>% distinct()
-      # I don't think there's one reason these are all not mapping correctly - they all likely need to be investigated separately.
-      # It also partly looks like it doesn't work correctly for cases where, for example, QAcode and QAcomment don't have the same values in both the data and flagsMap - meaning one column can't be NA in the data if it is not NA in flagsMap. e.g., NCCA_WChem_2010 with QAcode==J01 doesn't map correctly in the data if QAcomment is empty. Seems like both QAcode and QAcomment need to match or it doesn't work (i.e., you can't have one column be empty). Filling in with Study does not solve the problem (e.g., some flags are only found in either QAcode or QAcomment in the data).
-      # Some of these can probably be solved (like NCCA) by adding extra rows for cases where only QAcode is present in the data and not QAcomment
-      # Some are just missing in flagsMap
-      # Some need to be dealt with differently (like NOAA_wq secchi)
+      by=c("Study", 'QAcode2', "QAcomment2"),
+      mode='left', # left join
+      match_fun = list(`==`, stringr::str_detect, stringr::str_detect)
+    ) %>%
+    # Use QAcode2.x and QAcomment2.x that have all codes/comments
     dplyr::mutate(
-      # grab values in the mapping file in case we filled out by hand
-      Study = dplyr::coalesce(Study.x, Study.y),
-      QAcode = dplyr::coalesce(QAcode.x, QAcode.y),
-      QAcomment = dplyr::coalesce(QAcomment.x, QAcomment.y),
+      Study = Study.x,
+      QAcode2 = QAcode2.x,
+      QAcomment2 = QAcomment2.x,
     ) %>%
     dplyr::select(
-      -c(dplyr::ends_with("\\.y"), dplyr::ends_with("\\.x"))
+      -c(Study.x, Study.y, QAcode2.x, QAcode2.y, QAcomment2.x, QAcomment2.y)
     ) %>%
-  # Compress instances that were matched multiple times into sinlge observation
-  # for QA comments and codes
-  # Checked dimenisons and this preserved the number of observvations from flgagd
-  # data
+    # Compress instances that were matched multiple times into single observation
     dplyr::reframe(
-      QAcode = toString(unique(QAcode)),
-      QAcomment = toString(unique(QAcomment)),
+      # Don't need to retain these temporary QAcode2 and QAcomment2 columns - just for joining
+      # QAcode2 = toString(unique(QAcode2)),
+      # QAcomment2 = toString(unique(QAcomment2)),
       Definition = toString(unique(Definition)),
       Unified_Flag = toString(unique(Unified_Flag)),
       Unified_Comment = toString(unique(Unified_Comment)),
       Retain = toString(unique(Retain)),
       Action = toString(unique(Action)),
      .by = c(
-      UID, Study, SITE_ID, Latitude, Longitude, sampleDepth, stationDepth, sampleDateTime, CodeName,
-      ANALYTE, Category, LongName, Explicit_Units, ConversionFactor, TargetUnits, ReportedUnits, RESULT,
-      MDL,
-       RL, LAB, METHOD # KV added missing Explicit_Units and METHOD
+      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDepth, sampleDate, sampleDateTimeUTC, DEPTH_CODE, CodeName,
+      ANALYTE, Category, LongName, Explicit_Units, RESULT, MDL, RL, TargetUnits, ReportedUnits, ConversionFactor, METHOD, LAB,  QAcode, QAcomment
     ))  %>%
-     # handle Retain column by priority
-  # We're joining by QAcode and QAcomment so this only removes based on the comment as well
+  # Clean up unified flags/comments
+  dplyr::mutate(
+    Unified_Flag = ifelse(Unified_Flag == "NA", NA, Unified_Flag),
+    Unified_Flag = stringr::str_remove_all(Unified_Flag, "NA, "),
+    Unified_Flag = stringr::str_remove_all(Unified_Flag, ", NA"),
+
+    Unified_Comment = ifelse(Unified_Comment == "NA", NA, Unified_Comment),
+    Unified_Comment = stringr::str_remove_all(Unified_Comment, "NA, "),
+    Unified_Comment = stringr::str_remove_all(Unified_Comment, ", NA")
+  ) %>%
+  # Remove any flagged observations that have 'Remove' in the Retain column
+  dplyr::filter(!grepl("Remove", Retain, ignore.case = TRUE)) %>%
+  # handle Retain column in order of flag priority
   dplyr::mutate(
     RESULT = dplyr::case_when(
       is.na(Unified_Flag) ~ RESULT,
-      grepl("N;|N$", Unified_Flag) ~ NA,
-      # These next two are set in deliberate order set priority to the more complex match
-      grepl("E;|E$", Unified_Flag) ~ RESULT,
-      grepl("R;|R$", Unified_Flag) ~ NA,
-      grepl("B;|B$", Unified_Flag) ~ NA,
+      # Set non-detects to NA
+      grepl("N", Unified_Flag) ~ NA,
+      # Keep estimated values
+      grepl("E", Unified_Flag) ~ RESULT,
+      # Set < reporting limit to NA if not also an estimate
+      grepl("R", Unified_Flag) ~ NA,
+      # Set all secchi clear to bottom to NA result
+      grepl("B", Unified_Flag) ~ NA,
       .default = RESULT
-    ),
-    # Cleaning up unified flags
-    Unified_Flag = stringr::str_remove_all(Unified_Flag, "NA"),
-    Unified_Flag = ifelse(Unified_Flag == "", NA, Unified_Flag),
-    Unified_Flag = stringr::str_remove(Unified_Flag, "^,"),
-    Unified_Flag = stringr::str_squish(Unified_Flag)
-  ) %>%
-  # [x] Make sure NA flag doesn't break this - this is exclusively flagged stuff so should work
-  dplyr::filter(!grepl("Remove", Retain) | is.na(Retain) | is.na(Unified_Flag))
-  # [ ] KV: From above, several of these have NA in Retain because they did not map
+    )
+  )
+  # Checks
+  # look <- flagged %>% dplyr::filter(grepl("N", Unified_Flag)) # All NA
+  # look <- flagged %>% dplyr::filter(grepl("E", Unified_Flag)) # All numeric
+  # look <- flagged %>% dplyr::filter(Unified_Flag=="R") # All NA
+  # look <- flagged %>% dplyr::filter(grepl("B", Unified_Flag)) # All NA
 
-  # recombine full dataset
+
+
+  # Recombine full dataset and convert sampleDate to be EST
   allWQ <- dplyr::bind_rows(flagged, notflagged) %>%
-    # dplyr::mutate(Units = Explicit_Units) %>%
     dplyr::select(
-      UID, Study, SITE_ID, Latitude, Longitude, stationDepth, sampleDateTime, sampleDepth,
-      CodeName, LongName, RESULT, Explicit_Units, MDL, # PQL,
-      RL, Unified_Flag, Unified_Comment,
-      Category, METHOD, LAB, Orig_QAcode=QAcode, Orig_QAcomment=QAcomment,
-      Orig_QAdefinition=Definition, ANALYTE_Orig_Name=ANALYTE, ReportedUnits,
-      TargetUnits, ConversionFactor, Retain_InternalUse=Retain,
-      Action_InternalUse=Action) %>%
-    dplyr::arrange(sampleDateTime, SITE_ID, sampleDepth, LongName)
+      # Time and space
+      UID,
+      Study,
+      SITE_ID,
+      Latitude,
+      Longitude,
+      stationDepth,
+      sampleDate,
+      sampleDateTimeUTC,
+      sampleDepth,
+      DEPTH_CODE,
+      # Analyte name
+      CodeName,
+      LongName,
+      Category,
+      ANALYTE_Orig_Name=ANALYTE,
+      # Measurement and limits
+      RESULT,
+      MDL,
+      RL,
+      # Unit conversion
+      Units = Explicit_Units,
+      ReportedUnits,
+      ConversionFactor,
+      # QA
+      Unified_Flag,
+      Unified_Comment,
+      METHOD,
+      LAB,
+      Orig_QAcode = QAcode,
+      Orig_QAcomment = QAcomment,
+      Orig_QAdefinition=Definition#,
+      # Retain_InternalUse=Retain,
+      # Action_InternalUse=Action
+      ) %>%
+    dplyr::mutate(
+      sampleDateTimeEST = lubridate::with_tz(sampleDateTimeUTC, "Etc/GMT+5"),
+      sampleDateEST = lubridate::date(sampleDateTimeEST),
+      sampleDate = dplyr::coalesce(sampleDateEST, sampleDate)
+    ) %>%
+    dplyr::select(-c(sampleDateTimeEST, sampleDateEST)) %>%
+    dplyr::arrange(sampleDate, sampleDateTimeUTC, SITE_ID, sampleDepth, LongName)
 
-# allWQ %>%
-#   filter(is.na(RESULT) & is.na(Unified_Flag)) %>%
-#   reframe(s = sum(is.na(RESULT)), .by = c(Study, CodeName)) %>%
-#   print(n = 300)
-# allWQ %>%
-#   reframe(s = mean(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
-#   print(n = 300)
+
+  # round(colMeans(is.na(allWQ)), 2)
+  # UID             Study           SITE_ID          Latitude         Longitude
+  # 0.00              0.00              0.00              0.01              0.01
+  # stationDepth        sampleDate sampleDateTimeUTC       sampleDepth        DEPTH_CODE
+  #         0.02              0.00              0.18              0.01              0.76
+  # CodeName          LongName          Category ANALYTE_Orig_Name            RESULT
+  #     0.00              0.00              0.00              0.00              0.01
+  #   MDL                RL             Units     ReportedUnits  ConversionFactor
+  #  0.92              1.00              0.00              0.00              0.67
+  # Unified_Flag   Unified_Comment            METHOD               LAB       Orig_QAcode
+  #         0.94              0.94              0.75              0.99              0.96
+  # Orig_QAcomment Orig_QAdefinition
+  #           0.94              0.94
 
 
-  if (!is.null(out) & binaryOut) {
-    print(paste0("Writing data to ", out, ".Rds"))
-    saveRDS(allWQ, paste0(out, ".Rds"))
-  } else {
-    out <- paste0(out, ".csv")
+  # allWQ %>%
+  #   dplyr::reframe(s = sum(is.na(RESULT) & is.na(Unified_Flag)), .by = c(Study, CodeName)) %>%
+  #   print(n = 300)
+
+  # check missingness
+  # allWQ %>%
+  #   dplyr::reframe(across(everything(),
+  #           function(x) round(mean(is.na(x)), 2)),
+  #           .by = Study) %>%
+  #   View()
+
+  # allWQ %>%
+  #   dplyr::reframe(across(everything(),
+  #           function(x) sum(!is.na(x))),
+  #           .by = Study) %>%
+  #   View()
+
+  # allWQ %>%
+  #   dplyr::reframe(dplyr::across(c(Latitude, Longitude),
+  #             c(
+  #               "max" = function(x) max(x, na.rm = T),
+  #               "min" = function(x) min(x, na.rm = T)
+  #               )),
+  #           .by = Study) %>%
+  #   View()
+
+
+
+
+  # Write data
+  if (!is.null(out) & binaryOut == TRUE) {
+    print(paste0("Writing data to ", out, ".rda"))
+    save(allWQ, file = paste0(out, ".rda"))
+  }
+  if (!is.null(out) & binaryOut == FALSE) {
     print(paste0("Writing data to ", out, ".csv"))
-    readr::write_csv(allWQ, file = out, progress = readr::show_progress())
+    readr::write_csv(allWQ, file = paste0(out, ".csv"), progress = readr::show_progress())
   }
 
+
+
   return(allWQ)
+
 }
 
-# *** KV list ***
-# [ ] Does package load dplyr? If not, there are several helper functions that need to have dplyr loaded or need to have dplyr:: added (e.g., join_by)
-# [ ] Need to check how UIDs are generated for studies that don't have them - Ideally, do combination of Study, site ID, date, and sampleDepth so that multiple metrics that match these have the same UID (rather than row number)
-# [ ] Add flag for all CPAR>100% across datasets but keep in
-# [ ] Need flag for station depth imputed from another site visit
-# Time imputation issues:
-# [ ] Did flag for imputing sample time as noon get incorporated universally? Only for GLENDA (T Flag) - others need it?
-# [ ] Need thorough check for missing times being imputed - not imputed for hydro 2015
-# [ ] Another option is to just have separate columns for date and time and not impute time and remove flag?
-# [ ] Time zones not always specified or are specified differently. How does lubridate know time is EST in CSMI 2015? I don't think it does - assumes UTC and will be incorrect. Need to check throughout but for now, probably assume times are not correct throughout dataset
-# [ ] CSMI 2021 time zones not dealt with properly
-# [ ] Add known issues to documentation
-  # --Times not to be trusted yet
-  # --Missing station lat/longs (GLENDA, CSMI 2021)
-  # --Flags not mapping correctly currently
 
+# df <-  assembleData(out= "C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/LM_Chla/data/allWQ", binaryOut = TRUE)
 
-
-# Christian comments
-# [ ]: Identify all analytes with missing Code Names and add to naming shee
-# - If ANALYTE = ANL_CODE repalce ANL_CODE with NA
-# - Then fill all missing ANL_CODE with nonmissing
-# test <- data  %>%
-#   filter(is.na(CodeName)) %>%
-#   count(Study, ANALYTE, ANL_CODE, FRACTION, METHOD, MEDIUM)
-# [ ] : ID all conversions with na (that aren't identical)
-# [ ] Make a table of all flags after all is said and done so we can
-# annotate them for end-users
