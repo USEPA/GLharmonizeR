@@ -1,7 +1,7 @@
 #' Lake Michigan Water quality data compiled across multiple studies.
 #'
 #' A dataset containing water quality measurements from NCCA, CSMI, GLNPO,
-#'  and NOAA data sources. The variables are as follows:
+#'  and NOAA data sources. See GitHub documentation for more information.
 #'
 #' @name allWQ
 #' @author Kelsey Vitense \email{vitense.kelsey@epa.gov}
@@ -16,26 +16,28 @@
 #'   \item{SITE_ID}{Name of site}
 #'   \item{Latitude}{Latitude in decimal degrees}
 #'   \item{Longitude}{Longitude in decimal degrees}
-#'   \item{stationDepth}{Depth in meters of the station / site }
-#'   \item{sampleDateTime}{Date time of sampling event}
-#'   \item{sampleDepth}{Depth at which sample was taken}
-#'   \item{CodeName}{Harmonized short names for all water quality parameters.}
-#'   \item{LongName}{Harmonized descriptive names for all water quality parameters.}
-#'   \item{RESULT}{Value of the measurement.}
-#'   \item{Units}{Units of associated measurement.}
-#'   \item{MDL}{Method detection limit. Matched per analyte, method, study, and year when available.}
-#'   \item{RL}{Reporting limit, when available.}
-#'   \item{Unified_Flag}{Unified QC flag to relate quality of the corresponding measurement.}
-#'   \item{Unified_Comment}{Unified QC comment to relate quality of the corresponding measurement.}
-#'   \item{Category}{WQX Category}
-#'   \item{METHOD}{Associated measurement method.}
-#'   \item{LAB}{Associated lab taking measurement}
-#'   \item{Orig_QAcode}{QA code in the original data source}
-#'   \item{Orig_QAcomment}{QA comment in the original data source}
-#'   \item{Orig_QAdefinition}{QA definition in the original data source}
-#'   \item{ANALYTE_Orig_Name}{ANALYTE name in the original data source}
+#'   \item{stationDepth}{Station depth in meters}
+#'   \item{sampleDate}{Date of sampling event}
+#'   \item{sampleDateTimeUTC}{Date-time of sampling event in UTC time zone, where available}
+#'   \item{sampleDepth}{Depth of sample in meters}
+#'   \item{DEPTH_CODE}{Depth code of sample, where available}
+#'   \item{CodeName}{Harmonized short name for the water quality parameters}
+#'   \item{LongName}{Harmonized descriptive name for the water quality parameters}
+#'   \item{Category}{Analyte category inspired by LAGOS}
+#'   \item{ANALYTE_Orig_Name}{Analyte name in the original data source}
+#'   \item{RESULT}{Value of the measurement}
+#'   \item{MDL}{Method detection limit, where available}
+#'   \item{RL}{Reporting limit, where available}
+#'   \item{Units}{Units of measurement in RESULT}
 #'   \item{ReportedUnits}{Measurement units in the original data source}
-#'   \item{ConversionFactor}{Multiplicative conversion factor if conversion is necessary to convert from ReportedUnits to Units}
+#'   \item{ConversionFactor}{Multiplicative conversion factor if conversion was necessary to convert from ReportedUnits to Units}
+#'   \item{Unified_Flag}{Unified quality control flag across datasets}
+#'   \item{Unified_Comment}{Unified quality control comment across datasets}
+#'   \item{METHOD}{Method of measurement, where available}
+#'   \item{LAB}{Lab taking measurement, where available}
+#'   \item{Orig_QAcode}{QA code in the original data source or added in data checks}
+#'   \item{Orig_QAcomment}{QA comment in the original data source or added in data checks}
+#'   \item{Orig_QAdefinition}{QA definition in the original data source}
 #' }
 #'
 #' @source {allWQ} GLharmonizeR Great Lakes water quality R package.

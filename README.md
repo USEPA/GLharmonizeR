@@ -80,10 +80,11 @@ In general, this toolbox is meant to aid researchers by reading, cleaning, and j
 --> 
 
 # Data sources
-Data were taken from the following sources
+Data were taken from the following sources:
 
 - EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
   - 1983 - 2023
+  - Queried Water Quality Survey Data for Lake Michigan on 2023/10/23
 - EPA's Great Lakes National Program Office (GLNPO) Seabird Database Application available through the [Great Lakes Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
   - 2003 - 2023
 - EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
