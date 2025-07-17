@@ -158,10 +158,10 @@ Below is a list of water quality parameters currently included in the data. Note
 
 Data were taken from the following sources:
 
--   EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
+-   EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epa.gov/)
     -   1983 - 2023
     -   Queried Water Quality Survey Data for Lake Michigan on 2023/10/23
--   EPA's Great Lakes National Program Office (GLNPO) Seabird Database Application available through the [Great Lakes Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
+-   EPA's GLNPO Seabird Database Application available through the [GLNPO.NET Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
     -   2003 - 2023
 -   EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
     -   2010, 2015
