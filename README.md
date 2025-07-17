@@ -12,14 +12,14 @@ devtools::github_install("USEPA/LM_Chla")
 
 Note: This requires the package "devtools" which can be installed as follows: `install.packages("devtools")`.
 
-# Aquiring data
+# Acquiring data
 
 This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
 
 1)  Loading preassembled data
 
 -   Access after R package install using \`data("allWQ")
--   Note: this comes from a static realization of the source data and therefore may not be up to date.
+-   Note: this comes from a static realization of the source data created on 2025-07-16 and therefore may not be up to date.
 
 2)  Using functions provided by the package
 
@@ -62,8 +62,8 @@ df <- assembleData(out="filepath", binaryOut = FALSE)
 | DEPTH_CODE        |                                                                           Depth code of sample from original data source, where available                                                                            |
 | CodeName          |                                                                                Harmonized short name for the water quality parameter                                                                                 |
 | LongName          |                                                                             Harmonized descriptive name for the water quality parameter                                                                              |
-| Category          |                                                                                       Water quality category inspired by LAGOS                                                                                       |
-| ANALYTE_Orig_Name |                                                                                       Analyte name in the original data source                                                                                       |
+| Category          |                                                 Water quality category inspired by LAGOS-US LIMNO. <https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c>                                                  |
+| ANALYTE_Orig_Name |                                                                               Water quality parameter name in the original data source                                                                               |
 | RESULT            |                                                                                               Value of the measurement                                                                                               |
 | MDL               |                                                                                       Method detection limit, where available                                                                                        |
 | RL                |                                                                                           Reporting limit, where available                                                                                           |
@@ -105,6 +105,8 @@ Note that all values preserved in this dataset were judged to be acceptable per 
 | R                                       | Below Reporting Limit                                                                                 |
 
 # Water quality parameters included
+
+Below is a list of water quality parameters currently included in the data. Note that the Category column below is inspired by the water quality parameter 'Theme' in LAGOS-US LIMNO module (Shuvo et al. 2023).
 
 | CodeName  | LongName                                                  | Category          | Explicit_Units |
 |-------------|---------------------|---------------------|------------|
@@ -153,12 +155,6 @@ Note that all values preserved in this dataset were judged to be acceptable per 
 | Turb_FTU  | Turbidity, Formazin Turbidity Units                       | Clarity_Carbon    | FTU            |
 | Turb_NTU  | Turbidity, Nephelometric Turbidity Units                  | Clarity_Carbon    | NTU            |
 
-# Recommendations for users
-
--   Utilize QC flags and remarks
--   Be aware of censored data (see QC flags)
--   Report any issues via Github either as a discussion or open an issue
-
 # Data sources
 
 Data were taken from the following sources:
@@ -177,7 +173,17 @@ Data were taken from the following sources:
 
 # Dataset design
 
-The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single analyte indexed by position and time. Functions to pivot the data to wide format based on closeness in time and space are in progress.
+The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single water quality parameter indexed by position and time. Functions to pivot the data to wide format based on proximity in time and space are in progress.
+
+# Recommendations for users
+
+-   Utilize QC flags and remarks
+-   Be aware of censored data (see QC flags)
+-   Report any issues via Github either as a discussion or open an issue
+
+# Citations
+
+Shuvo, A.K., N.R. Lottig, K.E. Webster, A. Delany, K. Reinl, C. Gries, N.J. Smith, A.C. Poisson, I.M. McCullough, S.M. Collins, K.B. King, E. Phillips, K.S. Cheruvelil, and P.A. Soranno. 2023. LAGOS-US LIMNO: Data module of surface water chemistry from 1975-2021 for lakes in the conterminous U.S. ver 5. Environmental Data Initiative. https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c (Accessed 2025-07-17).
 
 # Disclaimer
 

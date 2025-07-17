@@ -23,7 +23,7 @@
 #'   \item{DEPTH_CODE}{Depth code of sample, where available}
 #'   \item{CodeName}{Harmonized short name for the water quality parameter}
 #'   \item{LongName}{Harmonized descriptive name for the water quality parameter}
-#'   \item{Category}{Water quality category inspired by LAGOS}
+#'   \item{Category}{Water quality category inspired by LAGOS-US LIMNO. https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c}
 #'   \item{ANALYTE_Orig_Name}{Analyte name in the original data source}
 #'   \item{RESULT}{Value of the measurement}
 #'   \item{MDL}{Method detection limit, where available}
