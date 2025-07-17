@@ -13,6 +13,7 @@ Authors@R: c(
     ))
 Description: This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes.
 License: MIT + file LICENSE
+LazyData: true
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2

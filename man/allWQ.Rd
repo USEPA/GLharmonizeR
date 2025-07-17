@@ -3,7 +3,7 @@
 \docType{data}
 \name{allWQ}
 \alias{allWQ}
-\title{Lake Michigan Water quality data compiled across multiple studies.}
+\title{Lake Michigan water quality data compiled across federal surveys.}
 \format{
 A data frame with 372824 rows and 27 variables:
 \describe{
