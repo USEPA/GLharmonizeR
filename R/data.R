@@ -17,18 +17,18 @@
 #'   \item{Latitude}{Latitude in decimal degrees}
 #'   \item{Longitude}{Longitude in decimal degrees}
 #'   \item{stationDepth}{Station depth in meters}
-#'   \item{sampleDate}{Date of sampling event}
+#'   \item{sampleDate}{Date of sampling event. This is either the date provided with the data (with unknown time of day) or is the date associated with the collection time in EST (and thus may differ from the date in sampleDateTimeUTC)}
 #'   \item{sampleDateTimeUTC}{Date-time of sampling event in UTC time zone, where available}
 #'   \item{sampleDepth}{Depth of sample in meters}
 #'   \item{DEPTH_CODE}{Depth code of sample, where available}
-#'   \item{CodeName}{Harmonized short name for the water quality parameters}
-#'   \item{LongName}{Harmonized descriptive name for the water quality parameters}
-#'   \item{Category}{Analyte category inspired by LAGOS}
+#'   \item{CodeName}{Harmonized short name for the water quality parameter}
+#'   \item{LongName}{Harmonized descriptive name for the water quality parameter}
+#'   \item{Category}{Water quality category inspired by LAGOS}
 #'   \item{ANALYTE_Orig_Name}{Analyte name in the original data source}
 #'   \item{RESULT}{Value of the measurement}
 #'   \item{MDL}{Method detection limit, where available}
 #'   \item{RL}{Reporting limit, where available}
-#'   \item{Units}{Units of measurement in RESULT}
+#'   \item{Units}{Units of measurement for RESULT, MDL and RL}
 #'   \item{ReportedUnits}{Measurement units in the original data source}
 #'   \item{ConversionFactor}{Multiplicative conversion factor if conversion was necessary to convert from ReportedUnits to Units}
 #'   \item{Unified_Flag}{Unified quality control flag across datasets}

@@ -1,51 +1,194 @@
-# LMChla 
+# LMChla
 
-
-This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated data are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes. 
+This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated data are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes.
 
 # Installation
-This package can be installed directly from the Github source code as follows.
 
-```r
+This package can be installed directly from the Github source code as follows:
+
+``` r
 devtools::github_install("USEPA/LM_Chla")
 ```
 
-Note: This requires the package "devtools" which can be installed as `install.packages("devtools")`.
-
+Note: This requires the package "devtools" which can be installed as follows: `install.packages("devtools")`.
 
 # Aquiring data
+
 This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
 
-1) Loading preassembled data
-  - Access after R package install using `data("allWQ")
-  - Note: this comes from a static realization of the source data and therefore may not be up to date.
+1)  Loading preassembled data
 
-2) Using functions provided by the package
+-   Access after R package install using \`data("allWQ")
+-   Note: this comes from a static realization of the source data and therefore may not be up to date.
 
-```r
+2)  Using functions provided by the package
+
+``` r
 df <- assembleData()
 ```
-  - Creates R object `df` for use in current R session
-  - Does not write output
-  
-```r
+
+-   Creates R object `df` for use in current R session
+-   Does not write output
+
+``` r
 df <- assembleData(out="filepath", binaryOut = TRUE)
 ```
-  - This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
-  - RData/rda files can be loaded in R using `load("filepath.rda")`
-  - Also creates an R object `df` for use in current R session
 
-```r
+-   This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
+-   RData/rda files can be loaded in R using `load("filepath.rda")`
+-   Also creates an R object `df` for use in current R session
+
+``` r
 df <- assembleData(out="filepath", binaryOut = FALSE)
 ```
-  - This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
-  - CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
-  - Also creates an R object `df` for use in current R session
 
+-   This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
+-   CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
+-   Also creates an R object `df` for use in current R session
+
+# Column names and descriptions
+
+| Column name       |                                                                                                     Description                                                                                                      |
+|-------------|:---------------------------------------------------------:|
+| UID               |                                                                                         Unique sample ID across all sources                                                                                          |
+| Study             |                                                                                                    Name of study                                                                                                     |
+| SITE_ID           |                                                                                                     Name of site                                                                                                     |
+| Latitude          |                                                                                             Latitude in decimal degrees                                                                                              |
+| Longitude         |                                                                                             Longitude in decimal degrees                                                                                             |
+| stationDepth      |                                                                                               Station depth in meters                                                                                                |
+| sampleDate        | Date of sampling event. This is either the date provided with the data (with unknown time of day) or is the date associated with the collection time in EST (and thus may differ from the date in sampleDateTimeUTC) |
+| sampleDateTimeUTC |                                                                            Date-time of sampling event in UTC time zone, where available                                                                             |
+| sampleDepth       |                                                                                              Depth of sample in meters                                                                                               |
+| DEPTH_CODE        |                                                                           Depth code of sample from original data source, where available                                                                            |
+| CodeName          |                                                                                Harmonized short name for the water quality parameter                                                                                 |
+| LongName          |                                                                             Harmonized descriptive name for the water quality parameter                                                                              |
+| Category          |                                                                                       Water quality category inspired by LAGOS                                                                                       |
+| ANALYTE_Orig_Name |                                                                                       Analyte name in the original data source                                                                                       |
+| RESULT            |                                                                                               Value of the measurement                                                                                               |
+| MDL               |                                                                                       Method detection limit, where available                                                                                        |
+| RL                |                                                                                           Reporting limit, where available                                                                                           |
+| Units             |                                                                                     Units of measurement for RESULT, MDL and RL                                                                                      |
+| ReportedUnits     |                                                                                    Measurement units in the original data source                                                                                     |
+| ConversionFactor  |                                                         Multiplicative conversion factor if conversion was necessary to convert from ReportedUnits to Units                                                          |
+| Unified_Flag      |                                                                     Unified quality control flag across datasets (see further description below)                                                                     |
+| Unified_Comment   |                                                                                   Unified quality control comment across datasets                                                                                    |
+| METHOD            |                                                                                        Method of measurement, where available                                                                                        |
+| LAB               |                                                                                       Lab taking measurement, where available                                                                                        |
+| Orig_QAcode       |                                                                             QA code in the original data source or added in data checks                                                                              |
+| Orig_QAcomment    |                                                                            QA comment in the original data source or added in data checks                                                                            |
+| Orig_QAdefinition |                                                                                      QA definition in the original data source                                                                                       |
+
+# Unified QC flags
+
+The unified flags to which all QC codes/comments in the original data sources were mapped are described below. The flags/comments from the original data sources can be found in the following columns: Orig_QAcode, Orig_QAcomment, and Orig_QAdefinition. Note that some flags were not found in the original data source and were added during QC checks for this package.
+
+Note that non-detected values (N) and values below the reporting limit (R) were preserved in the data with RESULT set to NA. When available, method detection limits are reported in the 'MDL' column, and reporting limits are found in the 'RL' column.
+
+Similarly, Secchi disk measurements that were reported to be clear to bottom were flagged with 'B' and RESULT was set to NA.
+
+Tools are in development to impute these censored measurements but are not available in the current package version.
+
+Note that all values preserved in this dataset were judged to be acceptable per conversations with data owners. However, we leave it to users to inspect flagged data and determine whether observations should be removed for any given application.
+
+| Unified flag code (Unified_Flag column) | Unified flag meaning (Unified_Comment flag)                                                           |
+|---------------------|---------------------------------------------------|
+| B                                       | Secchi clear to bottom                                                                                |
+| C                                       | Lab correction factor                                                                                 |
+| D                                       | Station depth estimated as max sample depth of CTD (conductivity, temperature, depth) instrument data |
+| E                                       | Estimated value (between MDL and RL or another issue)                                                 |
+| F                                       | Flag for chlorophyll-a samples analyzed at WSLH which uses a 5 micron pore size                       |
+| H                                       | Holding time exceeded                                                                                 |
+| L                                       | MDL imputed                                                                                           |
+| N                                       | Below Method Detection Limit (MDL) or another unspecified detection limit (non-detection)             |
+| P                                       | Corrected PAR exceeds 100% (underwater PAR exceeds surface PAR)                                       |
+| Q                                       | Lab or field QC issue                                                                                 |
+| R                                       | Below Reporting Limit                                                                                 |
+
+# Water quality parameters included
+
+| CodeName  | LongName                                                  | Category          | Explicit_Units |
+|-------------|---------------------|---------------------|------------|
+| CaCO3     | Alkalinity                                                | Chemical_Physical | mg/L           |
+| Diss_NHx  | Ammonia/ammonium, dissolved                               | Nutrients_Algae   | ug/L           |
+| Tot_As    | Arsenic, unfiltered                                       | Contaminants      | ug/L           |
+| Diss_Ca   | Calcium, dissolved                                        | Chemical_Physical | mg/L           |
+| Tot_Ca    | Calcium, unfiltered                                       | Chemical_Physical | mg/L           |
+| Part_C    | Carbon, particulate                                       | Clarity_Carbon    | ug/L           |
+| Diss_Cl   | Chloride, dissolved                                       | Chemical_Physical | mg/L           |
+| Chla      | Chlorophyll-a                                             | Nutrients_Algae   | ug/L           |
+| Cond      | Specific conductivity                                     | Chemical_Physical | uS/cm          |
+| Hardness  | Hardness                                                  | Chemical_Physical | mg/L           |
+| Diss_Mg   | Magnesium, dissolved                                      | Chemical_Physical | mg/L           |
+| Tot_Mg    | Magnesium, unfiltered                                     | Chemical_Physical | mg/L           |
+| Diss_Mn   | Manganese, dissolved                                      | Chemical_Physical | ug/L           |
+| Tot_Mn    | Manganese, unfiltered                                     | Chemical_Physical | ug/L           |
+| Sed_Moist | Moisture content, sediment, unfiltered                    | Chemical_Physical | percent        |
+| Tot_Mo    | Molybdenum, unfiltered                                    | Chemical_Physical | ug/L           |
+| Diss_N    | Nitrogen, dissolved                                       | Nutrients_Algae   | ug/L           |
+| Part_N    | Nitrogen, particulate                                     | Nutrients_Algae   | ug/L           |
+| Sed_TN    | Nitrogen, sediment, unfiltered                            | Nutrients_Algae   | mg/g           |
+| Tot_N     | Nitrogen, unfiltered                                      | Nutrients_Algae   | ug/L           |
+| DOC       | Organic carbon, dissolved                                 | Clarity_Carbon    | mg/L           |
+| POC       | Organic carbon, particulate                               | Clarity_Carbon    | mg/L           |
+| Sed_TOC   | Organic carbon, sediment, unfiltered                      | Clarity_Carbon    | mg/g           |
+| Diss_NOx  | Oxidized nitrogen (nitrite+nitrate), dissolved            | Nutrients_Algae   | ug/L           |
+| DO        | Oxygen, dissolved                                         | Chemical_Physical | mg/L           |
+| pH        | pH                                                        | Chemical_Physical | unitless       |
+| Diss_P    | Phosphorus, dissolved                                     | Nutrients_Algae   | ug/L           |
+| Part_P    | Phosphorus, particulate                                   | Nutrients_Algae   | ug/L           |
+| Sed_TP    | Phosphorus, sediment, unfiltered                          | Nutrients_Algae   | mg/g           |
+| Tot_P     | Phosphorus, unfiltered                                    | Nutrients_Algae   | ug/L           |
+| CPAR      | Photosynthetically active radiation (PAR) as % of surface | Chemical_Physical | percent        |
+| Diss_K    | Potassium, dissolved                                      | Chemical_Physical | mg/L           |
+| Tot_K     | Potassium, unfiltered                                     | Chemical_Physical | mg/L           |
+| Secchi    | Secchi Disc Transparency                                  | Clarity_Carbon    | m              |
+| Tot_Se    | Selenium, unfiltered                                      | Contaminants      | ug/L           |
+| Diss_SiO2 | Silica, dissolved                                         | Nutrients_Algae   | mg/L           |
+| Diss_Na   | Sodium, dissolved                                         | Chemical_Physical | mg/L           |
+| Tot_Na    | Sodium, unfiltered                                        | Chemical_Physical | mg/L           |
+| Diss_SO4  | Sulfate, dissolved                                        | Chemical_Physical | mg/L           |
+| SRP       | Soluble reactive phosphorus (orthophosphate)              | Nutrients_Algae   | ug/L           |
+| Temp      | Temperature                                               | Chemical_Physical | C              |
+|           |                                                           |                   |                |
+| Turb_FTU  | Turbidity, Formazin Turbidity Units                       | Clarity_Carbon    | FTU            |
+| Turb_NTU  | Turbidity, Nephelometric Turbidity Units                  | Clarity_Carbon    | NTU            |
+
+# Recommendations for users
+
+-   Utilize QC flags and remarks
+-   Be aware of censored data (see QC flags)
+-   Report any issues via Github either as a discussion or open an issue
+
+# Data sources
+
+Data were taken from the following sources:
+
+-   EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
+    -   1983 - 2023
+    -   Queried Water Quality Survey Data for Lake Michigan on 2023/10/23
+-   EPA's Great Lakes National Program Office (GLNPO) Seabird Database Application available through the [Great Lakes Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
+    -   2003 - 2023
+-   EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
+    -   2010, 2015
+-   Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
+    -   2015, 2020
+-   National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
+    -   2007 - 2022
+
+# Dataset design
+
+The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single analyte indexed by position and time. Functions to pivot the data to wide format based on closeness in time and space are in progress.
+
+# Disclaimer
+
+The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use. EPA has relinquished control of the information and no longer has responsibility to protect the integrity, confidentiality, or availability of the information. Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA. The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.
+
+```{=html}
 <!---
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 -->
-
+```
+```{=html}
 <!---
 # Suggested workflows -- IN DEVELOPMENT
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
@@ -54,51 +197,19 @@ Suggested workflows (still in development) are included with the package. [These
   - starting with data (`df`) in long format
   ```r
   dfimputed <- .dlImputation(df, imputeMethod = "halfMDL")
-  ```
+```
+-   Pivot from long to wide format
 
-- Pivot from long to wide format
-  ```r
-  dfshort <- .exactPivot(dflong)
-  ```
---> 
+    ``` r
+    dfshort <- .exactPivot(dflong)
+    ```
 
+    --\> \<!--- \## [General functionality](docs/useNdesign.md) In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
 
-# Recommendations for users
-- Utilize QC flags and remarks
-- Be aware of censored data (see QC flags)
-- Report any issues via Github either as a discussion or open an issue
+-   Download data from remote sources (under construction)
 
+-   Clean each dataset individually
 
-<!---
-## [General functionality](docs/useNdesign.md)
-In general, this toolbox is meant to aid researchers by reading, cleaning, and joining data from different sources for Lake Michigan. This toolbox does the following (each of which will be documented more thoroughly in the following sections)
+-   Combine into a unified dataset
 
-- Download data from remote sources (under construction)
-- Clean each dataset individually
-- Combine into a unified dataset
-- Provide utilities for processing (imputation etc.)
---> 
-
-# Data sources
-Data were taken from the following sources:
-
-- EPA's Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
-  - 1983 - 2023
-  - Queried Water Quality Survey Data for Lake Michigan on 2023/10/23
-- EPA's Great Lakes National Program Office (GLNPO) Seabird Database Application available through the [Great Lakes Portal](https://login.glnpo.net/dana-na/auth/url_default/welcome.cgi)
-  - 2003 - 2023
-- EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
-  - 2010, 2015
-- Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
-  - 2015, 2020 
-- National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
-  - 2007 - 2022
-
-
-# Dataset design
-The fundamental sampling unit is defined by a unique temporal and spatial position defined by date (with or without time of day), latitude, longitude, and sample depth. The data are available in "long" format where each row represents an observation for a single analyte indexed by position and time. Functions to pivot the data to wide format based on closeness in time and space are in progress.
-
-
-
-# Disclaimer
-The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use. EPA has relinquished control of the information and no longer has responsibility to protect the integrity, confidentiality, or availability of the information. Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA. The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.
+-   Provide utilities for processing (imputation etc.) --\> \`\`\`

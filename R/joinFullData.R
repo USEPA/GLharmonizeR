@@ -1,7 +1,7 @@
 #' Load and join Great Lakes water quality data from GLNPO, CSMI, NCCA, and NOAA. Data currently limited to Lake Michigan.
 #'
 #' @description
-#' `assembleData` returns a dataframe with harmonized water quality parameter names, units, and QC flags
+#' `assembleData` returns a dataframe with harmonized water quality parameter names, units, and quality control flags
 #' Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
 #' - 1983 - 2023
 #' - Seabird CTD 2003 - 2023
@@ -22,8 +22,8 @@
 #' @export
 #' @returns Harmonized water quality dataset for Lake Michigan. *FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS*
 #' @examples
-#' assembleData("filepath", binaryOut = FALSE)
-#' assembleData("filepath")
+#' df <- assembleData("filepath", binaryOut = FALSE)
+#' df <- assembleData("filepath", binaryOut = TRUE)
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
   # To dos:
