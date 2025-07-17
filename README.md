@@ -151,7 +151,6 @@ Below is a list of water quality parameters currently included in the data. Note
 | Diss_SO4  | Sulfate, dissolved                                        | Chemical_Physical | mg/L           |
 | SRP       | Soluble reactive phosphorus (orthophosphate)              | Nutrients_Algae   | ug/L           |
 | Temp      | Temperature                                               | Chemical_Physical | C              |
-|           |                                                           |                   |                |
 | Turb_FTU  | Turbidity, Formazin Turbidity Units                       | Clarity_Carbon    | FTU            |
 | Turb_NTU  | Turbidity, Nephelometric Turbidity Units                  | Clarity_Carbon    | NTU            |
 
@@ -177,7 +176,7 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 
 # Recommendations for users
 
--   Utilize QC flags and remarks
+-   Utilize the QC flags and comments for your specific application
 -   Be aware of censored data (see QC flags)
 -   Report any issues via Github either as a discussion or open an issue
 
@@ -189,12 +188,10 @@ Shuvo, A.K., N.R. Lottig, K.E. Webster, A. Delany, K. Reinl, C. Gries, N.J. Smit
 
 The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use. EPA has relinquished control of the information and no longer has responsibility to protect the integrity, confidentiality, or availability of the information. Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA. The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.
 
-```{=html}
 <!---
 The full documentation is contained [here](docs/UserInfo.md). The sections below link to different sections throughout that document. The documentation is split into different types that target different end users: [general users](#user-documentation) and [developers](#developer-documentation). Additionally, we provide sparse [documentation on the process](#processtechnical-documentation) which we used to develop this software. The documentation was split this way as per suggestion in [this blogpost](https://helpjuice.com/blog/software-documentation).
 -->
-```
-```{=html}
+
 <!---
 # Suggested workflows -- IN DEVELOPMENT
 Suggested workflows (still in development) are included with the package. [These workflows](R/postProcessing.R) provide the ability to:
@@ -218,4 +215,5 @@ Suggested workflows (still in development) are included with the package. [These
 
 -   Combine into a unified dataset
 
--   Provide utilities for processing (imputation etc.) --\> \`\`\`
+-   Provide utilities for processing (imputation etc.) 
+-->
