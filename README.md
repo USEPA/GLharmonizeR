@@ -180,6 +180,18 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 -   Be aware of censored data (see QC flags)
 -   Report any issues via Github either as a discussion or open an issue
 
+# KNOWN ISSUES
+-   Unit tests are not currently implemented.
+-   Some GLNPO sites are missing latitude/longitudes or do not have decimal degrees reported to many decimal places. This is especially true for earlier years (1980s and 1990s).
+-   Some CSMI 2021 sites (STO#) are missing latitude/longitudes.
+-   Times need to be added for CSMI 2021 EPA CTD data (in 'Station Reference' tab).
+-   USGS PAR data for CSMI 2021 are not currently included - pending USGS clearance (contact: Nicole Berry).
+-   NCCA 2015 Diss_NOx was computed as sum of nitrate and nitrite, and their MDLs and RLs were also summed together; unsure of validity of this approach.
+-   NCCA 2020 data are not currently included (functions still need review).
+-   NOAA CTD data has a lot of dropped data at 1-2 m depth, which needs investigation.
+
+
+
 # Citations
 
 Shuvo, A.K., N.R. Lottig, K.E. Webster, A. Delany, K. Reinl, C. Gries, N.J. Smith, A.C. Poisson, I.M. McCullough, S.M. Collins, K.B. King, E. Phillips, K.S. Cheruvelil, and P.A. Soranno. 2023. LAGOS-US LIMNO: Data module of surface water chemistry from 1975-2021 for lakes in the conterminous U.S. ver 5. Environmental Data Initiative. https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c (Accessed 2025-07-17).

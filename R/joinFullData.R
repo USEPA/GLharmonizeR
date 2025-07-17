@@ -2,28 +2,19 @@
 #'
 #' @description
 #' `assembleData` returns a dataframe with harmonized water quality parameter names, units, and quality control flags
-#' Great Lakes National Program Office (GLNPO) Great Lakes Environmental Database, [GLENDA](https://cdx.epmeea.gov/)
-#' - 1983 - 2023
-#' - Seabird CTD 2003 - 2023
-#' CSMI
-#' - 2015, 2021
-#' National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
-#' - 2010, 2015
-#' National Oceanic and atmospheric Administration, [NOAA](https://www.noaa.gov/)
-#' - 2007 - 2022
-#' - CTD 2007 - 2022
 #'
 #' @details
-#' This is the main function of GLharmonizeR which assembles water quality data for the Great Lakes (currently only Lake Michigan) across multiple decades and data sources.
+#' This is the main function of GLharmonizeR which assembles water quality data for the Great Lakes (currently only Lake Michigan) across multiple decades and federal data sources.
 #'
 #' @param out filepath specifying where to save the assembled data. Note: this should exclude the file extension
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @returns Harmonized water quality dataset for Lake Michigan. *FILL THIS IN WITH DOCUMENTATION OF COLUMN NAMES, FLAGS, LINKS TO ANALYTE AND FLAG MAPPINGS*
+#' @returns Harmonized water quality dataset for Lake Michigan. See GitHub page for details on data sources, water quality parameter names, and quality control flags.
 #' @examples
 #' df <- assembleData("filepath", binaryOut = FALSE)
 #' df <- assembleData("filepath", binaryOut = TRUE)
+
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 
   # To dos:
