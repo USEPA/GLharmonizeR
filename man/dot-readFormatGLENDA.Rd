@@ -7,21 +7,19 @@
 .readFormatGLENDA(Glenda, n_max = Inf, sampleIDs = NULL)
 }
 \arguments{
-\item{n_max}{Number of rows to read in from the raw GLENDA data (this is really just for testing purposes)}
+\item{Glenda}{a filepath to the GLENDA RDS or CSV file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 
 \item{sampleIDs}{a list of sampleIDs to keep in the final dataset}
-
-\item{filepath}{a filepath to the GLENDA csv}
 }
 \value{
 a dataframe
 }
 \description{
-A function to read the full GLENDA csv file and convert it to a more user friendly long format.
+A function to read the full GLENDA data file downloaded 2023/10/23 and convert to long format.
 }
 \details{
 \code{.readFormatGLENDA} This is a hidden function, this should be used for development purposes only, users will only call
-this function implicitly when assembling their full water quality dataset. This function contains some
-of the filtering functions in order to easily be compatible with the testing schema because
-when we filtered later on, we lost too many sample ids that would be included in the test data.
+this function implicitly when assembling their full water quality dataset.
 }

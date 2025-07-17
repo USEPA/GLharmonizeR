@@ -2,7 +2,7 @@
 % Please edit documentation in R/NCCAhydrological.R
 \name{.loadNCCAhydro}
 \alias{.loadNCCAhydro}
-\title{Load and join hydrographic and secchi data for NCCA 2010 and 2015}
+\title{Load and join hydrographic and Secchi data for NCCA 2010 and 2015}
 \usage{
 .loadNCCAhydro(
   NCCAhydrofiles2010,
@@ -15,7 +15,19 @@
 )
 }
 \arguments{
-\item{filepath}{a string specifying the filepath of the data}
+\item{NCCAhydrofiles2010}{a string specifying the URL for the 2010 hydrographic data}
+
+\item{NCCAsites2010}{a string specifying the URL for the 2010 site data}
+
+\item{NCCAhydrofile2015}{a string specifying the URL for the 2015 hydrographic data}
+
+\item{NCCAsites2015}{a string specifying the URL for the 2015 site data}
+
+\item{NCCAsecchifile2015}{a string specifying the URL for the 2015 Secchi data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe

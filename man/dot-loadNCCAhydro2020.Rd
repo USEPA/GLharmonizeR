@@ -2,12 +2,18 @@
 % Please edit documentation in R/NCCAhydrological.R
 \name{.loadNCCAhydro2020}
 \alias{.loadNCCAhydro2020}
-\title{Load and join NCCA 2020 hydrographic data from csv files}
+\title{Load and join NCCA 2020 hydrographic data from online csv files}
 \usage{
 .loadNCCAhydro2020(NCCAhydrofile2020, NCCAsites2020, namingFile, n_max = Inf)
 }
 \arguments{
 \item{NCCAhydrofile2020}{a string specifying the filepath of the data}
+
+\item{NCCAsites2020}{a string specifying the URL for the 2020 site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe
@@ -16,6 +22,6 @@ dataframe
 \code{.loadNCCAhydro2020} returns a dataframe of all of the hydrographic data relating to NCCA 2010
 }
 \details{
-This is a hidden function, this should be used for development purposes only, users will only call
+THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 this function implicitly when assembling their full water quality dataset
 }

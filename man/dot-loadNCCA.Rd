@@ -2,7 +2,7 @@
 % Please edit documentation in R/NCCAfulljoin.R
 \name{.loadNCCA}
 \alias{.loadNCCA}
-\title{Read in all NCCA from 2000s, 2010, and 2015 including hydrogrpahic data}
+\title{Read in NCCA 2010 and 2015 water chemistry and hydrographic data}
 \usage{
 .loadNCCA(
   NCCAsites2010,
@@ -18,34 +18,33 @@
 )
 }
 \arguments{
-\item{NCCAsites2010}{filepath to site files}
+\item{NCCAsites2010}{a string specifying the URL for the 2010 site data}
 
-\item{NCCAsites2015}{filepath to site files}
+\item{NCCAsites2015}{a string specifying the URL for the 2015 site data}
 
-\item{NCCAwq2010}{filepath to 2010's data}
+\item{NCCAwq2010}{a string specifying the URL for the 2010 water chemistry data}
 
-\item{NCCAwq2015}{filepaht to 2015 data}
+\item{NCCAwq2015}{a string specifying the URL for the 2015 water chemistry data}
 
-\item{NCCAhydrofiles2010}{filepath to hydrogrpahic 2010 data}
+\item{NCCAhydrofiles2010}{a string specifying the URL for the 2010 hydrographic data}
 
-\item{NCCAhydrofile2015}{filepath to hydrogarphic 2015 data}
+\item{NCCAhydrofile2015}{a string specifying the URL for the 2015 hydrographic data}
 
-\item{namingFile}{filepath to Analytes3.xlsx which conatains names and conversions}
+\item{NCCAsecchifile2015}{a string specifying the URL for the 2015 Secchi data}
 
-\item{Lakes}{List of Lakes to output}
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{Lakes}{List of Great Lakes to output}
 
 \item{n_max}{integer specifying how many lines to read of each file to save time for testing}
-
-\item{NCCAjsecchifile2015}{filepaht to secchi 2015 data}
 }
 \value{
 dataframe
 }
 \description{
 \code{.loadNCCA} returns water quality data along with spatial data from the
-site information measured through NCCA study in the early 2000s as well as in 2010, and 2015
+site information measured through NCCA study in 2010 and 2015
 }
 \details{
-The spatial information for sites is read in using the .readSites helper functions, this is then
-joined to the water quality and hydrographic data and ultimately output as a data table.
+Join the water quality and hydrographic data and filter to specified lakes.
 }

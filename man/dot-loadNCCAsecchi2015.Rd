@@ -2,18 +2,24 @@
 % Please edit documentation in R/NCCAhydrological.R
 \name{.loadNCCAsecchi2015}
 \alias{.loadNCCAsecchi2015}
-\title{Load and join secchi data for NCCA 2015 from csv files}
+\title{Load and join Secchi data for NCCA 2015 from online csv files}
 \usage{
 .loadNCCAsecchi2015(NCCAsecchifile2015, NCCAsites2015, namingFile, n_max = Inf)
 }
 \arguments{
-\item{filepath}{a string specifying the filepath of the data}
+\item{NCCAsecchifile2015}{a string specifying the filepath of the data}
+
+\item{NCCAsites2015}{a string specifying the URL for the site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
-dataframe of the fully joined secchi data from NCCA 2015
+dataframe of the fully joined Secchi data from NCCA 2015
 }
 \description{
-\code{.loadNCCAsecchi2015} returns a dataframe of all of the joined secchi data relating to NCCA 2015
+\code{.loadNCCAsecchi2015} returns a dataframe of all of the joined Secchi data relating to NCCA 2015
 }
 \details{
 This is a hidden function, this should be used for development purposes only, users will only call

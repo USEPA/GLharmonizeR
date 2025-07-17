@@ -2,12 +2,18 @@
 % Please edit documentation in R/NCCAwaterChemistry.R
 \name{.loadNCCAwq2010}
 \alias{.loadNCCAwq2010}
-\title{Read in all NCCA water chemistry from 2010}
+\title{Read in NCCA water chemistry from 2010}
 \usage{
 .loadNCCAwq2010(NCCAwq2010, NCCAsites2010, namingFile, n_max = Inf)
 }
 \arguments{
-\item{NCCAwq2010}{a string specifying the directory of the data}
+\item{NCCAwq2010}{a string specifying the URL for the data}
+
+\item{NCCAsites2010}{a string specifying the URL for the site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe

@@ -9,25 +9,25 @@
   namingFile,
   imputeCoordinates = TRUE,
   GLENDAsitePath = NULL,
-  GLENDAlimitsPath = NULL
+  GLENDAlimitsPath
 )
 }
 \arguments{
-\item{df}{GLENDA dataframe in long format}
+\item{df}{GLENDA dataframe in long format, output from .readFormatGLENDA}
 
-\item{namingFile}{(optional) filepath to a file containing remappings for analyte names}
+\item{namingFile}{filepath to a file containing mappings for analyte names}
 
 \item{imputeCoordinates}{(optional) Boolean specifying whether to impute missing station coordinates,}
 
-\item{GLENDAlimitsPath}{(optional) filepath to a file limits for GLENDA data}
+\item{GLENDAsitePath}{filepath to list of site coordinates to fill in missing lats/lons}
 
-\item{siteCoords}{(optional) filepath to list of site coordinates to fill in missing lats/lons}
+\item{GLENDAlimitsPath}{filepath to a file with detection limits for GLENDA data}
 }
 \value{
 a dataframe
 }
 \description{
-A function to perform automated QC on the GLENDA data
+A function to perform QC on the GLENDA data
 }
 \details{
 \code{.cleanGLENDA} This is a hidden function, this should be used for development purposes only, users will only call

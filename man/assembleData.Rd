@@ -2,40 +2,28 @@
 % Please edit documentation in R/joinFullData.R
 \name{assembleData}
 \alias{assembleData}
-\title{Load and join all WQ measured on Lake Michigan from multiple sources. data from 2010, 2015, and 2020/2021 from CSMI, GLENDA, and NCCA}
+\title{Load and join Great Lakes water quality data from GLNPO, CSMI, NCCA, and NOAA. Data currently limited to Lake Michigan.}
 \usage{
-assembleData(out, .test = FALSE, binaryOut = TRUE)
+assembleData(out = NULL, .test = FALSE, binaryOut = TRUE)
 }
 \arguments{
-\item{out}{filepath to save the dataset to. Note: this should exclude the file extension}
+\item{out}{filepath specifying where to save the assembled data. Note: this should exclude the file extension}
 
 \item{.test}{(optional) boolean, load a test subset of the data. Speeds up function for developers}
 
-\item{binaryOut}{(optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as csv. Default is TRUE.}
+\item{binaryOut}{(optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.}
 }
 \value{
-full, harmonized dataset
+Harmonized water quality dataset for Lake Michigan. See GitHub page for details on data sources, water quality parameter names, and quality control flags.
 }
 \description{
-\code{assembleData} returns a dataframe with unified reporting conventions
-The Great Lakes Environmental Database, \href{https://cdx.epmeea.gov/}{GLNPO}
-\itemize{
-\item 1983 - 2023
-\item Seabird CTD 2003 - 2023
-CSMI (hosted locally)
-\item 2015, 2020 (2010 partially, but too much missing info for inclusion)
-National Coastal Condition Assessment, \href{https://www.epa.gov/national-aquatic-resource-surveys/ncca}{NCCA}
-\item 2010, 2015
-National Oceanic and atmospheric Administration, \href{https://www.noaa.gov/}{NOAA}
-\item 2007 - 2022
-\item CTD 2007 - 2022
-}
+\code{assembleData} returns a dataframe with harmonized water quality parameter names, units, and quality control flags
 }
 \details{
-This is the main function of LMChla which assembles water quality for Lake Michigan
-across multiple decades.
+This is the main function of GLharmonizeR which assembles water quality data for the Great Lakes (currently only Lake Michigan) across multiple decades and federal data sources.
 }
 \examples{
-assembleData("filepath", binaryOut = FALSE)
-assembleData("filepath")
+df <- assembleData() # Creates object df for use in current R session
+df <- assembleData("filepath", binaryOut = FALSE) # Same as above but also write data to "filepath.rda"
+df <- assembleData("filepath", binaryOut = TRUE) # Same as above but  write data to "filepath.csv"
 }

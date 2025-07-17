@@ -2,12 +2,14 @@
 % Please edit documentation in R/csmi2021.R
 \name{.readCleanCSMI2021}
 \alias{.readCleanCSMI2021}
-\title{Load and join data for CSMI 2021 from csv excel files}
+\title{Load and join data for CSMI 2021 from csv and Excel files}
 \usage{
 .readCleanCSMI2021(csmi2021, namingFile)
 }
 \arguments{
 \item{csmi2021}{a string specifying the directory to CSMI 2021 data}
+
+\item{namingFile}{filepath to a file containing mappings for analyte names}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI 2021

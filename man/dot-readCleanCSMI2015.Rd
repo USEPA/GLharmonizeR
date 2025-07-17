@@ -2,17 +2,22 @@
 % Please edit documentation in R/csmi2015.R
 \name{.readCleanCSMI2015}
 \alias{.readCleanCSMI2015}
-\title{Load and join data for CSMI 2015 from access database}
+\title{Load and join data for CSMI 2015 from Access database}
 \usage{
 .readCleanCSMI2015(csmi2015, namingFile)
+}
+\arguments{
+\item{csmi2015}{a string specifying the URL for CSMI 2015 zipped database}
+
+\item{namingFile}{filepath to a file containing mappings for analyte names}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI 2015
 }
 \description{
-\code{.readCleanCSMI2015} returns a dataframe of all of the joined water quality data relating to CSMI 2015
+\code{.readCleanCSMI2015} returns a dataframe of joined water quality data from CSMI 2015
 }
 \details{
-This is a hidden function, this should be used for development purposes only, users will only call
+This is a hidden function, users will only call
 this function implicitly when assembling their full water quality dataset
 }

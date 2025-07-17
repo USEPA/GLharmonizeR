@@ -10,10 +10,11 @@
 #' @param .test (optional) boolean, load a test subset of the data. Speeds up function for developers
 #' @param binaryOut (optional) boolean, should saved data be RDS format for efficiency?. If false it is saved as CSV Default is TRUE.
 #' @export
-#' @returns Harmonized water quality dataset for Lake Michigan. See GitHub page for details on data sources, water quality parameter names, and quality control flags.
+#' @return Harmonized water quality dataset for Lake Michigan. See GitHub page for details on data sources, water quality parameter names, and quality control flags.
 #' @examples
-#' df <- assembleData("filepath", binaryOut = FALSE)
-#' df <- assembleData("filepath", binaryOut = TRUE)
+#' df <- assembleData() # Creates object df for use in current R session
+#' df <- assembleData("filepath", binaryOut = FALSE) # Same as above but also write data to "filepath.rda"
+#' df <- assembleData("filepath", binaryOut = TRUE) # Same as above but  write data to "filepath.csv"
 
 assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
 

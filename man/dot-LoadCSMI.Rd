@@ -4,18 +4,20 @@
 \alias{.loadCSMI}
 \title{Load and join CSMI water quality data from 2015 and 2021.}
 \usage{
-.loadCSMI(csmi2010, csmi2015, csmi2021, namingFile, n_max = Inf)
+.loadCSMI(csmi2015, csmi2021, namingFile)
 }
 \arguments{
-\item{csmi2015}{a string specifying the directory containing CSMI 2015 data}
+\item{csmi2015}{a string specifying the URL for CSMI 2015 zipped database}
 
 \item{csmi2021}{a string specifying the directory containing the CSMI 2021 data}
+
+\item{namingFile}{filepath to a file containing mappings for analyte names#'}
 }
 \value{
 dataframe of the fully joined water quality data from CSMI years 2015 and 2021
 }
 \description{
-\code{LoadCSMI} returns a dataframe of all of the joined water quality data relating to CSMI years
+\code{loadCSMI} returns a dataframe of all of the joined water quality data relating to CSMI years
 2015 and 2021.
 }
 \details{

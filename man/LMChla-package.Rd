@@ -4,18 +4,18 @@
 \name{LMChla-package}
 \alias{LMChla}
 \alias{LMChla-package}
-\title{LMChla: Lake Michigan Chlorophyll-a and water quality assembler}
+\title{LMChla: Great Lakes water quality data harmonizer}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-This package loads in-situ water quality data from NCCA, CSMI, and GLENDA covering the years 2010, 2015, and 2020/2021, plus some additional data in a number of other years comprised of both CTD and lab sample data. It standardizes the data for joining and runs quality control checks on each of the data sources separately as well as in its integrated state. It is meant to lower the barrier of entry for researchers interested in water quality in the great lakes over this time period.
+This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated dataset are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes.
 }
 \author{
-\strong{Maintainer}: Kelsey Vitense \email{vitense.kelsey@epa.gov}
+\strong{Maintainer}: Kelsey Vitense \email{vitense.kelsey@epa.gov} (\href{https://orcid.org/0000-0003-2455-5513}{ORCID})
 
 Authors:
 \itemize{
-  \item Christian Coffman \email{coffman.christian@epa.gov} (\href{https://orcid.org/0000-0002-5524-864X}{ORCID})
+  \item Christian Coffman (\href{https://orcid.org/0000-0002-5524-864X}{ORCID})
 }
 
 }

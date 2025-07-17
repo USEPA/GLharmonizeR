@@ -7,7 +7,13 @@
 .loadNCCAwq2015(NCCAwq2015, NCCAsites2015, namingFile, n_max = Inf)
 }
 \arguments{
-\item{NCCAwq2015}{a string specifying the directory of the data}
+\item{NCCAwq2015}{a string specifying the URL for the data}
+
+\item{NCCAsites2015}{a string specifying the URL for the site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe

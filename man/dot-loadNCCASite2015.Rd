@@ -7,7 +7,7 @@
 .loadNCCASite2015(NCCAsites2015)
 }
 \arguments{
-\item{NCCAsites2015}{a string specifying the directory of the data}
+\item{NCCAsites2015}{a string specifying the filepath of the data. This is usually a url.}
 }
 \value{
 dataframe

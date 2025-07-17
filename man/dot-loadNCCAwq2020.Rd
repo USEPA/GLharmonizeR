@@ -7,9 +7,13 @@
 .loadNCCAwq2020(NCCAwq2020, NCCAsites2020, namingFile, n_max = Inf)
 }
 \arguments{
-\item{NCCAwq2020}{a string specifying the directory of the data}
+\item{NCCAwq2020}{a string specifying the URL for the data}
 
-\item{NCCAsites2020}{a string specifying the directory of the data}
+\item{NCCAsites2020}{a string specifying the URL for the data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe
@@ -18,6 +22,6 @@ dataframe
 \code{.loadNCCAwq2020} returns water chemistry data measured during the NCCA study in 2020
 }
 \details{
-This is a hidden function, this should be used for development purposes only, users will only call
+THIS FUNCTION HAS NOT BEEN REVIEWED. This is a hidden function, this should be used for development purposes only, users will only call
 this function implicitly when assembling their full water quality dataset
 }

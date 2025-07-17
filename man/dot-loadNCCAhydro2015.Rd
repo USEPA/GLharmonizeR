@@ -2,12 +2,18 @@
 % Please edit documentation in R/NCCAhydrological.R
 \name{.loadNCCAhydro2015}
 \alias{.loadNCCAhydro2015}
-\title{Load and join NCCA 2015 hydrographic data from csv files}
+\title{Load and join NCCA 2015 hydrographic data from online csv files}
 \usage{
 .loadNCCAhydro2015(NCCAhydrofile2015, NCCAsites2015, namingFile, n_max = Inf)
 }
 \arguments{
-\item{NCCAhydrofile2015}{a string specifying the filepath of the data}
+\item{NCCAhydrofile2015}{a string specifying the URL for the data}
+
+\item{NCCAsites2015}{a string specifying the URL for the site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe

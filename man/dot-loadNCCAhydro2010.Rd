@@ -2,7 +2,7 @@
 % Please edit documentation in R/NCCAhydrological.R
 \name{.loadNCCAhydro2010}
 \alias{.loadNCCAhydro2010}
-\title{Load and join NCCA 2010 hydrographic data from csv files}
+\title{Load and join NCCA 2010 hydrographic data from online csv files}
 \usage{
 .loadNCCAhydro2010(
   NCCAhydrofiles2010,
@@ -12,7 +12,13 @@
 )
 }
 \arguments{
-\item{filepath}{a string specifying the filepath of the data}
+\item{NCCAhydrofiles2010}{a string specifying the URL for the data}
+
+\item{NCCAsites2010}{a string specifying the URL for the site data}
+
+\item{namingFile}{a string specifying the URL for the analyte naming file}
+
+\item{n_max}{Number of rows to read in from the data file (this is just for testing purposes)}
 }
 \value{
 dataframe
