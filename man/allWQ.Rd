@@ -40,7 +40,7 @@ A data frame with 374368 rows and 27 variables:
 GLharmonizeR Great Lakes water quality R package. See GitHub documentation for more information (https://github.com/USEPA/GLharmonizeR).
 }
 \usage{
-data(allWQ)
+allWQ
 }
 \description{
 A dataset containing water quality measurements from NCCA, CSMI, GLNPO,

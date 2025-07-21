@@ -4,10 +4,9 @@
 #'  and NOAA data sources. See GitHub documentation for more information (https://github.com/USEPA/GLharmonizeR).
 #'
 #' @name allWQ
+#' @aliases allWQ
 #' @author Kelsey Vitense \email{vitense.kelsey@epa.gov}
 #' @author Christian Coffman
-#' @keywords datasets
-#' @usage data(allWQ)
 #' @docType data
 #' @format A data frame with 374368 rows and 27 variables:
 #' \describe{
