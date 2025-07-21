@@ -37,7 +37,7 @@ A data frame with 372824 rows and 27 variables:
 }
 }
 \source{
-{allWQ} GLharmonizeR Great Lakes water quality R package.
+GLharmonizeR Great Lakes water quality R package.
 }
 \usage{
 data(allWQ)

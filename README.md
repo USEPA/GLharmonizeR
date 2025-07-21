@@ -30,7 +30,7 @@ This package aids users in acquiring fully assembled and harmonized water qualit
 data("allWQ")
 ```
 
--   Note: this comes from a static realization of the source data created on 2025-07-16 and therefore may not be up to date.
+-   Note: this comes from a static realization of the source data created on 2025-07-21 and therefore may not be up to date.
 
 2)  Using functions provided by the package
 

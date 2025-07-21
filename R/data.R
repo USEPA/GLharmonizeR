@@ -40,5 +40,5 @@
 #'   \item{Orig_QAdefinition}{QA definition in the original data source}
 #' }
 #'
-#' @source {allWQ} GLharmonizeR Great Lakes water quality R package.
+#' @source GLharmonizeR Great Lakes water quality R package.
 "allWQ"
