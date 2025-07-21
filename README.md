@@ -4,6 +4,11 @@ This R package contains functions to integrate Great Lakes water quality data fr
 
 # Installation
 
+First make sure the package "devtools" is installed:
+``` r
+install.packages("devtools")
+```
+
 This package can be installed directly from the Github source code as follows:
 
 ``` r
@@ -12,7 +17,7 @@ devtools::install_github("USEPA/GLharmonizeR")
 library(GLharmonizeR)
 ```
 
-Note: This requires the package "devtools" which can be installed as follows: `install.packages("devtools")`.
+
 
 # Acquiring data
 
