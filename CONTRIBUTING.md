@@ -1,6 +1,6 @@
 This section provides additional details that are unnecessary for the general user. That being said, it will not contain all of the high level details that are outlined in the [User Documentation](#user-documentation).
 
-This document is about how to contribute to the LMChla repository. This process looks a bit different depending on whether you’re a member of the public or a member of the development team. Here’s what you can find in this doc:
+This document is about how to contribute to the GLharmonizeR repository. This process looks a bit different depending on whether you’re a member of the public or a member of the development team. Here’s what you can find in this doc:
 
 * [Environment and style](#environment-and-style)
 * [Public contributions](#Contributions)
@@ -33,7 +33,7 @@ Tags in code are supported to make it easier to search when searching for things
 In order to cut down time tests take to run, tests for a given data source should all be run together. To accomplish this, the data should be stored as a fixture and then tested. Tests are run through ['testthat' R package](https://testthat.r-lib.org/). Code coverage is provided by [covr](https://covr.r-lib.org/).
 
 ## Contributions
-We are glad you are thinking about contributing to LMChla. If you have questions, contact the maintainer in the [description file](DESCRIPTION.md)) with your question — or submit the issue or pull request anyway. The worst that can happen is you will be politely asked to change something. We love all friendly contributions.
+We are glad you are thinking about contributing to GLharmonizeR. If you have questions, contact the maintainer in the [description file](DESCRIPTION.md)) with your question — or submit the issue or pull request anyway. The worst that can happen is you will be politely asked to change something. We love all friendly contributions.
 
 We encourage you to read this project's CONTRIBUTING policy (you are here), its [LICENSE](LICENSE.md), and its [README](README.md).
 

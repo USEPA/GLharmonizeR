@@ -1,6 +1,6 @@
 ^renv$
 ^renv\.lock$
-^LMChla\.Rproj$
+^GLharmonizeR\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^.quarto

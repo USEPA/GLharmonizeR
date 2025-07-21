@@ -1,6 +1,6 @@
-Package: LMChla
+Package: GLharmonizeR
 Title: Great Lakes water quality data harmonizer
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: c(
     person("Kelsey", "Vitense", 
     email = "vitense.kelsey@epa.gov", 
