@@ -5,7 +5,7 @@
 \alias{allWQ}
 \title{Lake Michigan water quality data compiled across federal surveys.}
 \format{
-A data frame with 372824 rows and 27 variables:
+A data frame with 374368 rows and 27 variables:
 \describe{
 \item{UID}{Unique sample ID across all sources}
 \item{Study}{Name of study}
@@ -44,7 +44,7 @@ data(allWQ)
 }
 \description{
 A dataset containing water quality measurements from NCCA, CSMI, GLNPO,
-and NOAA data sources. See GitHub documentation for more information.
+and NOAA data sources. See GitHub documentation for more information (https://github.com/USEPA/GLharmonizeR).
 }
 \author{
 Kelsey Vitense \email{vitense.kelsey@epa.gov}

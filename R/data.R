@@ -1,7 +1,7 @@
 #' Lake Michigan water quality data compiled across federal surveys.
 #'
 #' A dataset containing water quality measurements from NCCA, CSMI, GLNPO,
-#'  and NOAA data sources. See GitHub documentation for more information.
+#'  and NOAA data sources. See GitHub documentation for more information (https://github.com/USEPA/GLharmonizeR).
 #'
 #' @name allWQ
 #' @author Kelsey Vitense \email{vitense.kelsey@epa.gov}
