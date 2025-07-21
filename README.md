@@ -1,4 +1,4 @@
-# LMChla
+# GLharmonizeR
 
 This R package contains functions to integrate Great Lakes water quality data from different federal sources, with data currently available for Lake Michigan. The R package harmonizes water quality parameter names, units, and quality control (QC) flags across survey efforts. Functions for imputing missing and censored data and linking observations in time and space are in progress. This R package and associated data are intended to improve the ability of investigators in federal, state, and local agencies and academia to utilize Great Lakes water quality data to better understand and manage the Great Lakes.
 
@@ -7,7 +7,9 @@ This R package contains functions to integrate Great Lakes water quality data fr
 This package can be installed directly from the Github source code as follows:
 
 ``` r
-devtools::github_install("USEPA/LM_Chla")
+devtools::install_github("USEPA/GLharmonizeR")
+# Load library
+library(GLharmonizeR)
 ```
 
 Note: This requires the package "devtools" which can be installed as follows: `install.packages("devtools")`.
@@ -32,6 +34,9 @@ df <- assembleData()
 
 ``` r
 df <- assembleData(out="filepath", binaryOut = TRUE)
+
+# Example "filepath" for specific user:
+# df <- assembleData(out="C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/LakeMichiganData", binaryOut = TRUE)
 ```
 
 -   This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
@@ -40,6 +45,9 @@ df <- assembleData(out="filepath", binaryOut = TRUE)
 
 ``` r
 df <- assembleData(out="filepath", binaryOut = FALSE)
+
+# Example "filepath" for specific user:
+# df <- assembleData(out="C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/LakeMichiganData", binaryOut = FALSE)
 ```
 
 -   This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
