@@ -9,7 +9,7 @@ First make sure the package "devtools" is installed:
 install.packages("devtools")
 ```
 
-This package can be installed directly from the Github source code as follows:
+The GLharmonizeR package can be installed directly from the Github source code as follows:
 
 ``` r
 devtools::install_github("USEPA/GLharmonizeR")
@@ -21,36 +21,29 @@ library(GLharmonizeR)
 
 # Acquiring data
 
-This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan in two different ways:
+This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan using the `assembleData()` function in a few different ways:
 
-1)  Loading preassembled data
-
--   Access after R package install using 
-``` r
-data("allWQ")
-```
-
--   Note: this comes from a static realization of the source data created on 2025-07-21 and therefore may not be up to date.
-
-2)  Using functions provided by the package
-
+1) Create an R object for use in current R session without writing out the data:
 ``` r
 df <- assembleData()
 ```
-
 -   Creates R object `df` for use in current R session
 -   Does not write output
 
+
+2) Write data to a compressed .rda file by supplying file path.
 ``` r
 df <- assembleData(out="filepath", binaryOut = TRUE)
 
 # Example "filepath" for specific user:
 # df <- assembleData(out="C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/LakeMichiganData", binaryOut = TRUE)
 ```
-
 -   This will save an RData (rda) binary version of the compiled data to the location specified by "filepath" (note that an '.rda' extension will automatically be added to the provided filepath and should not be included)
 -   RData/rda files can be loaded in R using `load("filepath.rda")`
 -   Also creates an R object `df` for use in current R session
+
+
+3) Write data to a CSV file by supplying file path.
 
 ``` r
 df <- assembleData(out="filepath", binaryOut = FALSE)
@@ -58,10 +51,10 @@ df <- assembleData(out="filepath", binaryOut = FALSE)
 # Example "filepath" for specific user:
 # df <- assembleData(out="C:/Users/KVITENSE/OneDrive - Environmental Protection Agency (EPA)/Profile/Desktop/LakeMichiganData", binaryOut = FALSE)
 ```
-
 -   This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
 -   CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
 -   Also creates an R object `df` for use in current R session
+
 
 # Column names and descriptions
 
@@ -198,6 +191,7 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 -   Report any issues via Github either as a discussion or open an issue
 
 # KNOWN ISSUES
+-   Precompiled data file in /data/allWQ.rda is not being recognized after package install.
 -   Unit tests are not currently implemented.
 -   Some GLNPO sites are missing latitude/longitudes or do not have decimal degrees reported to many decimal places. This is especially true for earlier years (1980s and 1990s).
 -   Some CSMI 2021 sites (STO#) are missing latitude/longitudes.
@@ -205,6 +199,16 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 -   NCCA 2015 Diss_NOx was computed as sum of nitrate and nitrite, and their MDLs and RLs were also summed together; unsure of validity of this approach.
 -   NCCA 2020 data are not currently included (functions still need review).
 -   NOAA CTD data has a lot of dropped data at 1-2 m depth, which needs investigation.
+
+<!---
+1)  Loading preassembled data
+-   Access after R package install using 
+``` r
+data("allWQ")
+```
+-   Note: this comes from a static realization of the source data created on 2025-07-21 and therefore may not be up to date.
+-->
+
 
 
 
