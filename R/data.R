@@ -9,7 +9,7 @@
 #' @keywords datasets
 #' @usage data(allWQ)
 #' @docType data
-#' @format A data frame with 372824 rows and 27 variables:
+#' @format A data frame with 374368 rows and 27 variables:
 #' \describe{
 #'   \item{UID}{Unique sample ID across all sources}
 #'   \item{Study}{Name of study}

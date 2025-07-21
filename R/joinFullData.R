@@ -149,7 +149,7 @@ assembleData <- function(out=NULL, .test = FALSE, binaryOut = TRUE) {
   #   dplyr::select(SITE_ID) %>% unique()
   # sum(GLENDA_missLAT$SITE_ID %in% GLNPOseabirdCTD$SITE_ID)
 
-  # *** If add options to ask for specific datasets, note than both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned ***
+  # *** If add options to ask for specific datasets, note that both GLNPO seabird and GLENDA will need to be loaded to impute station depths, even if they're not ultimately returned ***
 
 
   print("Step 4/7: Read and clean CSMI data")

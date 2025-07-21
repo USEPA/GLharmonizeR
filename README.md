@@ -202,7 +202,6 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 -   Some GLNPO sites are missing latitude/longitudes or do not have decimal degrees reported to many decimal places. This is especially true for earlier years (1980s and 1990s).
 -   Some CSMI 2021 sites (STO#) are missing latitude/longitudes.
 -   Times need to be added for CSMI 2021 EPA CTD data (in 'Station Reference' tab).
--   USGS PAR data for CSMI 2021 are not currently included - pending USGS clearance (contact: Nicole Berry).
 -   NCCA 2015 Diss_NOx was computed as sum of nitrate and nitrite, and their MDLs and RLs were also summed together; unsure of validity of this approach.
 -   NCCA 2020 data are not currently included (functions still need review).
 -   NOAA CTD data has a lot of dropped data at 1-2 m depth, which needs investigation.
