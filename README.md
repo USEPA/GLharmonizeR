@@ -25,7 +25,11 @@ This package aids users in acquiring fully assembled and harmonized water qualit
 
 1)  Loading preassembled data
 
--   Access after R package install using \`data("allWQ")
+-   Access after R package install using 
+``` r
+data("allWQ")
+```
+
 -   Note: this comes from a static realization of the source data created on 2025-07-16 and therefore may not be up to date.
 
 2)  Using functions provided by the package
