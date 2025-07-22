@@ -176,7 +176,7 @@ Data were taken from the following sources:
 -   EPA's National Coastal Condition Assessment, [NCCA](https://www.epa.gov/national-aquatic-resource-surveys/ncca)
     -   2010, 2015
 -   Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
-    -   2015, 2020
+    -   2015, 2021
 -   National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
     -   2007 - 2022
 
