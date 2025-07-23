@@ -20,10 +20,8 @@ library(GLharmonizeR)
 **Troubleshooting the installation:**
 If you get an error similar to below, please delete the noted 00LOCK directory and try the install again.
 
-<span style="color:red;">Error: Failed to install 'GLharmonizeR' from GitHub:</span>
-
-<span style="color:red;">ERROR: failed to lock directory ‘C:\\Program Files\\R\\R-4.4.0\\library’ for modifying</span>
-
+<span style="color:red;">Error: Failed to install 'GLharmonizeR' from GitHub:</span><br>
+<span style="color:red;">&nbsp;&nbsp;ERROR: failed to lock directory ‘C:\\Program Files\\R\\R-4.4.0\\library’ for modifying</span><br>
 <span style="color:red;">Try removing ‘C:\\Program Files\\R\\R-4.4.0\\library/00LOCK</span>
 
 
@@ -101,7 +99,7 @@ df <- assembleData(out="filepath", binaryOut = FALSE)
 
 The unified flags to which all QC codes/comments in the original data sources were mapped are described below. The flags/comments from the original data sources can be found in the following columns: Orig_QAcode, Orig_QAcomment, and Orig_QAdefinition. Note that some flags were not found in the original data source and were added during QC checks for this package.
 
-Note that non-detected values (N) and values below the reporting limit (R) were preserved in the data with RESULT set to NA. When available, method detection limits are reported in the 'MDL' column, and reporting limits are found in the 'RL' column.
+Note that non-detected values ('N' flag) and values below the reporting limit ('R' flag) were preserved in the data with RESULT set to NA. When available, method detection limits are reported in the 'MDL' column, and reporting limits are found in the 'RL' column.
 
 Similarly, Secchi disk measurements that were reported to be clear to bottom were flagged with 'B' and RESULT was set to NA.
 
