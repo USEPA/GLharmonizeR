@@ -17,13 +17,21 @@ devtools::install_github("USEPA/GLharmonizeR")
 library(GLharmonizeR)
 ```
 
+**Troubleshooting the installation:**
+If you get an error similar to below, please delete the noted 00LOCK directory and try the install again.
+
+<span style="color:red;">Error: Failed to install 'GLharmonizeR' from GitHub:</span>
+
+<span style="color:red;">ERROR: failed to lock directory ‘C:\\Program Files\\R\\R-4.4.0\\library’ for modifying</span>
+
+<span style="color:red;">Try removing ‘C:\\Program Files\\R\\R-4.4.0\\library/00LOCK</span>
 
 
 # Acquiring data
 
-This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan using the `assembleData()` function in a few different ways:
+This package aids users in acquiring fully assembled and harmonized water quality data for Lake Michigan using the `assembleData()` function in a few different ways, as shown below. *Note that the* `assembleData()` *function will produce warnings from the underlying functions that manipulate the data. These are all expected and do not indicate a problem.*
 
-1) Create an R object for use in current R session without writing out the data:
+**1) Create an R object for use in current R session without writing out the data:**
 ``` r
 df <- assembleData()
 ```
@@ -31,7 +39,7 @@ df <- assembleData()
 -   Does not write output
 
 
-2) Write data to a compressed .rda file by supplying file path.
+**2) Write data to a compressed .rda file by supplying file path.**
 ``` r
 df <- assembleData(out="filepath", binaryOut = TRUE)
 
@@ -43,7 +51,7 @@ df <- assembleData(out="filepath", binaryOut = TRUE)
 -   Also creates an R object `df` for use in current R session
 
 
-3) Write data to a CSV file by supplying file path.
+**3) Write data to a CSV file by supplying file path.**
 
 ``` r
 df <- assembleData(out="filepath", binaryOut = FALSE)
@@ -54,6 +62,7 @@ df <- assembleData(out="filepath", binaryOut = FALSE)
 -   This will save a CSV version of the compiled data to the location specified by "filepath" (note that a '.csv' extension will automatically be added to the provided filepath and should not be included)
 -   CSV files can be read into R using `read.csv("filepath.csv")` or `readr::read_csv("filepath.csv")`
 -   Also creates an R object `df` for use in current R session
+
 
 
 # Column names and descriptions
@@ -100,7 +109,7 @@ Tools are in development to impute these censored measurements but are not avail
 
 Note that all values preserved in this dataset were judged to be acceptable per conversations with data owners. However, we leave it to users to inspect flagged data and determine whether observations should be removed for any given application.
 
-| Unified flag code (Unified_Flag column) | Unified flag meaning (Unified_Comment flag)                                                           |
+| Unified flag code (Unified_Flag column) | Unified flag meaning (Unified_Comment column)                                                           |
 |---------------------|---------------------------------------------------|
 | B                                       | Secchi clear to bottom                                                                                |
 | C                                       | Lab correction factor                                                                                 |
@@ -118,7 +127,7 @@ Note that all values preserved in this dataset were judged to be acceptable per 
 
 Below is a list of water quality parameters currently included in the data. Note that the Category column below is inspired by the water quality parameter 'Theme' in LAGOS-US LIMNO module (Shuvo et al. 2023).
 
-| CodeName  | LongName                                                  | Category          | Explicit_Units |
+| CodeName  | LongName                                                  | Category          | Units |
 |-------------|---------------------|---------------------|------------|
 | CaCO3     | Alkalinity                                                | Chemical_Physical | mg/L           |
 | Diss_NHx  | Ammonia/ammonium, dissolved                               | Nutrients_Algae   | ug/L           |
@@ -128,7 +137,6 @@ Below is a list of water quality parameters currently included in the data. Note
 | Part_C    | Carbon, particulate                                       | Clarity_Carbon    | ug/L           |
 | Diss_Cl   | Chloride, dissolved                                       | Chemical_Physical | mg/L           |
 | Chla      | Chlorophyll-a                                             | Nutrients_Algae   | ug/L           |
-| Cond      | Specific conductivity                                     | Chemical_Physical | uS/cm          |
 | Hardness  | Hardness                                                  | Chemical_Physical | mg/L           |
 | Diss_Mg   | Magnesium, dissolved                                      | Chemical_Physical | mg/L           |
 | Tot_Mg    | Magnesium, unfiltered                                     | Chemical_Physical | mg/L           |
@@ -158,6 +166,7 @@ Below is a list of water quality parameters currently included in the data. Note
 | Diss_SiO2 | Silica, dissolved                                         | Nutrients_Algae   | mg/L           |
 | Diss_Na   | Sodium, dissolved                                         | Chemical_Physical | mg/L           |
 | Tot_Na    | Sodium, unfiltered                                        | Chemical_Physical | mg/L           |
+| Cond      | Specific conductivity                                     | Chemical_Physical | uS/cm          |
 | Diss_SO4  | Sulfate, dissolved                                        | Chemical_Physical | mg/L           |
 | SRP       | Soluble reactive phosphorus (orthophosphate)              | Nutrients_Algae   | ug/L           |
 | Temp      | Temperature                                               | Chemical_Physical | C              |
@@ -177,6 +186,7 @@ Data were taken from the following sources:
     -   2010, 2015
 -   Cooperative Science Monitoring Initiative [CSMI](https://www.epa.gov/great-lakes-monitoring/cooperative-science-and-monitoring-initiative-csmi)
     -   2015, 2021
+    -   2021 PAR data from Berry et al. (2025)
 -   National Oceanic and Atmospheric Administration Great Lakes Environmental Research Laboratory, [NOAA](https://www.glerl.noaa.gov/)
     -   2007 - 2022
 
@@ -190,7 +200,7 @@ The fundamental sampling unit is defined by a unique temporal and spatial positi
 -   Be aware of censored data (see QC flags)
 -   Report any issues via Github either as a discussion or open an issue
 
-# KNOWN ISSUES
+# Known issues
 -   Precompiled data file in /data/allWQ.rda is not being recognized after package install.
 -   Unit tests are not currently implemented.
 -   Some GLNPO sites are missing latitude/longitudes or do not have decimal degrees reported to many decimal places. This is especially true for earlier years (1980s and 1990s).
@@ -215,6 +225,8 @@ data("allWQ")
 # Citations
 
 Shuvo, A.K., N.R. Lottig, K.E. Webster, A. Delany, K. Reinl, C. Gries, N.J. Smith, A.C. Poisson, I.M. McCullough, S.M. Collins, K.B. King, E. Phillips, K.S. Cheruvelil, and P.A. Soranno. 2023. LAGOS-US LIMNO: Data module of surface water chemistry from 1975-2021 for lakes in the conterminous U.S. ver 5. Environmental Data Initiative. https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c (Accessed 2025-07-17).
+
+Berry, N. L., P. M. Dieter, and D. Bunnell. 2025. Underwater measurements of photosynthetically active radiation from 2021 Lake Michigan CSMI survey. U.S. Geological Survey ScienceBase. doi: 10.5066/P13E7ZZF 
 
 # Disclaimer
 
