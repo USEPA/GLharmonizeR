@@ -18,7 +18,7 @@ library(GLharmonizeR)
 ```
 
 **Troubleshooting the installation:**
-If you get an error similar to below, please delete the noted 00LOCK directory and try the install again.
+If you get an error similar to below, please delete the noted 00LOCK directory and try the install again. Note that this may happen if additional package updates/installation gets interrupted.
 
 <span style="color:red;">Error: Failed to install 'GLharmonizeR' from GitHub:</span><br>
 <span style="color:red;">&nbsp;&nbsp;ERROR: failed to lock directory ‘C:\\Program Files\\R\\R-4.4.0\\library’ for modifying</span><br>
@@ -224,7 +224,7 @@ data("allWQ")
 
 Shuvo, A.K., N.R. Lottig, K.E. Webster, A. Delany, K. Reinl, C. Gries, N.J. Smith, A.C. Poisson, I.M. McCullough, S.M. Collins, K.B. King, E. Phillips, K.S. Cheruvelil, and P.A. Soranno. 2023. LAGOS-US LIMNO: Data module of surface water chemistry from 1975-2021 for lakes in the conterminous U.S. ver 5. Environmental Data Initiative. https://doi.org/10.6073/pasta/2c58f5a50ab813919f99cc1f265f271c (Accessed 2025-07-17).
 
-Berry, N. L., P. M. Dieter, and D. Bunnell. 2025. Underwater measurements of photosynthetically active radiation from 2021 Lake Michigan CSMI survey. U.S. Geological Survey ScienceBase. doi: 10.5066/P13E7ZZF 
+Berry, N. L., P. M. Dieter, and D. Bunnell. 2025. Underwater measurements of photosynthetically active radiation from 2021 Lake Michigan CSMI survey. U.S. Geological Survey data release, https://doi.org/10.5066/P13E7ZZF. 
 
 # Disclaimer
 
